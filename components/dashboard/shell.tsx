@@ -80,14 +80,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               </MenuBarItem>
             </Link>
           ))}
-          <button onClick={handleLogout} className="block w-full text-left">
+          <div onClick={handleLogout} role="button" tabIndex={0} className="block w-full cursor-pointer">
             <MenuBarItem
               value="logout"
               icon={<NavIcon icon="🚪" label="Sign out" />}
             >
               Sign out
             </MenuBarItem>
-          </button>
+          </div>
         </MenuBarSection>
       </MenuBar>
 

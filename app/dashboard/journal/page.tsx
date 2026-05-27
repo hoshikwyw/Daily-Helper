@@ -130,9 +130,11 @@ export default function JournalPage() {
       error = res.error;
       data = res.data as JournalEntry | null;
     } else {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setSaving(false); return; }
       const res = await supabase
         .from("journal_entries")
-        .insert(payload)
+        .insert({ ...payload, user_id: user.id })
         .select()
         .single();
       error = res.error;

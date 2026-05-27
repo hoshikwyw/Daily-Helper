@@ -119,6 +119,8 @@ export default function ProjectsPage() {
     e.preventDefault();
     if (!newName.trim()) return;
     setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setSaving(false); return; }
     const techStack = newTech.split(",").map((s) => s.trim()).filter(Boolean);
     const { data, error } = await supabase
       .from("projects")
@@ -130,6 +132,7 @@ export default function ProjectsPage() {
         tech_stack: techStack,
         repository_url: newRepo.trim() || null,
         notes: null,
+        user_id: user.id,
       })
       .select()
       .single();

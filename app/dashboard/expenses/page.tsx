@@ -175,6 +175,8 @@ export default function ExpensesPage() {
     const amount = parseFloat(newAmount);
     if (!newAmount || isNaN(amount) || amount <= 0) return;
     setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setSaving(false); return; }
     const { data, error } = await supabase
       .from("expenses")
       .insert({
@@ -182,6 +184,7 @@ export default function ExpensesPage() {
         category: newCategory,
         description: newDesc.trim() || null,
         date: newDate,
+        user_id: user.id,
       })
       .select()
       .single();

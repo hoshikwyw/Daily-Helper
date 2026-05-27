@@ -97,9 +97,11 @@ export default function TodayPage() {
   async function handleQuickAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!quickTitle.trim()) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
     const { data, error } = await supabase
       .from("tasks")
-      .insert({ title: quickTitle.trim(), status: "todo", priority: "medium", due_date: today })
+      .insert({ title: quickTitle.trim(), status: "todo", priority: "medium", due_date: today, user_id: user.id })
       .select()
       .single();
     if (error) {
@@ -129,9 +131,11 @@ export default function TodayPage() {
       await supabase.from("journal_entries").update({ mood: mood as Mood }).eq("id", journal.id);
       setJournal((j) => (j ? { ...j, mood: mood as Mood } : j));
     } else {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
       const { data } = await supabase
         .from("journal_entries")
-        .insert({ date: today, content: "", mood: mood as Mood, highlights: [] })
+        .insert({ date: today, content: "", mood: mood as Mood, highlights: [], user_id: user.id })
         .select()
         .single();
       if (data) setJournal(data as JournalEntry);

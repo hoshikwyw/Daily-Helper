@@ -92,6 +92,8 @@ export default function TasksPage() {
     e.preventDefault();
     if (!newTitle.trim()) return;
     setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setSaving(false); return; }
     const { data, error } = await supabase
       .from("tasks")
       .insert({
@@ -101,6 +103,7 @@ export default function TasksPage() {
         status: "todo",
         project_id: newProject || null,
         due_date: newDue || null,
+        user_id: user.id,
       })
       .select()
       .single();
