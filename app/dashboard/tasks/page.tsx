@@ -241,7 +241,7 @@ export default function TasksPage() {
 
       {/* Create Modal */}
       <Modal open={showCreate} onClose={() => setShowCreate(false)} size="md">
-        <ModalHeader title="New Task" />
+        <ModalHeader>New Task</ModalHeader>
         <form onSubmit={handleCreate}>
           <ModalBody>
             <div className="space-y-4">

@@ -39,6 +39,27 @@ export interface JournalEntry {
   updated_at: string;
 }
 
+export type ExpenseCategory =
+  | "Food & Drink"
+  | "Transport"
+  | "Shopping"
+  | "Entertainment"
+  | "Health"
+  | "Utilities"
+  | "Education"
+  | "Housing"
+  | "Other";
+
+export interface Expense {
+  id: string;
+  amount: number;
+  category: ExpenseCategory;
+  description: string | null;
+  date: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {

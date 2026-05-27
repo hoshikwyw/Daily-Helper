@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { value: "tasks", label: "Tasks", href: "/dashboard/tasks", icon: "✅" },
   { value: "journal", label: "Journal", href: "/dashboard/journal", icon: "📓" },
   { value: "projects", label: "Projects", href: "/dashboard/projects", icon: "🚀" },
+  { value: "expenses", label: "Expenses", href: "/dashboard/expenses", icon: "💰" },
 ];
 
 const SETTINGS_ITEMS = [

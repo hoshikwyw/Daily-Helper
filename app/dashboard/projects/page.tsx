@@ -303,7 +303,7 @@ export default function ProjectsPage() {
 
       {/* Create Modal */}
       <Modal open={showCreate} onClose={() => setShowCreate(false)} size="md">
-        <ModalHeader title="New Project" />
+        <ModalHeader>New Project</ModalHeader>
         <form onSubmit={handleCreate}>
           <ModalBody>
             <div className="space-y-4">
