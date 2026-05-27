@@ -24,7 +24,9 @@ import {
   GradientBackground,
   toast,
 } from "@kwyw/kayv-glass-ui";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase";
+
+const supabase = createClient();
 import type { Expense, ExpenseCategory } from "@/lib/types";
 
 const CATEGORIES: ExpenseCategory[] = [

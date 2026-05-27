@@ -16,7 +16,9 @@ import {
   Select,
   toast,
 } from "@kwyw/kayv-glass-ui";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase";
+
+const supabase = createClient();
 import type { Task, Project, JournalEntry, Mood } from "@/lib/types";
 
 const MOOD_OPTIONS = [

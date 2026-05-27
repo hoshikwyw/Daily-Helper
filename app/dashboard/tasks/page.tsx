@@ -27,7 +27,9 @@ import {
   GradientBackground,
   toast,
 } from "@kwyw/kayv-glass-ui";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase";
+
+const supabase = createClient();
 import type { Task, Project, TaskStatus, TaskPriority } from "@/lib/types";
 
 const PRIORITY_VARIANTS: Record<TaskPriority, "danger" | "warning" | "primary" | "default"> = {

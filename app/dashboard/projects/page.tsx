@@ -30,7 +30,9 @@ import {
   GradientBackground,
   toast,
 } from "@kwyw/kayv-glass-ui";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase";
+
+const supabase = createClient();
 import type { Project, Task, ProjectStatus } from "@/lib/types";
 
 const STATUS_VARIANTS: Record<ProjectStatus, "success" | "primary" | "warning" | "default"> = {

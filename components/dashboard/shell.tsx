@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   MenuBar,
@@ -9,6 +9,7 @@ import {
   MenuBarItem,
   MenuBarDivider,
 } from "@kwyw/kayv-glass-ui";
+import { createClient } from "@/lib/supabase";
 
 const NAV_ITEMS = [
   { value: "home", label: "Today", href: "/dashboard", icon: "☀️" },
@@ -32,6 +33,14 @@ function NavIcon({ icon, label }: { icon: string; label: string }) {
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   const active =
     NAV_ITEMS.find((i) => pathname === i.href || (i.href !== "/dashboard" && pathname.startsWith(i.href)))?.value ??
@@ -71,6 +80,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               </MenuBarItem>
             </Link>
           ))}
+          <button onClick={handleLogout} className="block w-full text-left">
+            <MenuBarItem
+              value="logout"
+              icon={<NavIcon icon="🚪" label="Sign out" />}
+            >
+              Sign out
+            </MenuBarItem>
+          </button>
         </MenuBarSection>
       </MenuBar>
 
