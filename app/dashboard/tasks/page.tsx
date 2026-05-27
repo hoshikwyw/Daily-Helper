@@ -264,26 +264,32 @@ export default function TasksPage() {
                 onChange={(e) => setNewDesc(e.target.value)}
               />
               <div className="grid grid-cols-2 gap-3">
-                <Select
-                  label="Priority"
-                  value={newPriority}
-                  onChange={(value) => setNewPriority(value as TaskPriority)}
-                  options={[
-                    { value: "low", label: "Low" },
-                    { value: "medium", label: "Medium" },
-                    { value: "high", label: "High" },
-                    { value: "urgent", label: "Urgent" },
-                  ]}
-                />
-                <Select
-                  label="Project"
-                  value={newProject}
-                  onChange={setNewProject}
-                  options={[
-                    { value: "", label: "No project" },
-                    ...projects.map((p) => ({ value: p.id, label: p.name })),
-                  ]}
-                />
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1.5">Priority</label>
+                  <select
+                    value={newPriority}
+                    onChange={(e) => setNewPriority(e.target.value as TaskPriority)}
+                    className="w-full px-3 py-2.5 rounded-lg bg-white/10 border border-white/10 text-slate-200 text-sm focus:outline-none focus:border-white/30 transition-colors"
+                  >
+                    <option value="low" className="bg-[#0f172a]">Low</option>
+                    <option value="medium" className="bg-[#0f172a]">Medium</option>
+                    <option value="high" className="bg-[#0f172a]">High</option>
+                    <option value="urgent" className="bg-[#0f172a]">Urgent</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1.5">Project</label>
+                  <select
+                    value={newProject}
+                    onChange={(e) => setNewProject(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-lg bg-white/10 border border-white/10 text-slate-200 text-sm focus:outline-none focus:border-white/30 transition-colors"
+                  >
+                    <option value="" className="bg-[#0f172a]">No project</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id} className="bg-[#0f172a]">{p.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <Input
                 label="Due date"

@@ -25,33 +25,28 @@ import {
   toast,
 } from "@kwyw/kayv-glass-ui";
 import { createClient } from "@/lib/supabase";
+import type { Expense, CustomCategory } from "@/lib/types";
 
 const supabase = createClient();
-import type { Expense, ExpenseCategory } from "@/lib/types";
 
-const CATEGORIES: ExpenseCategory[] = [
-  "Food & Drink",
-  "Transport",
-  "Shopping",
-  "Entertainment",
-  "Health",
-  "Utilities",
-  "Education",
-  "Housing",
-  "Other",
+const DEFAULT_CATEGORIES: { name: string; color: string }[] = [
+  { name: "Food & Drink", color: "#f97316" },
+  { name: "Transport", color: "#06b6d4" },
+  { name: "Shopping", color: "#8b5cf6" },
+  { name: "Entertainment", color: "#ec4899" },
+  { name: "Health", color: "#10b981" },
+  { name: "Utilities", color: "#6366f1" },
+  { name: "Education", color: "#f59e0b" },
+  { name: "Housing", color: "#ef4444" },
+  { name: "Other", color: "#64748b" },
 ];
 
-const CATEGORY_COLORS: Record<string, string> = {
-  "Food & Drink": "#f97316",
-  "Transport": "#06b6d4",
-  "Shopping": "#8b5cf6",
-  "Entertainment": "#ec4899",
-  "Health": "#10b981",
-  "Utilities": "#6366f1",
-  "Education": "#f59e0b",
-  "Housing": "#ef4444",
-  "Other": "#64748b",
-};
+const PRESET_COLORS = [
+  "#6366f1", "#8b5cf6", "#ec4899", "#f97316",
+  "#10b981", "#06b6d4", "#f59e0b", "#ef4444",
+  "#64748b", "#14b8a6", "#f43f5e", "#84cc16",
+  "#a855f7", "#0ea5e9", "#d946ef", "#22c55e",
+];
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -59,7 +54,7 @@ const MONTHS = [
 ];
 
 function fmt(amount: number) {
-  return `$${amount.toFixed(2)}`;
+  return `K ${Math.round(amount).toLocaleString("en-US")}`;
 }
 
 function toISO(date: Date) {
@@ -83,16 +78,18 @@ function getCategoryBreakdown(exps: Expense[]) {
 
 function ExpenseRow({
   expense,
+  colorMap,
   onDelete,
 }: {
   expense: Expense;
+  colorMap: Record<string, string>;
   onDelete: (id: string) => void;
 }) {
   return (
     <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 group hover:bg-white/8 transition-colors">
       <span
         className="w-2.5 h-2.5 rounded-full shrink-0"
-        style={{ backgroundColor: CATEGORY_COLORS[expense.category] ?? "#64748b" }}
+        style={{ backgroundColor: colorMap[expense.category] ?? "#64748b" }}
       />
       <div className="flex-1 min-w-0">
         <p className="text-sm text-slate-200 truncate">
@@ -118,28 +115,43 @@ export default function ExpensesPage() {
   const today = new Date();
   const [activeTab, setActiveTab] = useState("daily");
 
-  // All expenses for current year (reload when year selection changes)
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchYear, setFetchYear] = useState(today.getFullYear());
 
-  // Daily
   const [selectedDate, setSelectedDate] = useState(toISO(today));
-
-  // Monthly
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth());
   const [selectedMonthYear, setSelectedMonthYear] = useState(today.getFullYear());
-
-  // Yearly
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
 
-  // Create modal
+  // Custom categories from DB
+  const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
+
+  // Add expense modal
   const [showCreate, setShowCreate] = useState(false);
   const [newAmount, setNewAmount] = useState("");
-  const [newCategory, setNewCategory] = useState<ExpenseCategory>("Food & Drink");
+  const [newCategory, setNewCategory] = useState(DEFAULT_CATEGORIES[0].name);
   const [newDesc, setNewDesc] = useState("");
   const [newDate, setNewDate] = useState(toISO(today));
   const [saving, setSaving] = useState(false);
+
+  // Manage categories modal
+  const [showManageCategories, setShowManageCategories] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatColor, setNewCatColor] = useState(PRESET_COLORS[0]);
+  const [savingCat, setSavingCat] = useState(false);
+
+  // Merged category list and color map
+  const allCategories = useMemo(
+    () => [...DEFAULT_CATEGORIES, ...customCategories.map((c) => ({ name: c.name, color: c.color }))],
+    [customCategories]
+  );
+
+  const colorMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const c of allCategories) m[c.name] = c.color;
+    return m;
+  }, [allCategories]);
 
   async function loadExpenses(year: number) {
     setLoading(true);
@@ -154,19 +166,23 @@ export default function ExpensesPage() {
     setLoading(false);
   }
 
+  async function loadCategories() {
+    const { data } = await supabase
+      .from("expense_categories")
+      .select("*")
+      .order("created_at");
+    if (data) setCustomCategories(data as CustomCategory[]);
+  }
+
   useEffect(() => {
     loadExpenses(fetchYear);
+    loadCategories();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchYear]);
 
-  // Sync fetchYear when monthly/yearly year selectors change
   useEffect(() => {
-    if (activeTab === "monthly" && selectedMonthYear !== fetchYear) {
-      setFetchYear(selectedMonthYear);
-    }
-    if (activeTab === "yearly" && selectedYear !== fetchYear) {
-      setFetchYear(selectedYear);
-    }
+    if (activeTab === "monthly" && selectedMonthYear !== fetchYear) setFetchYear(selectedMonthYear);
+    if (activeTab === "yearly" && selectedYear !== fetchYear) setFetchYear(selectedYear);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, selectedMonthYear, selectedYear]);
 
@@ -193,7 +209,6 @@ export default function ExpensesPage() {
       toast({ title: "Error", description: error.message, variant: "danger" });
     } else {
       const expense = data as Expense;
-      // Only prepend if it falls within the currently loaded year
       if (expense.date.startsWith(String(fetchYear))) {
         setExpenses((prev) => [expense, ...prev]);
       }
@@ -212,6 +227,39 @@ export default function ExpensesPage() {
     }
   }
 
+  async function handleAddCategory(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newCatName.trim()) return;
+    if (allCategories.some((c) => c.name.toLowerCase() === newCatName.trim().toLowerCase())) {
+      toast({ title: "Category already exists", variant: "danger" });
+      return;
+    }
+    setSavingCat(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setSavingCat(false); return; }
+    const { data, error } = await supabase
+      .from("expense_categories")
+      .insert({ name: newCatName.trim(), color: newCatColor, user_id: user.id })
+      .select()
+      .single();
+    setSavingCat(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "danger" });
+    } else {
+      setCustomCategories((prev) => [...prev, data as CustomCategory]);
+      setNewCatName("");
+      toast({ title: "Category added", variant: "success" });
+    }
+  }
+
+  async function handleDeleteCategory(id: string) {
+    const { error } = await supabase.from("expense_categories").delete().eq("id", id);
+    if (!error) {
+      setCustomCategories((prev) => prev.filter((c) => c.id !== id));
+      toast({ title: "Category removed", variant: "warning" });
+    }
+  }
+
   const dailyExpenses = useMemo(
     () => expenses.filter((e) => e.date === selectedDate),
     [expenses, selectedDate]
@@ -221,8 +269,6 @@ export default function ExpensesPage() {
     const prefix = `${selectedMonthYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
     return expenses.filter((e) => e.date.startsWith(prefix));
   }, [expenses, selectedMonth, selectedMonthYear]);
-
-  const yearlyExpenses = expenses;
 
   const monthlyTotals = useMemo(() => {
     const maxMonth = Math.max(
@@ -241,8 +287,7 @@ export default function ExpensesPage() {
 
   const dailyTotal = dailyExpenses.reduce((s, e) => s + e.amount, 0);
   const monthlyTotal = monthlyExpenses.reduce((s, e) => s + e.amount, 0);
-  const yearlyTotal = yearlyExpenses.reduce((s, e) => s + e.amount, 0);
-
+  const yearlyTotal = expenses.reduce((s, e) => s + e.amount, 0);
   const yearList = Array.from({ length: 5 }, (_, i) => today.getFullYear() - 2 + i);
 
   return (
@@ -262,9 +307,14 @@ export default function ExpensesPage() {
           <h1 className="text-2xl font-bold text-white">Expenses</h1>
           <p className="text-slate-400 text-sm mt-1">Track your daily, monthly, and yearly spending.</p>
         </div>
-        <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>
-          + Add Expense
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setShowManageCategories(true)}>
+            ⚙ Categories
+          </Button>
+          <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>
+            + Add Expense
+          </Button>
+        </div>
       </div>
 
       <div className="relative">
@@ -280,13 +330,11 @@ export default function ExpensesPage() {
             <TabPanel value="daily">
               <div className="space-y-4 mt-4">
                 <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="date"
-                      value={selectedDate}
-                      onChange={(e) => setSelectedDate(e.target.value)}
-                    />
-                  </div>
+                  <Input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                  />
                   <div className="flex-1 flex justify-end">
                     <div className="text-right">
                       <p className="text-slate-500 text-xs">Total</p>
@@ -295,7 +343,6 @@ export default function ExpensesPage() {
                   </div>
                 </div>
 
-                {/* Category summary for day */}
                 {dailyExpenses.length > 0 && (
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {getCategoryBreakdown(dailyExpenses).slice(0, 3).map(({ category, amount }) => (
@@ -304,7 +351,7 @@ export default function ExpensesPage() {
                           <div className="flex items-center gap-2">
                             <span
                               className="w-2 h-2 rounded-full shrink-0"
-                              style={{ backgroundColor: CATEGORY_COLORS[category] ?? "#64748b" }}
+                              style={{ backgroundColor: colorMap[category] ?? "#64748b" }}
                             />
                             <span className="text-slate-400 text-xs truncate flex-1">{category}</span>
                             <span className="text-white text-sm font-semibold">{fmt(amount)}</span>
@@ -334,7 +381,7 @@ export default function ExpensesPage() {
                     ) : (
                       <div className="space-y-2">
                         {dailyExpenses.map((expense) => (
-                          <ExpenseRow key={expense.id} expense={expense} onDelete={handleDelete} />
+                          <ExpenseRow key={expense.id} expense={expense} colorMap={colorMap} onDelete={handleDelete} />
                         ))}
                       </div>
                     )}
@@ -377,7 +424,7 @@ export default function ExpensesPage() {
                                 <span className="text-slate-300 flex items-center gap-2">
                                   <span
                                     className="w-2 h-2 rounded-full shrink-0"
-                                    style={{ backgroundColor: CATEGORY_COLORS[category] ?? "#64748b" }}
+                                    style={{ backgroundColor: colorMap[category] ?? "#64748b" }}
                                   />
                                   {category}
                                 </span>
@@ -405,7 +452,7 @@ export default function ExpensesPage() {
                       ) : (
                         <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                           {monthlyExpenses.map((expense) => (
-                            <ExpenseRow key={expense.id} expense={expense} onDelete={handleDelete} />
+                            <ExpenseRow key={expense.id} expense={expense} colorMap={colorMap} onDelete={handleDelete} />
                           ))}
                         </div>
                       )}
@@ -430,13 +477,12 @@ export default function ExpensesPage() {
                   </div>
                 </div>
 
-                {/* Quick stat cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
                     { label: "Avg/month", value: fmt(yearlyTotal / 12) },
                     { label: "Avg/day", value: fmt(yearlyTotal / 365) },
-                    { label: "Entries", value: String(yearlyExpenses.length) },
-                    { label: "Categories", value: String(new Set(yearlyExpenses.map((e) => e.category)).size) },
+                    { label: "Entries", value: String(expenses.length) },
+                    { label: "Categories", value: String(new Set(expenses.map((e) => e.category)).size) },
                   ].map(({ label, value }) => (
                     <Card key={label} variant="elevated">
                       <CardContent>
@@ -458,7 +504,7 @@ export default function ExpensesPage() {
                             <div className="flex-1">
                               <Progress value={pct} variant={sum > 0 ? "primary" : "warning"} size="sm" />
                             </div>
-                            <span className="text-slate-300 text-xs w-20 text-right shrink-0 font-medium">
+                            <span className="text-slate-300 text-xs w-24 text-right shrink-0 font-medium">
                               {sum > 0 ? fmt(sum) : "—"}
                             </span>
                           </div>
@@ -470,15 +516,15 @@ export default function ExpensesPage() {
                   <Card variant="elevated">
                     <CardHeader title="By Category" />
                     <CardContent>
-                      {yearlyExpenses.length === 0 ? (
+                      {expenses.length === 0 ? (
                         <p className="text-slate-500 text-sm text-center py-8">No expenses this year.</p>
                       ) : (
                         <div className="space-y-3">
-                          {getCategoryBreakdown(yearlyExpenses).map(({ category, amount, pct }) => (
+                          {getCategoryBreakdown(expenses).map(({ category, amount, pct }) => (
                             <div key={category} className="flex items-center gap-3">
                               <span
                                 className="w-2.5 h-2.5 rounded-full shrink-0"
-                                style={{ backgroundColor: CATEGORY_COLORS[category] ?? "#64748b" }}
+                                style={{ backgroundColor: colorMap[category] ?? "#64748b" }}
                               />
                               <span className="text-slate-300 text-sm flex-1">{category}</span>
                               <Badge variant="default" size="sm">{pct}%</Badge>
@@ -496,28 +542,36 @@ export default function ExpensesPage() {
         </Tabs>
       </div>
 
-      {/* Add Expense Modal */}
+      {/* ── Add Expense Modal ── */}
       <Modal open={showCreate} onClose={() => setShowCreate(false)} size="sm">
         <ModalHeader>Add Expense</ModalHeader>
         <form onSubmit={handleCreate}>
           <ModalBody>
             <div className="space-y-4">
               <Input
-                label="Amount ($)"
+                label="Amount (K)"
                 type="number"
-                step="0.01"
-                min="0.01"
-                placeholder="0.00"
+                step="1"
+                min="1"
+                placeholder="0"
                 value={newAmount}
                 onChange={(e) => setNewAmount(e.target.value)}
                 required
               />
-              <Select
-                label="Category"
-                value={newCategory}
-                onChange={(v) => setNewCategory(v as ExpenseCategory)}
-                options={CATEGORIES.map((c) => ({ value: c, label: c }))}
-              />
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">Category</label>
+                <select
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-lg bg-white/10 border border-white/10 text-slate-200 text-sm focus:outline-none focus:border-white/30 transition-colors"
+                >
+                  {allCategories.map((c) => (
+                    <option key={c.name} value={c.name} className="bg-[#0f172a] text-slate-200">
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <Input
                 label="Description"
                 placeholder="Coffee, groceries, taxi…"
@@ -541,6 +595,90 @@ export default function ExpensesPage() {
             </Button>
           </ModalFooter>
         </form>
+      </Modal>
+
+      {/* ── Manage Categories Modal ── */}
+      <Modal open={showManageCategories} onClose={() => setShowManageCategories(false)} size="sm">
+        <ModalHeader>Manage Categories</ModalHeader>
+        <ModalBody>
+          <div className="space-y-5">
+            {/* Add new category */}
+            <div>
+              <p className="text-xs text-slate-500 uppercase tracking-wide mb-3">Add New Category</p>
+              <form onSubmit={handleAddCategory} className="space-y-3">
+                <Input
+                  label="Category name"
+                  placeholder="e.g. Subscriptions"
+                  value={newCatName}
+                  onChange={(e) => setNewCatName(e.target.value)}
+                  required
+                />
+                <div>
+                  <label className="block text-sm text-slate-400 mb-2">Color</label>
+                  <div className="flex flex-wrap gap-2">
+                    {PRESET_COLORS.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setNewCatColor(c)}
+                        className={`w-6 h-6 rounded-full transition-transform ${
+                          newCatColor === c ? "scale-125 ring-2 ring-white/60" : "hover:scale-110"
+                        }`}
+                        style={{ backgroundColor: c }}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <Button variant="primary" type="submit" size="sm" disabled={savingCat}>
+                  {savingCat ? "Adding…" : "Add Category"}
+                </Button>
+              </form>
+            </div>
+
+            <div className="border-t border-white/10" />
+
+            {/* Default categories (read-only) */}
+            <div>
+              <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Default</p>
+              <div className="space-y-1.5">
+                {DEFAULT_CATEGORIES.map((c) => (
+                  <div key={c.name} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg bg-white/5">
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+                    <span className="text-slate-300 text-sm flex-1">{c.name}</span>
+                    <span className="text-slate-600 text-xs">built-in</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom categories */}
+            {customCategories.length > 0 && (
+              <div>
+                <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Custom</p>
+                <div className="space-y-1.5">
+                  {customCategories.map((c) => (
+                    <div key={c.id} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg bg-white/5 group">
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+                      <span className="text-slate-300 text-sm flex-1">{c.name}</span>
+                      <button
+                        onClick={() => handleDeleteCategory(c.id)}
+                        className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition-all text-base leading-none px-1"
+                        aria-label="Delete category"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="ghost" onClick={() => setShowManageCategories(false)}>
+            Done
+          </Button>
+        </ModalFooter>
       </Modal>
     </div>
   );

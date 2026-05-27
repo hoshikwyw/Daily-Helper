@@ -54,6 +54,15 @@ create table if not exists expenses (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists expense_categories (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  name text not null,
+  color text not null default '#64748b',
+  created_at timestamptz not null default now(),
+  unique (user_id, name)
+);
+
 -- Auto-update updated_at
 create or replace function update_updated_at()
 returns trigger as $$
@@ -84,8 +93,10 @@ alter table projects enable row level security;
 alter table tasks enable row level security;
 alter table journal_entries enable row level security;
 alter table expenses enable row level security;
+alter table expense_categories enable row level security;
 
 create policy "Own data only" on projects for all using (auth.uid() = user_id);
 create policy "Own data only" on tasks for all using (auth.uid() = user_id);
 create policy "Own data only" on journal_entries for all using (auth.uid() = user_id);
 create policy "Own data only" on expenses for all using (auth.uid() = user_id);
+create policy "Own data only" on expense_categories for all using (auth.uid() = user_id);

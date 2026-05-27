@@ -39,21 +39,19 @@ export interface JournalEntry {
   updated_at: string;
 }
 
-export type ExpenseCategory =
-  | "Food & Drink"
-  | "Transport"
-  | "Shopping"
-  | "Entertainment"
-  | "Health"
-  | "Utilities"
-  | "Education"
-  | "Housing"
-  | "Other";
+export type ExpenseCategory = string;
+
+export interface CustomCategory {
+  id: string;
+  name: string;
+  color: string;
+  created_at: string;
+}
 
 export interface Expense {
   id: string;
   amount: number;
-  category: ExpenseCategory;
+  category: string;
   description: string | null;
   date: string;
   created_at: string;
