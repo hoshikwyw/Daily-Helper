@@ -1,0 +1,41 @@
+@import "tailwindcss";
+@source "../node_modules/@kwyw/kayv-glass-ui/dist";
+
+:root {
+  --background: #0d0d1a;
+  --foreground: #e2e8f0;
+  /* Default indigo theme — ThemeProvider overrides at runtime */
+  --kv-p-50: 238 242 255;
+  --kv-p-100: 224 231 255;
+  --kv-p-200: 199 210 254;
+  --kv-p-300: 165 180 252;
+  --kv-p-400: 129 140 248;
+  --kv-p-500: 99 102 241;
+  --kv-p-600: 79 70 229;
+  --kv-p-700: 67 56 202;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-kv-50: rgb(var(--kv-p-50));
+  --color-kv-100: rgb(var(--kv-p-100));
+  --color-kv-200: rgb(var(--kv-p-200));
+  --color-kv-300: rgb(var(--kv-p-300));
+  --color-kv-400: rgb(var(--kv-p-400));
+  --color-kv-500: rgb(var(--kv-p-500));
+  --color-kv-600: rgb(var(--kv-p-600));
+  --color-kv-700: rgb(var(--kv-p-700));
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans, system-ui, sans-serif);
+}
