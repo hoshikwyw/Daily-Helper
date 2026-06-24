@@ -4,7 +4,7 @@
 :root {
   --background: #0d0d1a;
   --foreground: #e2e8f0;
-  /* Default indigo theme — ThemeProvider overrides at runtime */
+  /* Default indigo palette — used until ThemeProvider sets [data-theme] on <html> */
   --kv-p-50: 238 242 255;
   --kv-p-100: 224 231 255;
   --kv-p-200: 199 210 254;
@@ -13,6 +13,73 @@
   --kv-p-500: 99 102 241;
   --kv-p-600: 79 70 229;
   --kv-p-700: 67 56 202;
+}
+
+/*
+ * Theme palettes. The library's ThemeProvider applies a theme by setting
+ * data-theme="glass-<name>" on <html> (it does NOT write inline color vars),
+ * so each theme's --kv-p-* palette must be defined here. Values come from the
+ * library's exported `themes` array.
+ */
+[data-theme="glass-indigo"] {
+  --kv-p-50: 238 242 255;
+  --kv-p-100: 224 231 255;
+  --kv-p-200: 199 210 254;
+  --kv-p-300: 165 180 252;
+  --kv-p-400: 129 140 248;
+  --kv-p-500: 99 102 241;
+  --kv-p-600: 79 70 229;
+  --kv-p-700: 67 56 202;
+}
+[data-theme="glass-violet"] {
+  --kv-p-50: 245 243 255;
+  --kv-p-100: 237 233 254;
+  --kv-p-200: 221 214 254;
+  --kv-p-300: 196 181 253;
+  --kv-p-400: 167 139 250;
+  --kv-p-500: 139 92 246;
+  --kv-p-600: 124 58 237;
+  --kv-p-700: 109 40 217;
+}
+[data-theme="glass-sky"] {
+  --kv-p-50: 240 249 255;
+  --kv-p-100: 224 242 254;
+  --kv-p-200: 186 230 253;
+  --kv-p-300: 125 211 252;
+  --kv-p-400: 56 189 248;
+  --kv-p-500: 14 165 233;
+  --kv-p-600: 2 132 199;
+  --kv-p-700: 3 105 161;
+}
+[data-theme="glass-emerald"] {
+  --kv-p-50: 236 253 245;
+  --kv-p-100: 209 250 229;
+  --kv-p-200: 167 243 208;
+  --kv-p-300: 110 231 183;
+  --kv-p-400: 52 211 153;
+  --kv-p-500: 16 185 129;
+  --kv-p-600: 5 150 105;
+  --kv-p-700: 4 120 87;
+}
+[data-theme="glass-rose"] {
+  --kv-p-50: 255 241 242;
+  --kv-p-100: 255 228 230;
+  --kv-p-200: 254 205 211;
+  --kv-p-300: 253 164 175;
+  --kv-p-400: 251 113 133;
+  --kv-p-500: 244 63 94;
+  --kv-p-600: 225 29 72;
+  --kv-p-700: 190 18 60;
+}
+[data-theme="glass-amber"] {
+  --kv-p-50: 255 251 235;
+  --kv-p-100: 254 243 199;
+  --kv-p-200: 253 230 138;
+  --kv-p-300: 252 211 77;
+  --kv-p-400: 251 191 36;
+  --kv-p-500: 245 158 11;
+  --kv-p-600: 217 119 6;
+  --kv-p-700: 180 83 9;
 }
 
 @theme inline {
