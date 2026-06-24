@@ -1,24 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Card,
   CardHeader,
   CardContent,
   CardFooter,
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-  Drawer,
-  DrawerHeader,
-  DrawerBody,
-  DrawerFooter,
   Badge,
   Progress,
   Button,
   Input,
-  Select,
   Modal,
   ModalHeader,
   ModalBody,
@@ -33,7 +25,7 @@ import {
 import { createClient } from "@/lib/supabase";
 
 const supabase = createClient();
-import type { Project, Task, ProjectStatus } from "@/lib/types";
+import type { Project, ProjectStatus } from "@/lib/types";
 
 const STATUS_VARIANTS: Record<ProjectStatus, "success" | "primary" | "warning" | "default"> = {
   active: "primary",
@@ -53,11 +45,6 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<"all" | ProjectStatus>("all");
 
-  // Drawer
-  const [selected, setSelected] = useState<Project | null>(null);
-  const [projectTasks, setProjectTasks] = useState<Task[]>([]);
-  const [loadingTasks, setLoadingTasks] = useState(false);
-
   // Create modal
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
@@ -66,9 +53,6 @@ export default function ProjectsPage() {
   const [newTech, setNewTech] = useState("");
   const [newRepo, setNewRepo] = useState("");
   const [saving, setSaving] = useState(false);
-
-  // Edit status
-  const [editStatus, setEditStatus] = useState<ProjectStatus>("active");
 
   async function loadData() {
     const { data: proj } = await supabase
@@ -101,19 +85,6 @@ export default function ProjectsPage() {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  async function openDrawer(project: Project) {
-    setSelected(project);
-    setEditStatus(project.status);
-    setLoadingTasks(true);
-    const { data } = await supabase
-      .from("tasks")
-      .select("*")
-      .eq("project_id", project.id)
-      .order("created_at", { ascending: false });
-    setProjectTasks(data ?? []);
-    setLoadingTasks(false);
-  }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -148,36 +119,6 @@ export default function ProjectsPage() {
       setNewTech("");
       setNewRepo("");
       toast({ title: "Project created!", variant: "success" });
-    }
-  }
-
-  async function handleStatusUpdate() {
-    if (!selected) return;
-    const { error } = await supabase
-      .from("projects")
-      .update({ status: editStatus })
-      .eq("id", selected.id);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "danger" });
-    } else {
-      setProjects((prev) =>
-        prev.map((p) => (p.id === selected.id ? { ...p, status: editStatus } : p))
-      );
-      setSelected(null);
-      if (editStatus === "completed") {
-        toast({ title: "Project completed! 🎉", variant: "success" });
-      } else {
-        toast({ title: "Status updated", variant: "success" });
-      }
-    }
-  }
-
-  async function handleDelete(id: string) {
-    const { error } = await supabase.from("projects").delete().eq("id", id);
-    if (!error) {
-      setProjects((prev) => prev.filter((p) => p.id !== id));
-      setSelected(null);
-      toast({ title: "Project deleted", variant: "warning" });
     }
   }
 
@@ -288,9 +229,11 @@ export default function ProjectsPage() {
                   )}
                 </CardContent>
                 <CardFooter>
-                  <Button variant="ghost" size="sm" onClick={() => openDrawer(project)}>
-                    View details →
-                  </Button>
+                  <Link href={`/dashboard/projects/${project.id}`}>
+                    <Button variant="ghost" size="sm">
+                      View details →
+                    </Button>
+                  </Link>
                   {project.status === "completed" && (
                     <ConfettiButton
                       preset="stars"
@@ -361,114 +304,6 @@ export default function ProjectsPage() {
           </ModalFooter>
         </form>
       </Modal>
-
-      {/* Detail Drawer */}
-      <Drawer open={!!selected} onClose={() => setSelected(null)} placement="right" size="md">
-        {selected && (
-          <>
-            <DrawerHeader>{selected.name}</DrawerHeader>
-            <DrawerBody>
-              <div className="space-y-6">
-                {selected.description && (
-                  <div>
-                    <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Description</p>
-                    <p className="text-slate-300 text-sm">{selected.description}</p>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Status</p>
-                    <Select
-                      value={editStatus}
-                      onChange={(value) => setEditStatus(value as ProjectStatus)}
-                      options={[
-                        { value: "active", label: "Active" },
-                        { value: "paused", label: "Paused" },
-                        { value: "completed", label: "Completed" },
-                        { value: "archived", label: "Archived" },
-                      ]}
-                    />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Color</p>
-                    <span className="w-5 h-5 rounded-full inline-block mt-1" style={{ backgroundColor: selected.color }} />
-                  </div>
-                </div>
-
-                {selected.tech_stack.length > 0 && (
-                  <div>
-                    <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Tech stack</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {selected.tech_stack.map((t) => (
-                        <Badge key={t} variant="default" size="sm">{t}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {selected.repository_url && (
-                  <div>
-                    <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Repository</p>
-                    <a
-                      href={selected.repository_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-kv-400 text-sm hover:text-kv-300 break-all"
-                    >
-                      {selected.repository_url}
-                    </a>
-                  </div>
-                )}
-
-                <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Tasks</p>
-                  {loadingTasks ? (
-                    <div className="space-y-2">
-                      {[1,2,3].map((i) => <div key={i} className="h-8 rounded bg-white/5 animate-pulse" />)}
-                    </div>
-                  ) : projectTasks.length === 0 ? (
-                    <p className="text-slate-500 text-sm">No tasks linked to this project.</p>
-                  ) : (
-                    <Accordion>
-                      <AccordionItem value="tasks">
-                        <AccordionTrigger>
-                          {projectTasks.length} task{projectTasks.length !== 1 ? "s" : ""} · {projectTasks.filter((t) => t.status === "done").length} done
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <div className="space-y-2 pt-2">
-                            {projectTasks.map((task) => (
-                              <div key={task.id} className="flex items-center gap-2 text-sm">
-                                <span className={`w-1.5 h-1.5 rounded-full ${task.status === "done" ? "bg-green-400" : task.status === "in_progress" ? "bg-kv-400" : "bg-slate-500"}`} />
-                                <span className={task.status === "done" ? "text-slate-500 line-through" : "text-slate-300"}>
-                                  {task.title}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                  )}
-                </div>
-              </div>
-            </DrawerBody>
-            <DrawerFooter>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDelete(selected.id)}
-                className="text-red-400 hover:text-red-300"
-              >
-                Delete
-              </Button>
-              <Button variant="primary" size="sm" onClick={handleStatusUpdate}>
-                Save Changes
-              </Button>
-            </DrawerFooter>
-          </>
-        )}
-      </Drawer>
     </div>
   );
 }
