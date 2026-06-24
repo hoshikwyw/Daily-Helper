@@ -159,7 +159,7 @@ export default function TasksPage() {
   const projectName = (id: string | null) => projects.find((p) => p.id === id)?.name ?? null;
 
   return (
-    <div className="relative min-h-screen p-6 space-y-6">
+    <div className="relative min-h-screen p-4 sm:p-6 space-y-6">
       <GradientBackground fixed={false} />
       <GridPattern
         className="absolute inset-0 opacity-5 [mask-image:radial-gradient(ellipse_at_top,white_20%,transparent_70%)]"
