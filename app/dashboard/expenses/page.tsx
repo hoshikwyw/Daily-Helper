@@ -25,9 +25,20 @@ import {
   toast,
 } from "@kwyw/kayv-glass-ui";
 import { createClient } from "@/lib/supabase";
+import { downloadExpenseImage } from "@/lib/expenseImage";
 import type { Expense, CustomCategory } from "@/lib/types";
 
 const supabase = createClient();
+
+// Reads the active theme's accent (set on <html> by ThemeProvider) as a hex
+// string so the exported image matches the user's chosen theme.
+function getAccentHex(): string {
+  if (typeof document === "undefined") return "#8b5cf6";
+  const v = getComputedStyle(document.documentElement).getPropertyValue("--kv-p-500").trim();
+  const parts = v.split(/\s+/).map(Number);
+  if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return "#8b5cf6";
+  return "#" + parts.map((n) => Math.max(0, Math.min(255, n)).toString(16).padStart(2, "0")).join("");
+}
 
 const DEFAULT_CATEGORIES: { name: string; color: string }[] = [
   { name: "Food & Drink", color: "#f97316" },
@@ -260,6 +271,43 @@ export default function ExpensesPage() {
     }
   }
 
+  // Build the colored category list the image exporter expects.
+  function buildImageCategories(exps: Expense[]) {
+    return getCategoryBreakdown(exps).map(({ category, amount, pct }) => ({
+      category,
+      amount: fmt(amount),
+      pct,
+      color: colorMap[category] ?? "#64748b",
+    }));
+  }
+
+  function handleExportImage(
+    periodLabel: string,
+    title: string,
+    subtitle: string | undefined,
+    exps: Expense[]
+  ) {
+    if (exps.length === 0) {
+      toast({ title: "Nothing to export here yet", variant: "warning" });
+      return;
+    }
+    const total = exps.reduce((s, e) => s + e.amount, 0);
+    downloadExpenseImage(
+      {
+        periodLabel,
+        title,
+        subtitle,
+        total: fmt(total),
+        entries: exps.length,
+        categories: buildImageCategories(exps),
+        accent: getAccentHex(),
+        footerNote: `Exported ${toISO(new Date())}`,
+      },
+      `kayv-expenses-${periodLabel.toLowerCase()}-${title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.png`
+    );
+    toast({ title: "Image saved 🎁", variant: "success" });
+  }
+
   const dailyExpenses = useMemo(
     () => expenses.filter((e) => e.date === selectedDate),
     [expenses, selectedDate]
@@ -335,7 +383,22 @@ export default function ExpensesPage() {
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
                   />
-                  <div className="flex-1 flex justify-end">
+                  <div className="flex-1 flex items-center justify-end gap-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const d = new Date(selectedDate + "T00:00:00");
+                        handleExportImage(
+                          "Daily",
+                          d.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" }),
+                          d.toLocaleDateString(undefined, { weekday: "long" }),
+                          dailyExpenses
+                        );
+                      }}
+                    >
+                      ⬇ Save image
+                    </Button>
                     <div className="text-right">
                       <p className="text-slate-500 text-xs">Total</p>
                       <p className="text-2xl font-bold text-white">{fmt(dailyTotal)}</p>
@@ -404,9 +467,25 @@ export default function ExpensesPage() {
                     onChange={(v) => setSelectedMonthYear(Number(v))}
                     options={yearList.map((y) => ({ value: String(y), label: String(y) }))}
                   />
-                  <div className="ml-auto text-right">
-                    <p className="text-slate-500 text-xs">Total</p>
-                    <p className="text-2xl font-bold text-white">{fmt(monthlyTotal)}</p>
+                  <div className="ml-auto flex items-center gap-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        handleExportImage(
+                          "Monthly",
+                          `${MONTHS[selectedMonth]} ${selectedMonthYear}`,
+                          undefined,
+                          monthlyExpenses
+                        )
+                      }
+                    >
+                      ⬇ Save image
+                    </Button>
+                    <div className="text-right">
+                      <p className="text-slate-500 text-xs">Total</p>
+                      <p className="text-2xl font-bold text-white">{fmt(monthlyTotal)}</p>
+                    </div>
                   </div>
                 </div>
 
@@ -471,9 +550,20 @@ export default function ExpensesPage() {
                     onChange={(v) => setSelectedYear(Number(v))}
                     options={yearList.map((y) => ({ value: String(y), label: String(y) }))}
                   />
-                  <div className="ml-auto text-right">
-                    <p className="text-slate-500 text-xs">Total {selectedYear}</p>
-                    <p className="text-2xl font-bold text-white">{fmt(yearlyTotal)}</p>
+                  <div className="ml-auto flex items-center gap-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        handleExportImage("Yearly", String(selectedYear), undefined, expenses)
+                      }
+                    >
+                      ⬇ Save image
+                    </Button>
+                    <div className="text-right">
+                      <p className="text-slate-500 text-xs">Total {selectedYear}</p>
+                      <p className="text-2xl font-bold text-white">{fmt(yearlyTotal)}</p>
+                    </div>
                   </div>
                 </div>
 
