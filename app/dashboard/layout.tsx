@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { AuthGuard } from "@/components/auth-guard";
 
 const DashboardShell = dynamic(
   () => import("@/components/dashboard/shell").then((m) => ({ default: m.DashboardShell })),
@@ -8,5 +9,9 @@ const DashboardShell = dynamic(
 );
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  return <DashboardShell>{children}</DashboardShell>;
+  return (
+    <AuthGuard>
+      <DashboardShell>{children}</DashboardShell>
+    </AuthGuard>
+  );
 }

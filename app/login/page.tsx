@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase";
+import { authCallbackUrl } from "@/lib/authRedirect";
 import {
   Card,
   CardHeader,
@@ -49,6 +50,16 @@ function LoginForm() {
     }
   }, [urlError]);
 
+  // If already signed in, skip the login page (was handled by middleware).
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        router.replace("/dashboard");
+      }
+    });
+  }, [router]);
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -74,7 +85,7 @@ function LoginForm() {
 
     const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/update-password`,
+      redirectTo: authCallbackUrl("/update-password"),
     });
 
     setResetLoading(false);

@@ -25,7 +25,7 @@ import {
   toast,
 } from "@kwyw/kayv-glass-ui";
 import { createClient } from "@/lib/supabase";
-import { downloadExpenseImage } from "@/lib/expenseImage";
+import { exportExpenseImage } from "@/lib/expenseImage";
 import type { Expense, CustomCategory } from "@/lib/types";
 
 const supabase = createClient();
@@ -281,7 +281,7 @@ export default function ExpensesPage() {
     }));
   }
 
-  function handleExportImage(
+  async function handleExportImage(
     periodLabel: string,
     title: string,
     subtitle: string | undefined,
@@ -292,20 +292,24 @@ export default function ExpensesPage() {
       return;
     }
     const total = exps.reduce((s, e) => s + e.amount, 0);
-    downloadExpenseImage(
-      {
-        periodLabel,
-        title,
-        subtitle,
-        total: fmt(total),
-        entries: exps.length,
-        categories: buildImageCategories(exps),
-        accent: getAccentHex(),
-        footerNote: `Exported ${toISO(new Date())}`,
-      },
-      `kayv-expenses-${periodLabel.toLowerCase()}-${title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.png`
-    );
-    toast({ title: "Image saved 🎁", variant: "success" });
+    try {
+      await exportExpenseImage(
+        {
+          periodLabel,
+          title,
+          subtitle,
+          total: fmt(total),
+          entries: exps.length,
+          categories: buildImageCategories(exps),
+          accent: getAccentHex(),
+          footerNote: `Exported ${toISO(new Date())}`,
+        },
+        `kayv-expenses-${periodLabel.toLowerCase()}-${title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.png`
+      );
+      toast({ title: "Image ready 🎁", variant: "success" });
+    } catch {
+      toast({ title: "Couldn't export image", variant: "danger" });
+    }
   }
 
   const dailyExpenses = useMemo(

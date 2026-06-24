@@ -6,9 +6,21 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "mobile:sync": "next build && cap sync",
+    "mobile:android": "next build && cap sync android && cap open android",
+    "mobile:ios": "next build && cap sync ios && cap open ios",
+    "android:apk": "next build && cap sync android && cd android && gradlew.bat assembleDebug",
+    "android:install": "next build && cap sync android && cd android && gradlew.bat installDebug"
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/ios": "^8.4.1",
+    "@capacitor/share": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
     "@kwyw/kayv-glass-ui": "^0.2.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2",
@@ -17,6 +29,8 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.4.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

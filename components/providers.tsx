@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { ThemeProvider, Toaster } from "@kwyw/kayv-glass-ui";
+import { DeepLinkHandler } from "@/components/deep-link-handler";
+import { NativeInit } from "@/components/native-init";
 
 // The library's ThemeProvider accesses localStorage and document.documentElement
 // synchronously inside its useState initializer, which runs during SSR.
@@ -62,6 +64,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
       {children}
+      {/* Forwards native auth deep links to /auth/callback */}
+      {mounted && <DeepLinkHandler />}
+      {/* Applies native status-bar styling */}
+      {mounted && <NativeInit />}
       {/* Toaster uses createPortal → needs real document; only render on client */}
       {mounted && <Toaster position="top-right" />}
     </ThemeProvider>

@@ -61,7 +61,8 @@ function roundRect(
 const SANS = "'Segoe UI', system-ui, -apple-system, sans-serif";
 const EMOJI = "'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif";
 
-export function downloadExpenseImage(data: ExpenseImageData, filename: string) {
+// Renders the summary card and returns a PNG data URL (or "" on failure).
+function renderExpenseImage(data: ExpenseImageData): string {
   const accent = data.accent ?? "#8b5cf6";
   const cats = data.categories.slice(0, 8);
 
@@ -84,7 +85,7 @@ export function downloadExpenseImage(data: ExpenseImageData, filename: string) {
   canvas.width = W * SCALE;
   canvas.height = H * SCALE;
   const ctx = canvas.getContext("2d");
-  if (!ctx) return;
+  if (!ctx) return "";
   ctx.scale(SCALE, SCALE);
   ctx.clearRect(0, 0, W, H);
 
@@ -248,9 +249,29 @@ export function downloadExpenseImage(data: ExpenseImageData, filename: string) {
   ctx.fillText(data.footerNote ?? "Expense report", right, fy - 2);
   ctx.textAlign = "left";
 
-  // --- download ---
+  return canvas.toDataURL("image/png");
+}
+
+// Exports the summary card: on web it downloads the PNG; on a native (Capacitor)
+// build it writes the file and opens the system share sheet.
+export async function exportExpenseImage(data: ExpenseImageData, filename: string) {
+  const dataUrl = renderExpenseImage(data);
+  if (!dataUrl) return;
+
+  const { Capacitor } = await import("@capacitor/core");
+
+  if (Capacitor.isNativePlatform()) {
+    const { Filesystem, Directory } = await import("@capacitor/filesystem");
+    const { Share } = await import("@capacitor/share");
+    const base64 = dataUrl.split(",")[1];
+    await Filesystem.writeFile({ path: filename, data: base64, directory: Directory.Cache });
+    const { uri } = await Filesystem.getUri({ path: filename, directory: Directory.Cache });
+    await Share.share({ title: "Expense report", text: data.title, files: [uri] });
+    return;
+  }
+
   const a = document.createElement("a");
-  a.href = canvas.toDataURL("image/png");
+  a.href = dataUrl;
   a.download = filename;
   a.click();
 }

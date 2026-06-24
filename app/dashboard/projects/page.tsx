@@ -229,7 +229,7 @@ export default function ProjectsPage() {
                   )}
                 </CardContent>
                 <CardFooter>
-                  <Link href={`/dashboard/projects/${project.id}`}>
+                  <Link href={`/dashboard/project?id=${project.id}`}>
                     <Button variant="ghost" size="sm">
                       View details →
                     </Button>
