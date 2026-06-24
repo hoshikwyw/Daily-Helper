@@ -3,6 +3,16 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase";
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  Input,
+  Button,
+  Alert,
+  GradientBackground,
+  GridPattern,
+} from "@kwyw/kayv-glass-ui";
 
 type Mode = "login" | "forgot";
 
@@ -83,151 +93,135 @@ function LoginForm() {
   }
 
   return (
-    <div className="w-full max-w-sm p-8 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">✦ Orbit</h1>
-        <p className="text-white/40 text-sm mt-1">
-          {mode === "login" ? "Sign in to your dashboard" : "Reset your password"}
-        </p>
-      </div>
-
-      {/* ── Login form ── */}
-      {mode === "login" && (
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-sm text-white/60 mb-1.5">Email</label>
-            <input
+    <Card variant="elevated" className="w-full max-w-sm">
+      <CardHeader
+        title="✦ Orbit"
+        description={mode === "login" ? "Sign in to your dashboard" : "Reset your password"}
+      />
+      <CardContent>
+        {/* ── Login form ── */}
+        {mode === "login" && (
+          <form onSubmit={handleLogin} className="space-y-4">
+            <Input
+              label="Email"
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-lg bg-white/10 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-white/30 transition-colors"
               placeholder="you@example.com"
             />
-          </div>
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-sm text-white/60">Password</label>
-              <button
-                type="button"
-                onClick={() => switchMode("forgot")}
-                className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
-              >
-                Forgot password?
-              </button>
-            </div>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-lg bg-white/10 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-white/30 transition-colors"
-              placeholder="••••••••"
-            />
-          </div>
-
-          {error && (
-            <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
-              {error}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
-          >
-            {loading ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
-      )}
-
-      {/* ── Forgot password form ── */}
-      {mode === "forgot" && (
-        <div className="space-y-4">
-          {/* URL error banner (expired / invalid link) */}
-          {urlErrorMessage && !resetSent && (
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-3">
-              <p className="text-amber-400 text-sm">{urlErrorMessage}</p>
-            </div>
-          )}
-
-          {resetSent ? (
-            <div className="space-y-4">
-              <div className="bg-green-500/10 border border-green-500/20 rounded-lg px-4 py-3">
-                <p className="text-green-400 text-sm font-medium">Reset link sent!</p>
-                <p className="text-green-400/70 text-xs mt-1">
-                  Check your email at <span className="font-medium">{resetEmail}</span> and click the link to reset your password.
-                </p>
+            <div>
+              <Input
+                label="Password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+              <div className="flex justify-end mt-1.5">
+                <button
+                  type="button"
+                  onClick={() => switchMode("forgot")}
+                  className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                >
+                  Forgot password?
+                </button>
               </div>
-              <button
-                onClick={() => switchMode("login")}
-                className="w-full py-2.5 rounded-lg bg-white/10 hover:bg-white/15 text-white/70 text-sm font-medium transition-colors"
-              >
-                ← Back to sign in
-              </button>
             </div>
-          ) : (
-            <form onSubmit={handleForgotPassword} className="space-y-4">
-              <p className="text-white/50 text-sm">
-                Enter your email and we'll send you a new reset link.
-              </p>
-              <div>
-                <label className="block text-sm text-white/60 mb-1.5">Email</label>
-                <input
+
+            {error && <Alert variant="danger">{error}</Alert>}
+
+            <Button type="submit" variant="primary" isLoading={loading} className="w-full">
+              Sign in
+            </Button>
+          </form>
+        )}
+
+        {/* ── Forgot password form ── */}
+        {mode === "forgot" && (
+          <div className="space-y-4">
+            {/* URL error banner (expired / invalid link) */}
+            {urlErrorMessage && !resetSent && (
+              <Alert variant="warning">{urlErrorMessage}</Alert>
+            )}
+
+            {resetSent ? (
+              <div className="space-y-4">
+                <Alert variant="success" title="Reset link sent!">
+                  Check your email at <span className="font-medium">{resetEmail}</span> and click the link to reset your password.
+                </Alert>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => switchMode("login")}
+                  className="w-full"
+                >
+                  ← Back to sign in
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <p className="text-white/50 text-sm">
+                  Enter your email and we'll send you a new reset link.
+                </p>
+                <Input
+                  label="Email"
                   type="email"
                   required
                   value={resetEmail}
                   onChange={(e) => setResetEmail(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg bg-white/10 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-white/30 transition-colors"
                   placeholder="you@example.com"
                 />
-              </div>
 
-              {resetError && (
-                <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
-                  {resetError}
-                </p>
-              )}
+                {resetError && <Alert variant="danger">{resetError}</Alert>}
 
-              <button
-                type="submit"
-                disabled={resetLoading}
-                className="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {resetLoading ? "Sending…" : "Send reset link"}
-              </button>
+                <Button type="submit" variant="primary" isLoading={resetLoading} className="w-full">
+                  Send reset link
+                </Button>
 
-              <button
-                type="button"
-                onClick={() => switchMode("login")}
-                className="w-full py-2 text-white/40 hover:text-white/60 text-sm transition-colors"
-              >
-                ← Back to sign in
-              </button>
-            </form>
-          )}
-        </div>
-      )}
-    </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => switchMode("login")}
+                  className="w-full"
+                >
+                  ← Back to sign in
+                </Button>
+              </form>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
-      <Suspense fallback={
-        <div className="w-full max-w-sm p-8 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl">
-          <div className="h-8 w-24 bg-white/10 rounded animate-pulse mb-8" />
-          <div className="space-y-4">
-            <div className="h-10 bg-white/10 rounded-lg animate-pulse" />
-            <div className="h-10 bg-white/10 rounded-lg animate-pulse" />
-            <div className="h-10 bg-indigo-600/50 rounded-lg animate-pulse" />
-          </div>
-        </div>
-      }>
-        <LoginForm />
-      </Suspense>
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#0a0a0a]">
+      <GradientBackground fixed={false} />
+      <GridPattern
+        className="absolute inset-0 opacity-5 [mask-image:radial-gradient(ellipse_at_center,white_20%,transparent_70%)]"
+        squares={[[1,1],[4,3],[7,2]]}
+      />
+
+      <div className="relative">
+        <Suspense fallback={
+          <Card variant="elevated" className="w-full max-w-sm">
+            <CardContent>
+              <div className="h-8 w-24 bg-white/10 rounded animate-pulse mb-8" />
+              <div className="space-y-4">
+                <div className="h-10 bg-white/10 rounded-lg animate-pulse" />
+                <div className="h-10 bg-white/10 rounded-lg animate-pulse" />
+                <div className="h-10 bg-indigo-600/50 rounded-lg animate-pulse" />
+              </div>
+            </CardContent>
+          </Card>
+        }>
+          <LoginForm />
+        </Suspense>
+      </div>
     </div>
   );
 }
