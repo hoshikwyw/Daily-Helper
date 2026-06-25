@@ -45,6 +45,13 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
   done: "Done",
 };
 
+// Per-status card colors (left accent stripe + subtle tint) for quick recognition.
+const STATUS_ROW_STYLES: Record<TaskStatus, string> = {
+  todo: "border-slate-500/60 bg-slate-500/5 hover:bg-slate-500/10",
+  in_progress: "border-kv-500/70 bg-kv-500/10 hover:bg-kv-500/15",
+  done: "border-green-500/60 bg-green-500/5 hover:bg-green-500/10",
+};
+
 function EmptyState({ label }: { label: string }) {
   return <p className="text-slate-500 text-sm text-center py-10">{label}</p>;
 }
@@ -122,19 +129,32 @@ export default function TasksPage() {
     }
   }
 
-  async function handleStatusUpdate() {
-    if (!selected) return;
+  // Shared status writer used by both the inline row dropdown and the drawer.
+  async function updateTaskStatus(id: string, status: TaskStatus): Promise<boolean> {
+    const completed_at = status === "done" ? new Date().toISOString() : null;
     const { error } = await supabase
       .from("tasks")
-      .update({
-        status: editStatus,
-        completed_at: editStatus === "done" ? new Date().toISOString() : null,
-      })
-      .eq("id", selected.id);
+      .update({ status, completed_at })
+      .eq("id", id);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "danger" });
-    } else {
-      setTasks((prev) => prev.map((t) => (t.id === selected.id ? { ...t, status: editStatus } : t)));
+      return false;
+    }
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status, completed_at } : t)));
+    return true;
+  }
+
+  // Inline quick-move from a task row.
+  async function handleQuickStatus(task: Task, status: TaskStatus) {
+    if (status === task.status) return;
+    const ok = await updateTaskStatus(task.id, status);
+    if (ok) toast({ title: `Moved to ${STATUS_LABELS[status]}`, variant: "success" });
+  }
+
+  async function handleStatusUpdate() {
+    if (!selected) return;
+    const ok = await updateTaskStatus(selected.id, editStatus);
+    if (ok) {
       setSelected(null);
       toast({ title: "Status updated", variant: "success" });
     }
@@ -205,10 +225,9 @@ export default function TasksPage() {
                     ) : (
                       <div className="space-y-2 pt-2">
                         {filtered.map((task) => (
-                          <button
+                          <div
                             key={task.id}
-                            onClick={() => openDetail(task)}
-                            className="w-full flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-left"
+                            className={`w-full flex items-center gap-3 p-3 rounded-lg border-l-4 transition-colors ${STATUS_ROW_STYLES[task.status]}`}
                           >
                             <span
                               className={`w-2 h-2 rounded-full shrink-0 ${
@@ -216,23 +235,37 @@ export default function TasksPage() {
                                 task.status === "in_progress" ? "bg-kv-400" : "bg-slate-500"
                               }`}
                             />
-                            <div className="flex-1 min-w-0">
+                            <button
+                              onClick={() => openDetail(task)}
+                              className="flex-1 min-w-0 text-left"
+                            >
                               <p className={`text-sm font-medium ${task.status === "done" ? "text-slate-500 line-through" : "text-slate-200"}`}>
                                 {task.title}
                               </p>
                               {projectName(task.project_id) && (
                                 <p className="text-xs text-slate-500 mt-0.5">{projectName(task.project_id)}</p>
                               )}
-                            </div>
+                            </button>
                             <div className="flex items-center gap-2 shrink-0">
                               {task.due_date && (
-                                <span className="text-xs text-slate-500">{task.due_date}</span>
+                                <span className="hidden sm:inline text-xs text-slate-500">{task.due_date}</span>
                               )}
                               <Badge variant={PRIORITY_VARIANTS[task.priority]} size="sm">
                                 {task.priority}
                               </Badge>
+                              {/* Inline status switcher — moves the task between columns */}
+                              <select
+                                value={task.status}
+                                onChange={(e) => handleQuickStatus(task, e.target.value as TaskStatus)}
+                                aria-label="Change status"
+                                className="rounded-lg bg-white/10 border border-white/10 text-slate-200 text-xs px-2 py-1.5 cursor-pointer focus:outline-none focus:border-white/30 transition-colors"
+                              >
+                                <option value="todo" className="bg-[#0f172a]">To Do</option>
+                                <option value="in_progress" className="bg-[#0f172a]">In Progress</option>
+                                <option value="done" className="bg-[#0f172a]">Done</option>
+                              </select>
                             </div>
-                          </button>
+                          </div>
                         ))}
                       </div>
                     )}
