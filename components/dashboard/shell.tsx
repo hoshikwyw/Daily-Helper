@@ -69,6 +69,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         onValueChange={handleValueChange}
         display="responsive"
         className="shrink-0"
+        bottomNavClassName="fixed inset-x-0 bottom-0 z-40"
       >
         <MenuBarBrand>
           <span className="text-base font-bold text-white">✦ Kayv</span>
