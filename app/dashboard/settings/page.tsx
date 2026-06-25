@@ -102,7 +102,7 @@ export default function SettingsPage() {
             <Tab value="about">About</Tab>
           </TabList>
 
-          <TabPanels>
+          <TabPanels className="mt-4">
             {/* Profile */}
             <TabPanel value="profile">
               <Card variant="elevated">

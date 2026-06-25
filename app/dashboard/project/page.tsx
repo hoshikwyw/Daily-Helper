@@ -11,6 +11,7 @@ import {
   Badge,
   Progress,
   Button,
+  Input,
   Select,
   Breadcrumb,
   GridPattern,
@@ -43,6 +44,15 @@ function formatDate(iso: string) {
   });
 }
 
+const COLORS = [
+  "#6366f1", "#8b5cf6", "#ec4899", "#f97316",
+  "#10b981", "#06b6d4", "#f59e0b", "#ef4444",
+];
+
+function parseTech(s: string): string[] {
+  return s.split(",").map((x) => x.trim()).filter(Boolean);
+}
+
 function ProjectDetail() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -54,6 +64,11 @@ function ProjectDetail() {
   const [notFound, setNotFound] = useState(false);
 
   // Editable fields
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [repository, setRepository] = useState("");
+  const [techStack, setTechStack] = useState("");
+  const [color, setColor] = useState(COLORS[0]);
   const [status, setStatus] = useState<ProjectStatus>("active");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -80,6 +95,11 @@ function ProjectDetail() {
       }
 
       setProject(proj);
+      setName(proj.name);
+      setDescription(proj.description ?? "");
+      setRepository(proj.repository_url ?? "");
+      setTechStack(proj.tech_stack.join(", "));
+      setColor(proj.color);
       setStatus(proj.status);
       setNotes(proj.notes ?? "");
 
@@ -98,22 +118,40 @@ function ProjectDetail() {
   const done = tasks.filter((t) => t.status === "done").length;
   const progress = total > 0 ? Math.round((done / total) * 100) : 0;
 
+  const parsedTech = parseTech(techStack);
   const dirty =
-    !!project && (status !== project.status || notes !== (project.notes ?? ""));
+    !!project &&
+    (name.trim() !== project.name ||
+      description.trim() !== (project.description ?? "") ||
+      repository.trim() !== (project.repository_url ?? "") ||
+      color !== project.color ||
+      status !== project.status ||
+      notes !== (project.notes ?? "") ||
+      parsedTech.join("|") !== project.tech_stack.join("|"));
 
   async function handleSave() {
     if (!project) return;
+    if (!name.trim()) {
+      toast({ title: "Name can't be empty", variant: "warning" });
+      return;
+    }
     setSaving(true);
-    const { error } = await supabase
-      .from("projects")
-      .update({ status, notes: notes.trim() || null })
-      .eq("id", project.id);
+    const updates = {
+      name: name.trim(),
+      description: description.trim() || null,
+      repository_url: repository.trim() || null,
+      tech_stack: parsedTech,
+      color,
+      status,
+      notes: notes.trim() || null,
+    };
+    const { error } = await supabase.from("projects").update(updates).eq("id", project.id);
     setSaving(false);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "danger" });
       return;
     }
-    setProject({ ...project, status, notes: notes.trim() || null });
+    setProject({ ...project, ...updates });
     toast({
       title: status === "completed" ? "Project completed! 🎉" : "Changes saved",
       variant: "success",
@@ -181,7 +219,7 @@ function ProjectDetail() {
             <div className="flex items-start gap-3">
               <span
                 className="w-5 h-5 rounded-full shrink-0 mt-1.5"
-                style={{ backgroundColor: project.color }}
+                style={{ backgroundColor: color }}
               />
               <div>
                 <h1 className="text-2xl font-bold text-white">{project.name}</h1>
@@ -208,12 +246,19 @@ function ProjectDetail() {
                 <CardHeader title="Overview" description="Project details and settings" />
                 <CardContent>
                   <div className="space-y-5">
-                    {project.description && (
-                      <div>
-                        <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Description</p>
-                        <p className="text-slate-300 text-sm">{project.description}</p>
-                      </div>
-                    )}
+                    <Input
+                      label="Name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Project name"
+                    />
+
+                    <Input
+                      label="Description"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="What is this project about?"
+                    />
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
@@ -230,32 +275,57 @@ function ProjectDetail() {
                         />
                       </div>
                       <div>
-                        <p className="text-xs text-slate-500 uppercase tracking-wide mb-1.5">Repository</p>
-                        {project.repository_url ? (
+                        <Input
+                          label="Repository URL"
+                          type="url"
+                          value={repository}
+                          onChange={(e) => setRepository(e.target.value)}
+                          placeholder="https://github.com/..."
+                        />
+                        {project.repository_url && (
                           <a
                             href={project.repository_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-kv-400 text-sm hover:text-kv-300 break-all"
+                            className="inline-block mt-1.5 text-kv-400 text-xs hover:text-kv-300 break-all"
                           >
-                            {project.repository_url}
+                            Open saved link ↗
                           </a>
-                        ) : (
-                          <span className="text-slate-500 text-sm">—</span>
                         )}
                       </div>
                     </div>
 
-                    {project.tech_stack.length > 0 && (
-                      <div>
-                        <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Tech stack</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {project.tech_stack.map((t) => (
+                    <div>
+                      <Input
+                        label="Tech stack (comma-separated)"
+                        value={techStack}
+                        onChange={(e) => setTechStack(e.target.value)}
+                        placeholder="React, TypeScript, Supabase"
+                      />
+                      {parsedTech.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {parsedTech.map((t) => (
                             <Badge key={t} variant="default" size="sm">{t}</Badge>
                           ))}
                         </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Color</p>
+                      <div className="flex gap-2 flex-wrap">
+                        {COLORS.map((c) => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => setColor(c)}
+                            className={`w-7 h-7 rounded-full transition-transform ${color === c ? "scale-125 ring-2 ring-white/50" : "hover:scale-110"}`}
+                            style={{ backgroundColor: c }}
+                            aria-label={`Set color ${c}`}
+                          />
+                        ))}
                       </div>
-                    )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

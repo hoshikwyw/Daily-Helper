@@ -209,7 +209,7 @@ export default function TasksPage() {
             <Tab value="done">Done ({tasks.filter((t) => t.status === "done").length})</Tab>
           </TabList>
 
-          <TabPanels>
+          <TabPanels className="mt-4">
             {["all", "todo", "in_progress", "done"].map((tab) => (
               <TabPanel key={tab} value={tab}>
                 <Card variant="elevated">
