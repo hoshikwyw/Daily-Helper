@@ -39,8 +39,13 @@ const MOOD_VARIANTS: Record<Mood, "success" | "primary" | "warning" | "danger" |
   terrible: "danger",
 };
 
+// Local-date YYYY-MM-DD. Avoids toISOString(), which converts to UTC and can
+// shift the date a day backward for users in positive-offset timezones.
 function toISO(date: Date) {
-  return date.toISOString().slice(0, 10);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 export default function JournalPage() {
@@ -53,6 +58,7 @@ export default function JournalPage() {
   const [recentEntries, setRecentEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   async function loadEntry(date: Date) {
     setLoading(true);
@@ -149,6 +155,24 @@ export default function JournalPage() {
       toast({ title: "Journal saved", variant: "success" });
       loadRecent();
     }
+  }
+
+  async function handleDelete() {
+    if (!entry) return;
+    setDeleting(true);
+    const { error } = await supabase.from("journal_entries").delete().eq("id", entry.id);
+    setDeleting(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "danger" });
+      return;
+    }
+    // Reset the editor back to a fresh entry for the same date.
+    setEntry(null);
+    setContent("");
+    setMood("");
+    setHighlights([]);
+    toast({ title: "Entry deleted", variant: "warning" });
+    loadRecent();
   }
 
   const isToday = toISO(selectedDate) === toISO(new Date());
@@ -289,6 +313,16 @@ export default function JournalPage() {
             <Button variant="primary" onClick={handleSave} disabled={saving || loading}>
               {saving ? "Saving…" : entry ? "Update Entry" : "Save Entry"}
             </Button>
+            {entry && (
+              <Button
+                variant="ghost"
+                onClick={handleDelete}
+                disabled={deleting || loading}
+                className="ml-auto text-red-400 hover:text-red-300"
+              >
+                {deleting ? "Deleting…" : "Delete"}
+              </Button>
+            )}
           </CardFooter>
         </Card>
       </div>
