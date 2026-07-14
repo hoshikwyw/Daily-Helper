@@ -11,24 +11,21 @@ Open the Supabase dashboard → **SQL Editor** → paste the contents of
 
 This creates a single-row `keep_alive` table and a public `keep_alive()` RPC.
 
-Verify it works:
+Verify it works — pass the key in the URL, no headers needed:
 
 ```bash
-curl -X POST 'https://mgzvoonpnbjxjytpamsl.supabase.co/rest/v1/rpc/keep_alive' \
-  -H 'apikey: <ANON_KEY>' \
-  -H 'Content-Type: application/json' \
-  -d '{}'
+curl -X POST 'https://mgzvoonpnbjxjytpamsl.supabase.co/rest/v1/rpc/keep_alive?apikey=<ANON_KEY>'
 ```
 
 A `200` with a timestamp in the body means it's live. `<ANON_KEY>` is the
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` from `.env`.
 
-The endpoint is effectively public — no `Authorization` header or logged-in user
-is required. The `apikey` header is the only one needed, and it stays: Supabase's
-API gateway rejects any `/rest/v1/*` request without it (`401 "No API key found
-in request"`). That key is the **anon** key, which is public by design (already
-shipped in the app bundle and protected by RLS), so it isn't access control —
-just a routing key.
+The `apikey` is required (Supabase's gateway rejects any `/rest/v1/*` request
+without it — that's the `401 "No API key found in request"` you saw in a test
+run), but it can travel as a **URL query param** instead of a header, which keeps
+the cron-job.org setup header-free. That key is the **anon** key — public by
+design (already shipped in the app bundle and protected by RLS), so putting it in
+the URL is fine; it isn't a secret and RLS is the real security boundary.
 
 ## 2. Configure cron-job.org
 
@@ -36,20 +33,16 @@ Create a new cron job at https://cron-job.org with:
 
 | Field | Value |
 |-------|-------|
-| **URL** | `https://mgzvoonpnbjxjytpamsl.supabase.co/rest/v1/rpc/keep_alive` |
-| **Request method** | `POST` |
+| **URL** | `https://mgzvoonpnbjxjytpamsl.supabase.co/rest/v1/rpc/keep_alive?apikey=<ANON_KEY>` |
+| **Request method** | `POST` — **must** be POST; the function writes, so `GET` returns `405` |
 | **Schedule** | Every 2 days (e.g. at 09:00) — well within the ~7-day window |
-| **Request body** | `{}` |
 
-Under **Advanced → Headers**, add just:
+No custom headers and no request body are required. Enable **"Notify on failure"**
+so you hear about it if the endpoint ever stops responding.
 
-```
-apikey: <ANON_KEY>
-Content-Type: application/json
-```
-
-Enable **"Notify on failure"** so you hear about it if the endpoint ever stops
-responding.
+> The 401 in the test run had two causes: the request had no `apikey`, and
+> cron-job.org defaulted to `GET`. Putting `?apikey=…` in the URL and switching
+> the method to **POST** fixes both.
 
 ## 3. Confirm it's ticking
 
