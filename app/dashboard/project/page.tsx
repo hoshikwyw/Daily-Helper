@@ -14,39 +14,21 @@ import {
   Input,
   Select,
   Breadcrumb,
-  GridPattern,
-  GradientBackground,
   toast,
 } from "@kwyw/kayv-glass-ui";
-import { createClient } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
+import { reportError } from "@/lib/db";
+import { formatDate } from "@/lib/date";
+import { PROJECT_COLORS, PROJECT_STATUS_VARIANTS } from "@/lib/constants";
+import { PageContainer } from "@/components/ui/page-container";
+import { ColorPicker } from "@/components/ui/color-picker";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Project, Task, ProjectStatus, TaskStatus } from "@/lib/types";
-
-const supabase = createClient();
-
-const STATUS_VARIANTS: Record<ProjectStatus, "success" | "primary" | "warning" | "default"> = {
-  active: "primary",
-  paused: "warning",
-  completed: "success",
-  archived: "default",
-};
 
 const TASK_GROUPS: { status: TaskStatus; label: string; dot: string }[] = [
   { status: "in_progress", label: "In progress", dot: "bg-kv-400" },
   { status: "todo", label: "To do", dot: "bg-slate-500" },
   { status: "done", label: "Done", dot: "bg-green-400" },
-];
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-const COLORS = [
-  "#6366f1", "#8b5cf6", "#ec4899", "#f97316",
-  "#10b981", "#06b6d4", "#f59e0b", "#ef4444",
 ];
 
 function parseTech(s: string): string[] {
@@ -68,7 +50,7 @@ function ProjectDetail() {
   const [description, setDescription] = useState("");
   const [repository, setRepository] = useState("");
   const [techStack, setTechStack] = useState("");
-  const [color, setColor] = useState(COLORS[0]);
+  const [color, setColor] = useState<string>(PROJECT_COLORS[0]);
   const [status, setStatus] = useState<ProjectStatus>("active");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -147,10 +129,7 @@ function ProjectDetail() {
     };
     const { error } = await supabase.from("projects").update(updates).eq("id", project.id);
     setSaving(false);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "danger" });
-      return;
-    }
+    if (reportError(error)) return;
     setProject({ ...project, ...updates });
     toast({
       title: status === "completed" ? "Project completed! 🎉" : "Changes saved",
@@ -164,7 +143,7 @@ function ProjectDetail() {
     const { error } = await supabase.from("projects").delete().eq("id", project.id);
     if (error) {
       setDeleting(false);
-      toast({ title: "Error", description: error.message, variant: "danger" });
+      reportError(error);
       return;
     }
     toast({ title: "Project deleted", variant: "warning" });
@@ -172,13 +151,7 @@ function ProjectDetail() {
   }
 
   return (
-    <div className="relative min-h-screen p-4 sm:p-6 space-y-6">
-      <GradientBackground fixed={false} />
-      <GridPattern
-        className="absolute inset-0 opacity-5 [mask-image:radial-gradient(ellipse_at_top,white_20%,transparent_70%)]"
-        squares={[[2, 2], [5, 1], [7, 4]]}
-      />
-
+    <PageContainer squares={[[2, 2], [5, 1], [7, 4]]}>
       <div className="relative">
         <Breadcrumb
           items={[
@@ -191,10 +164,10 @@ function ProjectDetail() {
 
       {loading ? (
         <div className="relative space-y-4">
-          <div className="h-10 w-64 rounded bg-white/5 animate-pulse" />
+          <Skeleton className="h-10 w-64" />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 h-64 rounded-xl bg-white/5 animate-pulse" />
-            <div className="h-64 rounded-xl bg-white/5 animate-pulse" />
+            <Skeleton className="lg:col-span-2 h-64 rounded-xl" />
+            <Skeleton className="h-64 rounded-xl" />
           </div>
         </div>
       ) : notFound || !project ? (
@@ -224,7 +197,7 @@ function ProjectDetail() {
               <div>
                 <h1 className="text-2xl font-bold text-white">{project.name}</h1>
                 <div className="flex items-center gap-2 mt-1.5">
-                  <Badge variant={STATUS_VARIANTS[project.status]} size="sm">
+                  <Badge variant={PROJECT_STATUS_VARIANTS[project.status]} size="sm">
                     {project.status}
                   </Badge>
                   <span className="text-slate-500 text-sm">
@@ -311,21 +284,12 @@ function ProjectDetail() {
                       )}
                     </div>
 
-                    <div>
-                      <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Color</p>
-                      <div className="flex gap-2 flex-wrap">
-                        {COLORS.map((c) => (
-                          <button
-                            key={c}
-                            type="button"
-                            onClick={() => setColor(c)}
-                            className={`w-7 h-7 rounded-full transition-transform ${color === c ? "scale-125 ring-2 ring-white/50" : "hover:scale-110"}`}
-                            style={{ backgroundColor: c }}
-                            aria-label={`Set color ${c}`}
-                          />
-                        ))}
-                      </div>
-                    </div>
+                    <ColorPicker
+                      label="Color"
+                      colors={PROJECT_COLORS}
+                      value={color}
+                      onChange={setColor}
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -443,7 +407,7 @@ function ProjectDetail() {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }
 

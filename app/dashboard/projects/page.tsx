@@ -15,33 +15,24 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
-  Breadcrumb,
   Tooltip,
   ConfettiButton,
-  GridPattern,
-  GradientBackground,
   toast,
 } from "@kwyw/kayv-glass-ui";
-import { createClient } from "@/lib/supabase";
-
-const supabase = createClient();
+import { supabase } from "@/lib/supabase";
+import { getUserId, reportError } from "@/lib/db";
+import { PROJECT_COLORS, PROJECT_STATUS_VARIANTS } from "@/lib/constants";
+import { PageContainer } from "@/components/ui/page-container";
+import { PageHeader } from "@/components/ui/page-header";
+import { ColorPicker } from "@/components/ui/color-picker";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Project, ProjectStatus } from "@/lib/types";
 
-const STATUS_VARIANTS: Record<ProjectStatus, "success" | "primary" | "warning" | "default"> = {
-  active: "primary",
-  paused: "warning",
-  completed: "success",
-  archived: "default",
-};
-
-const COLORS = [
-  "#6366f1", "#8b5cf6", "#ec4899", "#f97316",
-  "#10b981", "#06b6d4", "#f59e0b", "#ef4444",
-];
+type TaskCount = { total: number; done: number };
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [taskCounts, setTaskCounts] = useState<Record<string, { total: number; done: number }>>({});
+  const [taskCounts, setTaskCounts] = useState<Record<string, TaskCount>>({});
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<"all" | ProjectStatus>("all");
 
@@ -49,7 +40,7 @@ export default function ProjectsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
-  const [newColor, setNewColor] = useState(COLORS[0]);
+  const [newColor, setNewColor] = useState<string>(PROJECT_COLORS[0]);
   const [newTech, setNewTech] = useState("");
   const [newRepo, setNewRepo] = useState("");
   const [saving, setSaving] = useState(false);
@@ -68,7 +59,7 @@ export default function ProjectsPage() {
         .select("project_id, status")
         .not("project_id", "is", null);
       if (tasks) {
-        const counts: Record<string, { total: number; done: number }> = {};
+        const counts: Record<string, TaskCount> = {};
         for (const t of tasks) {
           if (!t.project_id) continue;
           if (!counts[t.project_id]) counts[t.project_id] = { total: 0, done: 0 };
@@ -82,16 +73,18 @@ export default function ProjectsPage() {
   }
 
   useEffect(() => {
+    // Fetch once on mount. State is only set after the awaited query resolves,
+    // so this doesn't cause the cascading renders the rule guards against.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!newName.trim()) return;
     setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSaving(false); return; }
+    const userId = await getUserId();
+    if (!userId) { setSaving(false); return; }
     const techStack = newTech.split(",").map((s) => s.trim()).filter(Boolean);
     const { data, error } = await supabase
       .from("projects")
@@ -103,23 +96,20 @@ export default function ProjectsPage() {
         tech_stack: techStack,
         repository_url: newRepo.trim() || null,
         notes: null,
-        user_id: user.id,
+        user_id: userId,
       })
       .select()
       .single();
     setSaving(false);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "danger" });
-    } else {
-      setProjects((prev) => [data as Project, ...prev]);
-      setShowCreate(false);
-      setNewName("");
-      setNewDesc("");
-      setNewColor(COLORS[0]);
-      setNewTech("");
-      setNewRepo("");
-      toast({ title: "Project created!", variant: "success" });
-    }
+    if (error || !data) { reportError(error); return; }
+    setProjects((prev) => [data, ...prev]);
+    setShowCreate(false);
+    setNewName("");
+    setNewDesc("");
+    setNewColor(PROJECT_COLORS[0]);
+    setNewTech("");
+    setNewRepo("");
+    toast({ title: "Project created!", variant: "success" });
   }
 
   const filtered = activeFilter === "all" ? projects : projects.filter((p) => p.status === activeFilter);
@@ -133,26 +123,17 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className="relative min-h-screen p-4 sm:p-6 space-y-6">
-      <GradientBackground fixed={false} />
-      <GridPattern
-        className="absolute inset-0 opacity-5 [mask-image:radial-gradient(ellipse_at_top,white_20%,transparent_70%)]"
-        squares={[[2,2],[5,1],[7,4]]}
+    <PageContainer squares={[[2, 2], [5, 1], [7, 4]]}>
+      <PageHeader
+        breadcrumb={[{ label: "Today", href: "/dashboard" }, { label: "Projects" }]}
+        title="Projects"
+        subtitle={`${counts.active} active · ${counts.completed} completed`}
+        actions={
+          <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>
+            + New Project
+          </Button>
+        }
       />
-
-      <div className="relative">
-        <Breadcrumb items={[{ label: "Today", href: "/dashboard" }, { label: "Projects" }]} />
-      </div>
-
-      <div className="relative flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Projects</h1>
-          <p className="text-slate-400 text-sm mt-1">{counts.active} active · {counts.completed} completed</p>
-        </div>
-        <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>
-          + New Project
-        </Button>
-      </div>
 
       {/* Filter chips */}
       <div className="relative flex flex-wrap gap-2">
@@ -175,7 +156,7 @@ export default function ProjectsPage() {
       <div className="relative grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {loading ? (
           Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-48 rounded-xl bg-white/5 animate-pulse" />
+            <Skeleton key={i} className="h-48 rounded-xl" />
           ))
         ) : filtered.length === 0 ? (
           <div className="col-span-full">
@@ -202,7 +183,7 @@ export default function ProjectsPage() {
                 <CardContent className="flex-1 space-y-3">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: project.color }} />
-                    <Badge variant={STATUS_VARIANTS[project.status]} size="sm">
+                    <Badge variant={PROJECT_STATUS_VARIANTS[project.status]} size="sm">
                       {project.status}
                     </Badge>
                     {project.tech_stack.slice(0, 3).map((t) => (
@@ -280,20 +261,12 @@ export default function ProjectsPage() {
                 value={newRepo}
                 onChange={(e) => setNewRepo(e.target.value)}
               />
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Color</label>
-                <div className="flex gap-2 flex-wrap">
-                  {COLORS.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => setNewColor(c)}
-                      className={`w-7 h-7 rounded-full transition-transform ${newColor === c ? "scale-125 ring-2 ring-white/50" : "hover:scale-110"}`}
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
-                </div>
-              </div>
+              <ColorPicker
+                label="Color"
+                colors={PROJECT_COLORS}
+                value={newColor}
+                onChange={setNewColor}
+              />
             </div>
           </ModalBody>
           <ModalFooter>
@@ -304,6 +277,6 @@ export default function ProjectsPage() {
           </ModalFooter>
         </form>
       </Modal>
-    </div>
+    </PageContainer>
   );
 }
