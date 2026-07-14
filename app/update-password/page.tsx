@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import {
   Card,
   CardHeader,
@@ -10,9 +10,8 @@ import {
   Input,
   Button,
   Alert,
-  GradientBackground,
-  GridPattern,
 } from "@kwyw/kayv-glass-ui";
+import { AuthLayout } from "@/components/ui/auth-layout";
 
 export default function UpdatePasswordPage() {
   const router = useRouter();
@@ -36,7 +35,6 @@ export default function UpdatePasswordPage() {
     }
 
     setLoading(true);
-    const supabase = createClient();
     const { error } = await supabase.auth.updateUser({ password });
 
     if (error) {
@@ -53,14 +51,8 @@ export default function UpdatePasswordPage() {
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#0a0a0a]">
-      <GradientBackground fixed={false} />
-      <GridPattern
-        className="absolute inset-0 opacity-5 [mask-image:radial-gradient(ellipse_at_center,white_20%,transparent_70%)]"
-        squares={[[1,1],[4,3],[7,2]]}
-      />
-
-      <Card variant="elevated" className="relative w-full max-w-sm">
+    <AuthLayout>
+      <Card variant="elevated" className="w-full max-w-sm">
         <CardHeader title="✦ Orbit" description="Set a new password" />
         <CardContent>
           {done ? (
@@ -97,6 +89,6 @@ export default function UpdatePasswordPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </AuthLayout>
   );
 }

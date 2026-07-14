@@ -12,41 +12,18 @@ import {
   Select,
   Alert,
   Calendar,
-  Breadcrumb,
-  GridPattern,
-  GradientBackground,
   toast,
 } from "@kwyw/kayv-glass-ui";
-import { createClient } from "@/lib/supabase";
-
-const supabase = createClient();
+import { supabase } from "@/lib/supabase";
+import { getUserId, reportError } from "@/lib/db";
+import { toISODate } from "@/lib/date";
+import { MOOD_OPTIONS, MOOD_VARIANTS } from "@/lib/constants";
+import { PageContainer } from "@/components/ui/page-container";
+import { PageHeader } from "@/components/ui/page-header";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { JournalEntry, Mood } from "@/lib/types";
 
-const MOOD_OPTIONS = [
-  { value: "", label: "Select mood…" },
-  { value: "great", label: "😄 Great" },
-  { value: "good", label: "🙂 Good" },
-  { value: "okay", label: "😐 Okay" },
-  { value: "bad", label: "😕 Bad" },
-  { value: "terrible", label: "😞 Terrible" },
-];
-
-const MOOD_VARIANTS: Record<Mood, "success" | "primary" | "warning" | "danger" | "default"> = {
-  great: "success",
-  good: "primary",
-  okay: "warning",
-  bad: "danger",
-  terrible: "danger",
-};
-
-// Local-date YYYY-MM-DD. Avoids toISOString(), which converts to UTC and can
-// shift the date a day backward for users in positive-offset timezones.
-function toISO(date: Date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
+const MOOD_SELECT_OPTIONS = [{ value: "", label: "Select mood…" }, ...MOOD_OPTIONS];
 
 export default function JournalPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -62,18 +39,17 @@ export default function JournalPage() {
 
   async function loadEntry(date: Date) {
     setLoading(true);
-    const iso = toISO(date);
-    const { data } = await supabase
+    const iso = toISODate(date);
+    const { data: found } = await supabase
       .from("journal_entries")
       .select("*")
       .eq("date", iso)
       .maybeSingle();
-    const entry = data as JournalEntry | null;
-    if (entry) {
-      setEntry(entry);
-      setContent(entry.content);
-      setMood(entry.mood ?? "");
-      setHighlights(entry.highlights ?? []);
+    if (found) {
+      setEntry(found);
+      setContent(found.content);
+      setMood(found.mood ?? "");
+      setHighlights(found.highlights ?? []);
     } else {
       setEntry(null);
       setContent("");
@@ -89,10 +65,11 @@ export default function JournalPage() {
       .select("*")
       .order("date", { ascending: false })
       .limit(7);
-    if (data) setRecentEntries(data as JournalEntry[]);
+    if (data) setRecentEntries(data);
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadEntry(selectedDate);
     loadRecent();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -116,16 +93,15 @@ export default function JournalPage() {
 
   async function handleSave() {
     setSaving(true);
-    const iso = toISO(selectedDate);
     const payload = {
-      date: iso,
+      date: toISODate(selectedDate),
       content,
       mood: (mood || null) as Mood | null,
       highlights,
     };
 
     let error;
-    let data: JournalEntry | null = null;
+    let saved: JournalEntry | null = null;
     if (entry) {
       const res = await supabase
         .from("journal_entries")
@@ -134,27 +110,24 @@ export default function JournalPage() {
         .select()
         .single();
       error = res.error;
-      data = res.data as JournalEntry | null;
+      saved = res.data;
     } else {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setSaving(false); return; }
+      const userId = await getUserId();
+      if (!userId) { setSaving(false); return; }
       const res = await supabase
         .from("journal_entries")
-        .insert({ ...payload, user_id: user.id })
+        .insert({ ...payload, user_id: userId })
         .select()
         .single();
       error = res.error;
-      data = res.data as JournalEntry | null;
+      saved = res.data;
     }
 
     setSaving(false);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "danger" });
-    } else {
-      if (data) setEntry(data);
-      toast({ title: "Journal saved", variant: "success" });
-      loadRecent();
-    }
+    if (reportError(error)) return;
+    if (saved) setEntry(saved);
+    toast({ title: "Journal saved", variant: "success" });
+    loadRecent();
   }
 
   async function handleDelete() {
@@ -162,10 +135,7 @@ export default function JournalPage() {
     setDeleting(true);
     const { error } = await supabase.from("journal_entries").delete().eq("id", entry.id);
     setDeleting(false);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "danger" });
-      return;
-    }
+    if (reportError(error)) return;
     // Reset the editor back to a fresh entry for the same date.
     setEntry(null);
     setContent("");
@@ -175,24 +145,15 @@ export default function JournalPage() {
     loadRecent();
   }
 
-  const isToday = toISO(selectedDate) === toISO(new Date());
+  const isToday = toISODate(selectedDate) === toISODate(new Date());
 
   return (
-    <div className="relative min-h-screen p-4 sm:p-6 space-y-6">
-      <GradientBackground fixed={false} />
-      <GridPattern
-        className="absolute inset-0 opacity-5 [mask-image:radial-gradient(ellipse_at_top,white_20%,transparent_70%)]"
-        squares={[[1,2],[4,1],[7,3]]}
+    <PageContainer squares={[[1, 2], [4, 1], [7, 3]]}>
+      <PageHeader
+        breadcrumb={[{ label: "Today", href: "/dashboard" }, { label: "Journal" }]}
+        title="Daily Journal"
+        subtitle="Capture your thoughts, mood, and wins."
       />
-
-      <div className="relative">
-        <Breadcrumb items={[{ label: "Today", href: "/dashboard" }, { label: "Journal" }]} />
-      </div>
-
-      <div className="relative">
-        <h1 className="text-2xl font-bold text-white">Daily Journal</h1>
-        <p className="text-slate-400 text-sm mt-1">Capture your thoughts, mood, and wins.</p>
-      </div>
 
       <div className="relative grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Calendar + recent */}
@@ -251,8 +212,8 @@ export default function JournalPage() {
           <CardContent>
             {loading ? (
               <div className="space-y-4">
-                <div className="h-8 rounded bg-white/5 animate-pulse" />
-                <div className="h-48 rounded bg-white/5 animate-pulse" />
+                <Skeleton className="h-8" />
+                <Skeleton className="h-48" />
               </div>
             ) : (
               <div className="space-y-5">
@@ -266,7 +227,7 @@ export default function JournalPage() {
                   label="Mood"
                   value={mood}
                   onChange={setMood}
-                  options={MOOD_OPTIONS}
+                  options={MOOD_SELECT_OPTIONS}
                 />
 
                 <div>
@@ -326,6 +287,6 @@ export default function JournalPage() {
           </CardFooter>
         </Card>
       </div>
-    </div>
+    </PageContainer>
   );
 }

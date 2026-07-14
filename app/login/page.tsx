@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { authCallbackUrl } from "@/lib/authRedirect";
 import {
   Card,
@@ -11,9 +11,8 @@ import {
   Input,
   Button,
   Alert,
-  GradientBackground,
-  GridPattern,
 } from "@kwyw/kayv-glass-ui";
+import { AuthLayout } from "@/components/ui/auth-layout";
 
 type Mode = "login" | "forgot";
 
@@ -25,7 +24,14 @@ const URL_ERRORS: Record<string, string> = {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [mode, setMode] = useState<Mode>("login");
+
+  // URL error (e.g. from expired reset link)
+  const urlError = searchParams.get("error");
+  const urlErrorMessage = urlError ? (URL_ERRORS[urlError] ?? "Something went wrong. Please try again.") : null;
+  const isLinkError = urlError === "expired" || urlError === "invalid_link";
+
+  // A link error lands the user straight in the reset flow.
+  const [mode, setMode] = useState<Mode>(isLinkError ? "forgot" : "login");
 
   // Login state
   const [email, setEmail] = useState("");
@@ -39,20 +45,8 @@ function LoginForm() {
   const [resetLoading, setResetLoading] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
 
-  // URL error (e.g. from expired reset link)
-  const urlError = searchParams.get("error");
-  const urlErrorMessage = urlError ? (URL_ERRORS[urlError] ?? "Something went wrong. Please try again.") : null;
-
-  // Auto-switch to forgot mode if there's a link error
-  useEffect(() => {
-    if (urlError === "expired" || urlError === "invalid_link") {
-      setMode("forgot");
-    }
-  }, [urlError]);
-
   // If already signed in, skip the login page (was handled by middleware).
   useEffect(() => {
-    const supabase = createClient();
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         router.replace("/dashboard");
@@ -65,7 +59,6 @@ function LoginForm() {
     setLoading(true);
     setError(null);
 
-    const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
@@ -83,7 +76,6 @@ function LoginForm() {
     setResetLoading(true);
     setResetError(null);
 
-    const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
       redirectTo: authCallbackUrl("/update-password"),
     });
@@ -174,7 +166,7 @@ function LoginForm() {
             ) : (
               <form onSubmit={handleForgotPassword} className="space-y-4">
                 <p className="text-white/50 text-sm">
-                  Enter your email and we'll send you a new reset link.
+                  Enter your email and we&apos;ll send you a new reset link.
                 </p>
                 <Input
                   label="Email"
@@ -210,29 +202,21 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#0a0a0a]">
-      <GradientBackground fixed={false} />
-      <GridPattern
-        className="absolute inset-0 opacity-5 [mask-image:radial-gradient(ellipse_at_center,white_20%,transparent_70%)]"
-        squares={[[1,1],[4,3],[7,2]]}
-      />
-
-      <div className="relative">
-        <Suspense fallback={
-          <Card variant="elevated" className="w-full max-w-sm">
-            <CardContent>
-              <div className="h-8 w-24 bg-white/10 rounded animate-pulse mb-8" />
-              <div className="space-y-4">
-                <div className="h-10 bg-white/10 rounded-lg animate-pulse" />
-                <div className="h-10 bg-white/10 rounded-lg animate-pulse" />
-                <div className="h-10 bg-indigo-600/50 rounded-lg animate-pulse" />
-              </div>
-            </CardContent>
-          </Card>
-        }>
-          <LoginForm />
-        </Suspense>
-      </div>
-    </div>
+    <AuthLayout>
+      <Suspense fallback={
+        <Card variant="elevated" className="w-full max-w-sm">
+          <CardContent>
+            <div className="h-8 w-24 bg-white/10 rounded animate-pulse mb-8" />
+            <div className="space-y-4">
+              <div className="h-10 bg-white/10 rounded-lg animate-pulse" />
+              <div className="h-10 bg-white/10 rounded-lg animate-pulse" />
+              <div className="h-10 bg-indigo-600/50 rounded-lg animate-pulse" />
+            </div>
+          </CardContent>
+        </Card>
+      }>
+        <LoginForm />
+      </Suspense>
+    </AuthLayout>
   );
 }

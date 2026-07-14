@@ -21,14 +21,13 @@ import {
   Button,
   Alert,
   Badge,
-  Breadcrumb,
-  GridPattern,
-  GradientBackground,
   toast,
   useTheme,
   themes,
 } from "@kwyw/kayv-glass-ui";
 import type { ThemeName } from "@kwyw/kayv-glass-ui";
+import { PageContainer } from "@/components/ui/page-container";
+import { PageHeader } from "@/components/ui/page-header";
 
 const FAQ = [
   {
@@ -77,21 +76,12 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="relative min-h-screen p-4 sm:p-6 space-y-6">
-      <GradientBackground fixed={false} />
-      <GridPattern
-        className="absolute inset-0 opacity-5 [mask-image:radial-gradient(ellipse_at_top,white_20%,transparent_70%)]"
-        squares={[[1,1],[4,3],[7,2]]}
+    <PageContainer squares={[[1, 1], [4, 3], [7, 2]]}>
+      <PageHeader
+        breadcrumb={[{ label: "Today", href: "/dashboard" }, { label: "Settings" }]}
+        title="Settings"
+        subtitle="Manage your preferences and account."
       />
-
-      <div className="relative">
-        <Breadcrumb items={[{ label: "Today", href: "/dashboard" }, { label: "Settings" }]} />
-      </div>
-
-      <div className="relative">
-        <h1 className="text-2xl font-bold text-white">Settings</h1>
-        <p className="text-slate-400 text-sm mt-1">Manage your preferences and account.</p>
-      </div>
 
       <div className="relative max-w-2xl space-y-6">
         <Tabs defaultValue="profile">
@@ -259,6 +249,6 @@ export default function SettingsPage() {
           </TabPanels>
         </Tabs>
       </div>
-    </div>
+    </PageContainer>
   );
 }

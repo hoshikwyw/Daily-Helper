@@ -58,6 +58,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // Intentional: flip to client-mounted so portal-based components (Toaster,
+    // deep-link handler) render only after hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
