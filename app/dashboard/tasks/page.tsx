@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import {
   Card,
-  CardHeader,
   CardContent,
   Badge,
   Button,
@@ -22,28 +21,20 @@ import {
   Tab,
   TabPanels,
   TabPanel,
-  Breadcrumb,
-  GridPattern,
-  GradientBackground,
   toast,
 } from "@kwyw/kayv-glass-ui";
-import { createClient } from "@/lib/supabase";
-
-const supabase = createClient();
+import { supabase } from "@/lib/supabase";
+import { getUserId, reportError } from "@/lib/db";
+import {
+  TASK_PRIORITY_VARIANTS,
+  TASK_STATUS_LABELS,
+  TASK_STATUS_OPTIONS,
+} from "@/lib/constants";
+import { PageContainer } from "@/components/ui/page-container";
+import { PageHeader } from "@/components/ui/page-header";
+import { NativeSelect } from "@/components/ui/native-select";
+import { SkeletonList } from "@/components/ui/skeleton";
 import type { Task, Project, TaskStatus, TaskPriority } from "@/lib/types";
-
-const PRIORITY_VARIANTS: Record<TaskPriority, "danger" | "warning" | "primary" | "default"> = {
-  urgent: "danger",
-  high: "warning",
-  medium: "primary",
-  low: "default",
-};
-
-const STATUS_LABELS: Record<TaskStatus, string> = {
-  todo: "To Do",
-  in_progress: "In Progress",
-  done: "Done",
-};
 
 // Per-status card colors (left accent stripe + subtle tint) for quick recognition.
 const STATUS_ROW_STYLES: Record<TaskStatus, string> = {
@@ -51,6 +42,13 @@ const STATUS_ROW_STYLES: Record<TaskStatus, string> = {
   in_progress: "border-kv-500/70 bg-kv-500/10 hover:bg-kv-500/15",
   done: "border-green-500/60 bg-green-500/5 hover:bg-green-500/10",
 };
+
+const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+  { value: "urgent", label: "Urgent" },
+];
 
 function EmptyState({ label }: { label: string }) {
   return <p className="text-slate-500 text-sm text-center py-10">{label}</p>;
@@ -86,8 +84,10 @@ export default function TasksPage() {
   }
 
   useEffect(() => {
+    // Fetch once on mount. State is only set after the awaited query resolves,
+    // so this doesn't cause the cascading renders the rule guards against.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function openDetail(task: Task) {
@@ -99,8 +99,8 @@ export default function TasksPage() {
     e.preventDefault();
     if (!newTitle.trim()) return;
     setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSaving(false); return; }
+    const userId = await getUserId();
+    if (!userId) { setSaving(false); return; }
     const { data, error } = await supabase
       .from("tasks")
       .insert({
@@ -110,23 +110,20 @@ export default function TasksPage() {
         status: "todo",
         project_id: newProject || null,
         due_date: newDue || null,
-        user_id: user.id,
+        user_id: userId,
       })
       .select()
       .single();
     setSaving(false);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "danger" });
-    } else {
-      setTasks((prev) => [data as Task, ...prev]);
-      setShowCreate(false);
-      setNewTitle("");
-      setNewDesc("");
-      setNewPriority("medium");
-      setNewProject("");
-      setNewDue("");
-      toast({ title: "Task created", variant: "success" });
-    }
+    if (error || !data) { reportError(error); return; }
+    setTasks((prev) => [data, ...prev]);
+    setShowCreate(false);
+    setNewTitle("");
+    setNewDesc("");
+    setNewPriority("medium");
+    setNewProject("");
+    setNewDue("");
+    toast({ title: "Task created", variant: "success" });
   }
 
   // Shared status writer used by both the inline row dropdown and the drawer.
@@ -136,10 +133,7 @@ export default function TasksPage() {
       .from("tasks")
       .update({ status, completed_at })
       .eq("id", id);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "danger" });
-      return false;
-    }
+    if (reportError(error)) return false;
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status, completed_at } : t)));
     return true;
   }
@@ -148,7 +142,7 @@ export default function TasksPage() {
   async function handleQuickStatus(task: Task, status: TaskStatus) {
     if (status === task.status) return;
     const ok = await updateTaskStatus(task.id, status);
-    if (ok) toast({ title: `Moved to ${STATUS_LABELS[status]}`, variant: "success" });
+    if (ok) toast({ title: `Moved to ${TASK_STATUS_LABELS[status]}`, variant: "success" });
   }
 
   async function handleStatusUpdate() {
@@ -169,6 +163,7 @@ export default function TasksPage() {
     }
   }
 
+  const doneCount = tasks.filter((t) => t.status === "done").length;
   const filtered = {
     all: tasks,
     todo: tasks.filter((t) => t.status === "todo"),
@@ -179,26 +174,17 @@ export default function TasksPage() {
   const projectName = (id: string | null) => projects.find((p) => p.id === id)?.name ?? null;
 
   return (
-    <div className="relative min-h-screen p-4 sm:p-6 space-y-6">
-      <GradientBackground fixed={false} />
-      <GridPattern
-        className="absolute inset-0 opacity-5 [mask-image:radial-gradient(ellipse_at_top,white_20%,transparent_70%)]"
-        squares={[[2,1],[5,3],[8,2]]}
+    <PageContainer>
+      <PageHeader
+        breadcrumb={[{ label: "Today", href: "/dashboard" }, { label: "Tasks" }]}
+        title="Tasks"
+        subtitle={`${tasks.length} total · ${doneCount} done`}
+        actions={
+          <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>
+            + New Task
+          </Button>
+        }
       />
-
-      <div className="relative">
-        <Breadcrumb items={[{ label: "Today", href: "/dashboard" }, { label: "Tasks" }]} />
-      </div>
-
-      <div className="relative flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Tasks</h1>
-          <p className="text-slate-400 text-sm mt-1">{tasks.length} total · {tasks.filter((t) => t.status === "done").length} done</p>
-        </div>
-        <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>
-          + New Task
-        </Button>
-      </div>
 
       <div className="relative">
         <Tabs value={activeTab} onChange={setActiveTab}>
@@ -206,7 +192,7 @@ export default function TasksPage() {
             <Tab value="all">All ({tasks.length})</Tab>
             <Tab value="todo">To Do ({tasks.filter((t) => t.status === "todo").length})</Tab>
             <Tab value="in_progress">In Progress ({tasks.filter((t) => t.status === "in_progress").length})</Tab>
-            <Tab value="done">Done ({tasks.filter((t) => t.status === "done").length})</Tab>
+            <Tab value="done">Done ({doneCount})</Tab>
           </TabList>
 
           <TabPanels className="mt-4">
@@ -215,11 +201,7 @@ export default function TasksPage() {
                 <Card variant="elevated">
                   <CardContent>
                     {loading ? (
-                      <div className="space-y-3 pt-4">
-                        {[1,2,3,4].map((i) => (
-                          <div key={i} className="h-14 rounded-lg bg-white/5 animate-pulse" />
-                        ))}
-                      </div>
+                      <SkeletonList count={4} rowClassName="h-14" className="space-y-3 pt-4" />
                     ) : filtered.length === 0 ? (
                       <EmptyState label={tab === "done" ? "No completed tasks yet." : "No tasks here. Add one!"} />
                     ) : (
@@ -250,20 +232,17 @@ export default function TasksPage() {
                               {task.due_date && (
                                 <span className="hidden sm:inline text-xs text-slate-500">{task.due_date}</span>
                               )}
-                              <Badge variant={PRIORITY_VARIANTS[task.priority]} size="sm">
+                              <Badge variant={TASK_PRIORITY_VARIANTS[task.priority]} size="sm">
                                 {task.priority}
                               </Badge>
                               {/* Inline status switcher — moves the task between columns */}
-                              <select
-                                value={task.status}
-                                onChange={(e) => handleQuickStatus(task, e.target.value as TaskStatus)}
+                              <NativeSelect
+                                size="sm"
                                 aria-label="Change status"
-                                className="rounded-lg bg-white/10 border border-white/10 text-slate-200 text-xs px-2 py-1.5 cursor-pointer focus:outline-none focus:border-white/30 transition-colors"
-                              >
-                                <option value="todo" className="bg-[#0f172a]">To Do</option>
-                                <option value="in_progress" className="bg-[#0f172a]">In Progress</option>
-                                <option value="done" className="bg-[#0f172a]">Done</option>
-                              </select>
+                                value={task.status}
+                                onChange={(v) => handleQuickStatus(task, v as TaskStatus)}
+                                options={TASK_STATUS_OPTIONS}
+                              />
                             </div>
                           </div>
                         ))}
@@ -297,32 +276,21 @@ export default function TasksPage() {
                 onChange={(e) => setNewDesc(e.target.value)}
               />
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1.5">Priority</label>
-                  <select
-                    value={newPriority}
-                    onChange={(e) => setNewPriority(e.target.value as TaskPriority)}
-                    className="w-full px-3 py-2.5 rounded-lg bg-white/10 border border-white/10 text-slate-200 text-sm focus:outline-none focus:border-white/30 transition-colors"
-                  >
-                    <option value="low" className="bg-[#0f172a]">Low</option>
-                    <option value="medium" className="bg-[#0f172a]">Medium</option>
-                    <option value="high" className="bg-[#0f172a]">High</option>
-                    <option value="urgent" className="bg-[#0f172a]">Urgent</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1.5">Project</label>
-                  <select
-                    value={newProject}
-                    onChange={(e) => setNewProject(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-lg bg-white/10 border border-white/10 text-slate-200 text-sm focus:outline-none focus:border-white/30 transition-colors"
-                  >
-                    <option value="" className="bg-[#0f172a]">No project</option>
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id} className="bg-[#0f172a]">{p.name}</option>
-                    ))}
-                  </select>
-                </div>
+                <NativeSelect
+                  label="Priority"
+                  value={newPriority}
+                  onChange={(v) => setNewPriority(v as TaskPriority)}
+                  options={PRIORITY_OPTIONS}
+                />
+                <NativeSelect
+                  label="Project"
+                  value={newProject}
+                  onChange={setNewProject}
+                  options={[
+                    { value: "", label: "No project" },
+                    ...projects.map((p) => ({ value: p.id, label: p.name })),
+                  ]}
+                />
               </div>
               <Input
                 label="Due date"
@@ -358,7 +326,7 @@ export default function TasksPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Priority</p>
-                    <Badge variant={PRIORITY_VARIANTS[selected.priority]}>{selected.priority}</Badge>
+                    <Badge variant={TASK_PRIORITY_VARIANTS[selected.priority]}>{selected.priority}</Badge>
                   </div>
                   <div>
                     <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Project</p>
@@ -383,11 +351,7 @@ export default function TasksPage() {
                   <Select
                     value={editStatus}
                     onChange={(value) => setEditStatus(value as TaskStatus)}
-                    options={[
-                      { value: "todo", label: STATUS_LABELS.todo },
-                      { value: "in_progress", label: STATUS_LABELS.in_progress },
-                      { value: "done", label: STATUS_LABELS.done },
-                    ]}
+                    options={TASK_STATUS_OPTIONS}
                   />
                 </div>
               </div>
@@ -408,6 +372,6 @@ export default function TasksPage() {
           </>
         )}
       </Drawer>
-    </div>
+    </PageContainer>
   );
 }

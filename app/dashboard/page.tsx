@@ -10,44 +10,24 @@ import {
   Alert,
   Button,
   ConfettiButton,
-  GridPattern,
-  GradientBackground,
   Input,
   Select,
   toast,
 } from "@kwyw/kayv-glass-ui";
-import { createClient } from "@/lib/supabase";
-
-const supabase = createClient();
+import { supabase } from "@/lib/supabase";
+import { getUserId, reportError } from "@/lib/db";
+import { todayISO } from "@/lib/date";
+import { MOOD_OPTIONS, MOOD_VARIANTS } from "@/lib/constants";
+import { PageContainer } from "@/components/ui/page-container";
+import { PageHeader } from "@/components/ui/page-header";
+import { SkeletonList } from "@/components/ui/skeleton";
 import type { Task, Project, JournalEntry, Mood } from "@/lib/types";
-
-const MOOD_OPTIONS = [
-  { value: "great", label: "😄 Great" },
-  { value: "good", label: "🙂 Good" },
-  { value: "okay", label: "😐 Okay" },
-  { value: "bad", label: "😕 Bad" },
-  { value: "terrible", label: "😞 Terrible" },
-];
-
-const MOOD_VARIANTS: Record<Mood, "success" | "primary" | "warning" | "danger" | "default"> = {
-  great: "success",
-  good: "primary",
-  okay: "warning",
-  bad: "danger",
-  terrible: "danger",
-};
 
 function getGreeting() {
   const h = new Date().getHours();
   if (h < 12) return "Good morning";
   if (h < 17) return "Good afternoon";
   return "Good evening";
-}
-
-function todayISO() {
-  // Local date — toISOString() is UTC and can be a day off in +offset zones.
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 export default function TodayPage() {
@@ -81,17 +61,19 @@ export default function TodayPage() {
       supabase.from("journal_entries").select("*").eq("date", today).maybeSingle(),
     ]);
 
-    if (tasksRes.data) setTasks(tasksRes.data as Task[]);
-    if (projectsRes.data) setProjects(projectsRes.data as Project[]);
-    const journalData = journalRes.data as JournalEntry | null;
-    if (journalData) {
-      setJournal(journalData);
-      setSelectedMood(journalData.mood ?? "");
+    if (tasksRes.data) setTasks(tasksRes.data);
+    if (projectsRes.data) setProjects(projectsRes.data);
+    if (journalRes.data) {
+      setJournal(journalRes.data);
+      setSelectedMood(journalRes.data.mood ?? "");
     }
     setLoading(false);
   }
 
   useEffect(() => {
+    // Fetch once on mount. State is only set after the awaited query resolves,
+    // so this doesn't cause the cascading renders the rule guards against.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -99,20 +81,17 @@ export default function TodayPage() {
   async function handleQuickAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!quickTitle.trim()) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const userId = await getUserId();
+    if (!userId) return;
     const { data, error } = await supabase
       .from("tasks")
-      .insert({ title: quickTitle.trim(), status: "todo", priority: "medium", due_date: today, user_id: user.id })
+      .insert({ title: quickTitle.trim(), status: "todo", priority: "medium", due_date: today, user_id: userId })
       .select()
       .single();
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "danger" });
-    } else {
-      setTasks((prev) => [data as Task, ...prev]);
-      setQuickTitle("");
-      toast({ title: "Task added", variant: "success" });
-    }
+    if (error || !data) { reportError(error); return; }
+    setTasks((prev) => [data, ...prev]);
+    setQuickTitle("");
+    toast({ title: "Task added", variant: "success" });
   }
 
   async function handleToggleTask(task: Task) {
@@ -133,14 +112,14 @@ export default function TodayPage() {
       await supabase.from("journal_entries").update({ mood: mood as Mood }).eq("id", journal.id);
       setJournal((j) => (j ? { ...j, mood: mood as Mood } : j));
     } else {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const userId = await getUserId();
+      if (!userId) return;
       const { data } = await supabase
         .from("journal_entries")
-        .insert({ date: today, content: "", mood: mood as Mood, highlights: [], user_id: user.id })
+        .insert({ date: today, content: "", mood: mood as Mood, highlights: [], user_id: userId })
         .select()
         .single();
-      if (data) setJournal(data as JournalEntry);
+      if (data) setJournal(data);
     }
     toast({ title: "Mood saved", variant: "success" });
   }
@@ -148,30 +127,24 @@ export default function TodayPage() {
   const doneTasks = tasks.filter((t) => t.status === "done");
   const pendingTasks = tasks.filter((t) => t.status !== "done");
   const completionRate = tasks.length > 0 ? Math.round((doneTasks.length / tasks.length) * 100) : 0;
+  const allDone = doneTasks.length > 0 && doneTasks.length === tasks.length;
 
   return (
-    <div className="relative min-h-screen p-4 sm:p-6 space-y-6">
-      <GradientBackground fixed={false} />
-      <GridPattern
-        className="absolute inset-0 opacity-5 [mask-image:radial-gradient(ellipse_at_top,white_20%,transparent_70%)]"
-        squares={[[1,1],[3,2],[6,4],[9,1]]}
+    <PageContainer squares={[[1, 1], [3, 2], [6, 4], [9, 1]]}>
+      <PageHeader
+        title={`${getGreeting()}, Kayv ✦`}
+        subtitle={todayLabel}
+        actions={
+          allDone ? (
+            <ConfettiButton
+              preset="fireworks"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-kv-500 text-white hover:bg-kv-600 transition-colors"
+            >
+              🎉 All done!
+            </ConfettiButton>
+          ) : undefined
+        }
       />
-
-      {/* Header */}
-      <div className="relative flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">{getGreeting()}, Kayv ✦</h1>
-          <p className="text-slate-400 text-sm mt-1">{todayLabel}</p>
-        </div>
-        {doneTasks.length > 0 && doneTasks.length === tasks.length && (
-          <ConfettiButton
-            preset="fireworks"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-kv-500 text-white hover:bg-kv-600 transition-colors"
-          >
-            🎉 All done!
-          </ConfettiButton>
-        )}
-      </div>
 
       {/* Summary cards */}
       <div className="relative grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -229,11 +202,7 @@ export default function TodayPage() {
             </form>
 
             {loading ? (
-              <div className="space-y-3">
-                {[1,2,3].map((i) => (
-                  <div key={i} className="h-10 rounded-lg bg-white/5 animate-pulse" />
-                ))}
-              </div>
+              <SkeletonList count={3} rowClassName="h-10" />
             ) : tasks.length === 0 ? (
               <p className="text-slate-500 text-sm text-center py-6">No tasks yet — add one above!</p>
             ) : (
@@ -328,6 +297,6 @@ export default function TodayPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </PageContainer>
   );
 }
