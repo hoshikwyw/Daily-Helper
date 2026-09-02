@@ -2,41 +2,27 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  CardFooter,
-  Badge,
-  Progress,
-  Button,
-  Input,
-  Select,
-  Breadcrumb,
-  toast,
-} from "@kwyw/kayv-glass-ui";
+import { Breadcrumb, toast } from "@kwyw/kayv-glass-ui";
 import { deleteProject, getProject, updateProject } from "@/lib/api/projects";
 import { listTasksByProject } from "@/lib/api/tasks";
-import { formatDate } from "@/lib/date";
-import { PROJECT_COLORS, PROJECT_STATUS_VARIANTS } from "@/lib/constants";
+import {
+  draftFromProject,
+  draftToUpdate,
+  isDraftDirty,
+  type ProjectDraft,
+} from "@/lib/projects";
 import { PageContainer } from "@/components/ui/page-container";
-import { ColorPicker } from "@/components/ui/color-picker";
-import { TextArea } from "@/components/ui/text-area";
-import { Skeleton } from "@/components/ui/skeleton";
-import { FieldLabel } from "@/components/ui/label";
 import { PageLoader } from "@/components/ui/page-loader";
-import type { Project, Task, ProjectStatus, TaskStatus } from "@/lib/types";
-
-const TASK_GROUPS: { status: TaskStatus; label: string; dot: string }[] = [
-  { status: "in_progress", label: "In progress", dot: "bg-kv-400" },
-  { status: "todo", label: "To do", dot: "bg-slate-500" },
-  { status: "done", label: "Done", dot: "bg-green-400" },
-];
-
-function parseTech(s: string): string[] {
-  return s.split(",").map((x) => x.trim()).filter(Boolean);
-}
+import { ProjectHeader } from "./_components/project-header";
+import { ProjectOverviewCard } from "./_components/project-overview-card";
+import { ProjectTasksCard } from "./_components/project-tasks-card";
+import { ProjectNotesCard } from "./_components/project-notes-card";
+import { ProjectProgressCard } from "./_components/project-progress-card";
+import {
+  ProjectDetailSkeleton,
+  ProjectNotFound,
+} from "./_components/project-detail-states";
+import type { Project, Task } from "@/lib/types";
 
 function ProjectDetail() {
   const router = useRouter();
@@ -46,86 +32,50 @@ function ProjectDetail() {
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-
-  // Editable fields
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [repository, setRepository] = useState("");
-  const [techStack, setTechStack] = useState("");
-  const [color, setColor] = useState<string>(PROJECT_COLORS[0]);
-  const [status, setStatus] = useState<ProjectStatus>("active");
-  const [notes, setNotes] = useState("");
+  // One draft object rather than a state hook per editable field.
+  const [draft, setDraft] = useState<ProjectDraft | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     async function load() {
       if (!id) {
-        setNotFound(true);
         setLoading(false);
         return;
       }
 
       const proj = await getProject(id);
       if (!proj) {
-        setNotFound(true);
         setLoading(false);
         return;
       }
 
       setProject(proj);
-      setName(proj.name);
-      setDescription(proj.description ?? "");
-      setRepository(proj.repository_url ?? "");
-      setTechStack(proj.tech_stack.join(", "));
-      setColor(proj.color);
-      setStatus(proj.status);
-      setNotes(proj.notes ?? "");
-
+      setDraft(draftFromProject(proj));
       setTasks(await listTasksByProject(id));
       setLoading(false);
     }
     load();
   }, [id]);
 
-  const total = tasks.length;
-  const done = tasks.filter((t) => t.status === "done").length;
-  const progress = total > 0 ? Math.round((done / total) * 100) : 0;
-
-  const parsedTech = parseTech(techStack);
-  const dirty =
-    !!project &&
-    (name.trim() !== project.name ||
-      description.trim() !== (project.description ?? "") ||
-      repository.trim() !== (project.repository_url ?? "") ||
-      color !== project.color ||
-      status !== project.status ||
-      notes !== (project.notes ?? "") ||
-      parsedTech.join("|") !== project.tech_stack.join("|"));
+  function patchDraft(patch: Partial<ProjectDraft>) {
+    setDraft((prev) => (prev ? { ...prev, ...patch } : prev));
+  }
 
   async function handleSave() {
-    if (!project) return;
-    if (!name.trim()) {
+    if (!project || !draft) return;
+    if (!draft.name.trim()) {
       toast({ title: "Name can't be empty", variant: "warning" });
       return;
     }
     setSaving(true);
-    const updates = {
-      name: name.trim(),
-      description: description.trim() || null,
-      repository_url: repository.trim() || null,
-      tech_stack: parsedTech,
-      color,
-      status,
-      notes: notes.trim() || null,
-    };
+    const updates = draftToUpdate(draft);
     const ok = await updateProject(project.id, updates);
     setSaving(false);
     if (!ok) return;
     setProject({ ...project, ...updates });
     toast({
-      title: status === "completed" ? "Project completed! 🎉" : "Changes saved",
+      title: draft.status === "completed" ? "Project completed! 🎉" : "Changes saved",
       variant: "success",
     });
   }
@@ -141,6 +91,8 @@ function ProjectDetail() {
     router.push("/dashboard/projects");
   }
 
+  const done = tasks.filter((t) => t.status === "done").length;
+
   return (
     <PageContainer squares={[[2, 2], [5, 1], [7, 4]]}>
       <div className="relative">
@@ -154,246 +106,39 @@ function ProjectDetail() {
       </div>
 
       {loading ? (
-        <div className="relative space-y-4">
-          <Skeleton className="h-10 w-64" />
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Skeleton className="lg:col-span-2 h-64 rounded-xl" />
-            <Skeleton className="h-64 rounded-xl" />
-          </div>
-        </div>
-      ) : notFound || !project ? (
-        <div className="relative max-w-4xl">
-          <Card variant="elevated">
-            <CardContent>
-              <p className="text-slate-400 text-sm text-center py-10">
-                This project doesn&apos;t exist or was deleted.
-              </p>
-              <div className="flex justify-center">
-                <Link href="/dashboard/projects">
-                  <Button variant="primary" size="sm">← Back to projects</Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <ProjectDetailSkeleton />
+      ) : !project || !draft ? (
+        <ProjectNotFound />
       ) : (
         <div className="relative space-y-6">
-          {/* Header */}
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <span
-                className="w-5 h-5 rounded-full shrink-0 mt-1.5"
-                style={{ backgroundColor: color }}
-              />
-              <div>
-                <h1 className="text-2xl font-bold text-white">{project.name}</h1>
-                <div className="flex items-center gap-2 mt-1.5">
-                  <Badge variant={PROJECT_STATUS_VARIANTS[project.status]} size="sm">
-                    {project.status}
-                  </Badge>
-                  <span className="text-slate-500 text-sm">
-                    {done}/{total} tasks done
-                  </span>
-                </div>
-              </div>
-            </div>
-            <Link href="/dashboard/projects">
-              <Button variant="ghost" size="sm">← All projects</Button>
-            </Link>
-          </div>
+          <ProjectHeader
+            project={project}
+            color={draft.color}
+            done={done}
+            total={tasks.length}
+          />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-            {/* Main column */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Overview */}
-              <Card variant="elevated">
-                <CardHeader title="Overview" description="Project details and settings" />
-                <CardContent>
-                  <div className="space-y-5">
-                    <Input
-                      label="Name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Project name"
-                    />
-
-                    <Input
-                      label="Description"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="What is this project about?"
-                    />
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <FieldLabel mb="1.5">Status</FieldLabel>
-                        <Select
-                          value={status}
-                          onChange={(value) => setStatus(value as ProjectStatus)}
-                          options={[
-                            { value: "active", label: "Active" },
-                            { value: "paused", label: "Paused" },
-                            { value: "completed", label: "Completed" },
-                            { value: "archived", label: "Archived" },
-                          ]}
-                        />
-                      </div>
-                      <div>
-                        <Input
-                          label="Repository URL"
-                          type="url"
-                          value={repository}
-                          onChange={(e) => setRepository(e.target.value)}
-                          placeholder="https://github.com/..."
-                        />
-                        {project.repository_url && (
-                          <a
-                            href={project.repository_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-block mt-1.5 text-kv-400 text-xs hover:text-kv-300 break-all"
-                          >
-                            Open saved link ↗
-                          </a>
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <Input
-                        label="Tech stack (comma-separated)"
-                        value={techStack}
-                        onChange={(e) => setTechStack(e.target.value)}
-                        placeholder="React, TypeScript, Supabase"
-                      />
-                      {parsedTech.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {parsedTech.map((t) => (
-                            <Badge key={t} variant="default" size="sm">{t}</Badge>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <ColorPicker
-                      label="Color"
-                      colors={PROJECT_COLORS}
-                      value={color}
-                      onChange={setColor}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Tasks */}
-              <Card variant="elevated">
-                <CardHeader
-                  title="Tasks"
-                  description={total === 0 ? "No tasks linked yet" : `${total} task${total !== 1 ? "s" : ""} · ${done} done`}
-                />
-                <CardContent>
-                  {total === 0 ? (
-                    <p className="text-slate-500 text-sm">
-                      No tasks linked to this project. Assign a project when creating a task to see it here.
-                    </p>
-                  ) : (
-                    <div className="space-y-5">
-                      {TASK_GROUPS.map((group) => {
-                        const groupTasks = tasks.filter((t) => t.status === group.status);
-                        if (groupTasks.length === 0) return null;
-                        return (
-                          <div key={group.status}>
-                            <FieldLabel>
-                              {group.label} ({groupTasks.length})
-                            </FieldLabel>
-                            <div className="space-y-1.5">
-                              {groupTasks.map((task) => (
-                                <div
-                                  key={task.id}
-                                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white/5 text-sm"
-                                >
-                                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${group.dot}`} />
-                                  <span className={task.status === "done" ? "text-slate-500 line-through" : "text-slate-200"}>
-                                    {task.title}
-                                  </span>
-                                  {task.due_date && (
-                                    <span className="ml-auto text-xs text-slate-500">
-                                      {formatDate(task.due_date)}
-                                    </span>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Notes / Vlogs */}
-              <Card variant="elevated">
-                <CardHeader title="Notes" description="Log updates, ideas, and progress for this project" />
-                <CardContent>
-                  <TextArea
-                    value={notes}
-                    onChange={setNotes}
-                    rows={8}
-                    placeholder="Write project notes, a changelog, or a running log of updates…"
-                    resize="y"
-                  />
-                </CardContent>
-                <CardFooter>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleDelete}
-                    disabled={deleting}
-                    className="text-red-400 hover:text-red-300"
-                  >
-                    {deleting ? "Deleting…" : "Delete project"}
-                  </Button>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={handleSave}
-                    isLoading={saving}
-                    disabled={!dirty || saving}
-                    className="ml-auto"
-                  >
-                    Save changes
-                  </Button>
-                </CardFooter>
-              </Card>
+              <ProjectOverviewCard
+                draft={draft}
+                onChange={patchDraft}
+                savedRepositoryUrl={project.repository_url}
+              />
+              <ProjectTasksCard tasks={tasks} done={done} />
+              <ProjectNotesCard
+                notes={draft.notes}
+                onNotesChange={(notes) => patchDraft({ notes })}
+                dirty={isDraftDirty(project, draft)}
+                saving={saving}
+                deleting={deleting}
+                onSave={handleSave}
+                onDelete={handleDelete}
+              />
             </div>
 
-            {/* Right rail */}
             <div className="lg:sticky lg:top-6 space-y-6">
-              <Card variant="elevated">
-                <CardHeader title="Progress" />
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">Tasks complete</span>
-                        <span className="text-slate-200 font-medium">{progress}%</span>
-                      </div>
-                      <Progress value={progress} variant={progress === 100 ? "success" : "primary"} size="md" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <FieldLabel mb="0">Created</FieldLabel>
-                        <p className="text-slate-300">{formatDate(project.created_at)}</p>
-                      </div>
-                      <div>
-                        <FieldLabel mb="0">Updated</FieldLabel>
-                        <p className="text-slate-300">{formatDate(project.updated_at)}</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <ProjectProgressCard project={project} done={done} total={tasks.length} />
             </div>
           </div>
         </div>

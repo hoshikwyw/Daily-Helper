@@ -36,6 +36,18 @@ export const PROJECT_STATUS_VARIANTS: Record<ProjectStatus, UIVariant> = {
   archived: "default",
 };
 
+export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
+  active: "Active",
+  paused: "Paused",
+  completed: "Completed",
+  archived: "Archived",
+};
+
+/** Options for a project-status `<select>`. */
+export const PROJECT_STATUS_OPTIONS = (
+  Object.keys(PROJECT_STATUS_LABELS) as ProjectStatus[]
+).map((value) => ({ value, label: PROJECT_STATUS_LABELS[value] }));
+
 export const TASK_PRIORITY_VARIANTS: Record<TaskPriority, UIVariant> = {
   urgent: "danger",
   high: "warning",
