@@ -16,8 +16,8 @@ import {
   Breadcrumb,
   toast,
 } from "@kwyw/kayv-glass-ui";
-import { supabase } from "@/lib/supabase";
-import { reportError } from "@/lib/db";
+import { deleteProject, getProject, updateProject } from "@/lib/api/projects";
+import { listTasksByProject } from "@/lib/api/tasks";
 import { formatDate } from "@/lib/date";
 import { PROJECT_COLORS, PROJECT_STATUS_VARIANTS } from "@/lib/constants";
 import { PageContainer } from "@/components/ui/page-container";
@@ -64,13 +64,8 @@ function ProjectDetail() {
         return;
       }
 
-      const { data: proj, error } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (error || !proj) {
+      const proj = await getProject(id);
+      if (!proj) {
         setNotFound(true);
         setLoading(false);
         return;
@@ -85,12 +80,7 @@ function ProjectDetail() {
       setStatus(proj.status);
       setNotes(proj.notes ?? "");
 
-      const { data: t } = await supabase
-        .from("tasks")
-        .select("*")
-        .eq("project_id", id)
-        .order("created_at", { ascending: false });
-      setTasks(t ?? []);
+      setTasks(await listTasksByProject(id));
       setLoading(false);
     }
     load();
@@ -127,9 +117,9 @@ function ProjectDetail() {
       status,
       notes: notes.trim() || null,
     };
-    const { error } = await supabase.from("projects").update(updates).eq("id", project.id);
+    const ok = await updateProject(project.id, updates);
     setSaving(false);
-    if (reportError(error)) return;
+    if (!ok) return;
     setProject({ ...project, ...updates });
     toast({
       title: status === "completed" ? "Project completed! 🎉" : "Changes saved",
@@ -140,10 +130,8 @@ function ProjectDetail() {
   async function handleDelete() {
     if (!project) return;
     setDeleting(true);
-    const { error } = await supabase.from("projects").delete().eq("id", project.id);
-    if (error) {
+    if (!(await deleteProject(project.id))) {
       setDeleting(false);
-      reportError(error);
       return;
     }
     toast({ title: "Project deleted", variant: "warning" });

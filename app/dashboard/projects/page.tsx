@@ -19,16 +19,14 @@ import {
   ConfettiButton,
   toast,
 } from "@kwyw/kayv-glass-ui";
-import { supabase } from "@/lib/supabase";
-import { getUserId, reportError } from "@/lib/db";
+import { createProject, listProjects } from "@/lib/api/projects";
+import { listProjectTaskCounts, type TaskCount } from "@/lib/api/tasks";
 import { PROJECT_COLORS, PROJECT_STATUS_VARIANTS } from "@/lib/constants";
 import { PageContainer } from "@/components/ui/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Project, ProjectStatus } from "@/lib/types";
-
-type TaskCount = { total: number; done: number };
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -46,29 +44,9 @@ export default function ProjectsPage() {
   const [saving, setSaving] = useState(false);
 
   async function loadData() {
-    const { data: proj } = await supabase
-      .from("projects")
-      .select("*")
-      .order("updated_at", { ascending: false });
-
-    if (proj) {
-      setProjects(proj);
-      // Load task counts for all projects
-      const { data: tasks } = await supabase
-        .from("tasks")
-        .select("project_id, status")
-        .not("project_id", "is", null);
-      if (tasks) {
-        const counts: Record<string, TaskCount> = {};
-        for (const t of tasks) {
-          if (!t.project_id) continue;
-          if (!counts[t.project_id]) counts[t.project_id] = { total: 0, done: 0 };
-          counts[t.project_id].total++;
-          if (t.status === "done") counts[t.project_id].done++;
-        }
-        setTaskCounts(counts);
-      }
-    }
+    const [projectRows, counts] = await Promise.all([listProjects(), listProjectTaskCounts()]);
+    setProjects(projectRows);
+    setTaskCounts(counts);
     setLoading(false);
   }
 
@@ -83,26 +61,18 @@ export default function ProjectsPage() {
     e.preventDefault();
     if (!newName.trim()) return;
     setSaving(true);
-    const userId = await getUserId();
-    if (!userId) { setSaving(false); return; }
-    const techStack = newTech.split(",").map((s) => s.trim()).filter(Boolean);
-    const { data, error } = await supabase
-      .from("projects")
-      .insert({
-        name: newName.trim(),
-        description: newDesc.trim() || null,
-        status: "active",
-        color: newColor,
-        tech_stack: techStack,
-        repository_url: newRepo.trim() || null,
-        notes: null,
-        user_id: userId,
-      })
-      .select()
-      .single();
+    const created = await createProject({
+      name: newName.trim(),
+      description: newDesc.trim() || null,
+      status: "active",
+      color: newColor,
+      tech_stack: newTech.split(",").map((s) => s.trim()).filter(Boolean),
+      repository_url: newRepo.trim() || null,
+      notes: null,
+    });
     setSaving(false);
-    if (error || !data) { reportError(error); return; }
-    setProjects((prev) => [data, ...prev]);
+    if (!created) return;
+    setProjects((prev) => [created, ...prev]);
     setShowCreate(false);
     setNewName("");
     setNewDesc("");

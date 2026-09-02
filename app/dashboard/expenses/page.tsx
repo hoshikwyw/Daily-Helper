@@ -10,8 +10,15 @@ import {
   TabPanel,
   toast,
 } from "@kwyw/kayv-glass-ui";
-import { supabase } from "@/lib/supabase";
-import { getUserId, reportError } from "@/lib/db";
+import {
+  createExpense,
+  createExpenseCategory,
+  deleteExpense,
+  deleteExpenseCategory,
+  listExpenseCategories,
+  listExpensesForYear,
+  type NewExpense,
+} from "@/lib/api/expenses";
 import { toISODate, todayISO } from "@/lib/date";
 import {
   DEFAULT_CATEGORIES,
@@ -26,7 +33,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { DailyTab } from "./_components/daily-tab";
 import { MonthlyTab } from "./_components/monthly-tab";
 import { YearlyTab } from "./_components/yearly-tab";
-import { AddExpenseModal, type NewExpense } from "./_components/add-expense-modal";
+import { AddExpenseModal } from "./_components/add-expense-modal";
 import { ManageCategoriesModal } from "./_components/manage-categories-modal";
 import type { Expense, CustomCategory } from "@/lib/types";
 
@@ -62,20 +69,12 @@ export default function ExpensesPage() {
 
   async function loadExpenses(year: number) {
     setLoading(true);
-    const { data } = await supabase
-      .from("expenses")
-      .select("*")
-      .gte("date", `${year}-01-01`)
-      .lte("date", `${year}-12-31`)
-      .order("date", { ascending: false })
-      .order("created_at", { ascending: false });
-    if (data) setExpenses(data);
+    setExpenses(await listExpensesForYear(year));
     setLoading(false);
   }
 
   async function loadCategories() {
-    const { data } = await supabase.from("expense_categories").select("*").order("created_at");
-    if (data) setCustomCategories(data);
+    setCustomCategories(await listExpenseCategories());
   }
 
   useEffect(() => {
@@ -97,27 +96,20 @@ export default function ExpensesPage() {
   }, [activeTab, selectedMonthYear, selectedYear]);
 
   async function handleCreateExpense(values: NewExpense): Promise<boolean> {
-    const userId = await getUserId();
-    if (!userId) return false;
-    const { data, error } = await supabase
-      .from("expenses")
-      .insert({ ...values, user_id: userId })
-      .select()
-      .single();
-    if (error || !data) { reportError(error); return false; }
-    if (data.date.startsWith(String(fetchYear))) {
-      setExpenses((prev) => [data, ...prev]);
+    const created = await createExpense(values);
+    if (!created) return false;
+    // Only surface it immediately when it belongs to the year on screen.
+    if (created.date.startsWith(String(fetchYear))) {
+      setExpenses((prev) => [created, ...prev]);
     }
     toast({ title: "Expense added", variant: "success" });
     return true;
   }
 
   async function handleDelete(id: string) {
-    const { error } = await supabase.from("expenses").delete().eq("id", id);
-    if (!error) {
-      setExpenses((prev) => prev.filter((e) => e.id !== id));
-      toast({ title: "Expense deleted", variant: "warning" });
-    }
+    if (!(await deleteExpense(id))) return;
+    setExpenses((prev) => prev.filter((e) => e.id !== id));
+    toast({ title: "Expense deleted", variant: "warning" });
   }
 
   async function handleAddCategory(name: string, color: string): Promise<boolean> {
@@ -125,25 +117,17 @@ export default function ExpensesPage() {
       toast({ title: "Category already exists", variant: "danger" });
       return false;
     }
-    const userId = await getUserId();
-    if (!userId) return false;
-    const { data, error } = await supabase
-      .from("expense_categories")
-      .insert({ name, color, user_id: userId })
-      .select()
-      .single();
-    if (error || !data) { reportError(error); return false; }
-    setCustomCategories((prev) => [...prev, data]);
+    const created = await createExpenseCategory(name, color);
+    if (!created) return false;
+    setCustomCategories((prev) => [...prev, created]);
     toast({ title: "Category added", variant: "success" });
     return true;
   }
 
   async function handleDeleteCategory(id: string) {
-    const { error } = await supabase.from("expense_categories").delete().eq("id", id);
-    if (!error) {
-      setCustomCategories((prev) => prev.filter((c) => c.id !== id));
-      toast({ title: "Category removed", variant: "warning" });
-    }
+    if (!(await deleteExpenseCategory(id))) return;
+    setCustomCategories((prev) => prev.filter((c) => c.id !== id));
+    toast({ title: "Category removed", variant: "warning" });
   }
 
   async function handleExportImage(

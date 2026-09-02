@@ -23,8 +23,8 @@ import {
   TabPanel,
   toast,
 } from "@kwyw/kayv-glass-ui";
-import { supabase } from "@/lib/supabase";
-import { getUserId, reportError } from "@/lib/db";
+import { createTask, deleteTask, listTasks, setTaskStatus } from "@/lib/api/tasks";
+import { listProjectOptions } from "@/lib/api/projects";
 import {
   TASK_PRIORITY_VARIANTS,
   TASK_STATUS_LABELS,
@@ -74,12 +74,9 @@ export default function TasksPage() {
   const [editStatus, setEditStatus] = useState<TaskStatus>("todo");
 
   async function loadData() {
-    const [tasksRes, projectsRes] = await Promise.all([
-      supabase.from("tasks").select("*").order("created_at", { ascending: false }),
-      supabase.from("projects").select("id, name, color").order("name"),
-    ]);
-    if (tasksRes.data) setTasks(tasksRes.data);
-    if (projectsRes.data) setProjects(projectsRes.data as Project[]);
+    const [taskRows, projectRows] = await Promise.all([listTasks(), listProjectOptions()]);
+    setTasks(taskRows);
+    setProjects(projectRows);
     setLoading(false);
   }
 
@@ -99,24 +96,17 @@ export default function TasksPage() {
     e.preventDefault();
     if (!newTitle.trim()) return;
     setSaving(true);
-    const userId = await getUserId();
-    if (!userId) { setSaving(false); return; }
-    const { data, error } = await supabase
-      .from("tasks")
-      .insert({
-        title: newTitle.trim(),
-        description: newDesc.trim() || null,
-        priority: newPriority,
-        status: "todo",
-        project_id: newProject || null,
-        due_date: newDue || null,
-        user_id: userId,
-      })
-      .select()
-      .single();
+    const created = await createTask({
+      title: newTitle.trim(),
+      description: newDesc.trim() || null,
+      priority: newPriority,
+      status: "todo",
+      project_id: newProject || null,
+      due_date: newDue || null,
+    });
     setSaving(false);
-    if (error || !data) { reportError(error); return; }
-    setTasks((prev) => [data, ...prev]);
+    if (!created) return;
+    setTasks((prev) => [created, ...prev]);
     setShowCreate(false);
     setNewTitle("");
     setNewDesc("");
@@ -128,13 +118,9 @@ export default function TasksPage() {
 
   // Shared status writer used by both the inline row dropdown and the drawer.
   async function updateTaskStatus(id: string, status: TaskStatus): Promise<boolean> {
-    const completed_at = status === "done" ? new Date().toISOString() : null;
-    const { error } = await supabase
-      .from("tasks")
-      .update({ status, completed_at })
-      .eq("id", id);
-    if (reportError(error)) return false;
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status, completed_at } : t)));
+    const patch = await setTaskStatus(id, status);
+    if (!patch) return false;
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
     return true;
   }
 
@@ -155,12 +141,10 @@ export default function TasksPage() {
   }
 
   async function handleDelete(id: string) {
-    const { error } = await supabase.from("tasks").delete().eq("id", id);
-    if (!error) {
-      setTasks((prev) => prev.filter((t) => t.id !== id));
-      setSelected(null);
-      toast({ title: "Task deleted", variant: "warning" });
-    }
+    if (!(await deleteTask(id))) return;
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+    setSelected(null);
+    toast({ title: "Task deleted", variant: "warning" });
   }
 
   const doneCount = tasks.filter((t) => t.status === "done").length;

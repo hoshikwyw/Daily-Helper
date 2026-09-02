@@ -8,7 +8,7 @@ import {
   MenuBarItem,
   MenuBarDivider,
 } from "@kwyw/kayv-glass-ui";
-import { createClient } from "@/lib/supabase";
+import { signOut } from "@/lib/api/auth";
 
 const NAV_ITEMS = [
   { value: "home", label: "Today", href: "/dashboard", icon: "☀️" },
@@ -39,8 +39,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   async function handleLogout() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await signOut();
     router.push("/login");
     router.refresh();
   }

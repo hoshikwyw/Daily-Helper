@@ -11,13 +11,7 @@ import {
 } from "@kwyw/kayv-glass-ui";
 import { NativeSelect } from "@/components/ui/native-select";
 import { todayISO } from "@/lib/date";
-
-export type NewExpense = {
-  amount: number;
-  category: string;
-  description: string | null;
-  date: string;
-};
+import type { NewExpense } from "@/lib/api/expenses";
 
 type AddExpenseModalProps = {
   open: boolean;

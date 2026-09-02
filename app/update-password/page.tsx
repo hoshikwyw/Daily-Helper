@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { updatePassword } from "@/lib/api/auth";
 import {
   Card,
   CardHeader,
@@ -35,10 +35,10 @@ export default function UpdatePasswordPage() {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password });
+    const message = await updatePassword(password);
 
-    if (error) {
-      setError(error.message);
+    if (message) {
+      setError(message);
       setLoading(false);
       return;
     }

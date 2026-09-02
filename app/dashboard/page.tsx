@@ -14,8 +14,9 @@ import {
   Select,
   toast,
 } from "@kwyw/kayv-glass-ui";
-import { supabase } from "@/lib/supabase";
-import { getUserId, reportError } from "@/lib/db";
+import { createTask, listTasksDueOrActive, setTaskStatus } from "@/lib/api/tasks";
+import { listActiveProjects } from "@/lib/api/projects";
+import { getJournalEntry, setJournalMood } from "@/lib/api/journal";
 import { todayISO } from "@/lib/date";
 import { MOOD_OPTIONS, MOOD_VARIANTS } from "@/lib/constants";
 import { PageContainer } from "@/components/ui/page-container";
@@ -46,26 +47,17 @@ export default function TodayPage() {
   });
 
   async function loadData() {
-    const [tasksRes, projectsRes, journalRes] = await Promise.all([
-      supabase
-        .from("tasks")
-        .select("*")
-        .or(`due_date.eq.${today},status.eq.in_progress`)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("projects")
-        .select("*")
-        .eq("status", "active")
-        .order("updated_at", { ascending: false })
-        .limit(4),
-      supabase.from("journal_entries").select("*").eq("date", today).maybeSingle(),
+    const [taskRows, projectRows, entry] = await Promise.all([
+      listTasksDueOrActive(today),
+      listActiveProjects(),
+      getJournalEntry(today),
     ]);
 
-    if (tasksRes.data) setTasks(tasksRes.data);
-    if (projectsRes.data) setProjects(projectsRes.data);
-    if (journalRes.data) {
-      setJournal(journalRes.data);
-      setSelectedMood(journalRes.data.mood ?? "");
+    setTasks(taskRows);
+    setProjects(projectRows);
+    if (entry) {
+      setJournal(entry);
+      setSelectedMood(entry.mood ?? "");
     }
     setLoading(false);
   }
@@ -81,46 +73,26 @@ export default function TodayPage() {
   async function handleQuickAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!quickTitle.trim()) return;
-    const userId = await getUserId();
-    if (!userId) return;
-    const { data, error } = await supabase
-      .from("tasks")
-      .insert({ title: quickTitle.trim(), status: "todo", priority: "medium", due_date: today, user_id: userId })
-      .select()
-      .single();
-    if (error || !data) { reportError(error); return; }
-    setTasks((prev) => [data, ...prev]);
+    const created = await createTask({ title: quickTitle.trim(), due_date: today });
+    if (!created) return;
+    setTasks((prev) => [created, ...prev]);
     setQuickTitle("");
     toast({ title: "Task added", variant: "success" });
   }
 
   async function handleToggleTask(task: Task) {
-    const newStatus: Task["status"] = task.status === "done" ? "todo" : "done";
-    const { error } = await supabase
-      .from("tasks")
-      .update({ status: newStatus, completed_at: newStatus === "done" ? new Date().toISOString() : null })
-      .eq("id", task.id);
-    if (!error) {
-      setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, status: newStatus } : t)));
-      if (newStatus === "done") toast({ title: "Task done!", variant: "success" });
-    }
+    const nextStatus: Task["status"] = task.status === "done" ? "todo" : "done";
+    const patch = await setTaskStatus(task.id, nextStatus);
+    if (!patch) return;
+    setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, ...patch } : t)));
+    if (nextStatus === "done") toast({ title: "Task done!", variant: "success" });
   }
 
   async function handleMoodSave(mood: string) {
     setSelectedMood(mood);
-    if (journal) {
-      await supabase.from("journal_entries").update({ mood: mood as Mood }).eq("id", journal.id);
-      setJournal((j) => (j ? { ...j, mood: mood as Mood } : j));
-    } else {
-      const userId = await getUserId();
-      if (!userId) return;
-      const { data } = await supabase
-        .from("journal_entries")
-        .insert({ date: today, content: "", mood: mood as Mood, highlights: [], user_id: userId })
-        .select()
-        .single();
-      if (data) setJournal(data);
-    }
+    const saved = await setJournalMood(journal, today, (mood || null) as Mood | null);
+    if (!saved) return;
+    setJournal(saved);
     toast({ title: "Mood saved", variant: "success" });
   }
 

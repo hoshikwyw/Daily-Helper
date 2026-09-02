@@ -2,7 +2,7 @@
 
 import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/supabase";
+import { completeAuthCallback } from "@/lib/api/auth";
 import type { EmailOtpType } from "@supabase/supabase-js";
 
 // Client-side auth callback (replaces the server Route Handler). The browser
@@ -13,27 +13,15 @@ function Callback() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const supabase = createClient();
     const next = searchParams.get("next") ?? "/dashboard";
-    const code = searchParams.get("code");
-    const token_hash = searchParams.get("token_hash");
-    const type = searchParams.get("type") as EmailOtpType | null;
 
-    async function run() {
-      if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        router.replace(error ? "/login?error=expired" : next);
-        return;
-      }
-      if (token_hash && type) {
-        const { error } = await supabase.auth.verifyOtp({ token_hash, type });
-        router.replace(error ? "/login?error=expired" : next);
-        return;
-      }
-      router.replace("/login?error=invalid_link");
-    }
-
-    run();
+    completeAuthCallback({
+      code: searchParams.get("code"),
+      tokenHash: searchParams.get("token_hash"),
+      type: searchParams.get("type") as EmailOtpType | null,
+    }).then((result) => {
+      router.replace(result.ok ? next : `/login?error=${result.reason}`);
+    });
   }, [router, searchParams]);
 
   return (

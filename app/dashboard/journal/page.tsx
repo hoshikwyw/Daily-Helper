@@ -14,8 +14,12 @@ import {
   Calendar,
   toast,
 } from "@kwyw/kayv-glass-ui";
-import { supabase } from "@/lib/supabase";
-import { getUserId, reportError } from "@/lib/db";
+import {
+  deleteJournalEntry,
+  getJournalEntry,
+  listRecentJournalEntries,
+  saveJournalEntry,
+} from "@/lib/api/journal";
 import { toISODate } from "@/lib/date";
 import { MOOD_OPTIONS, MOOD_VARIANTS } from "@/lib/constants";
 import { PageContainer } from "@/components/ui/page-container";
@@ -39,12 +43,7 @@ export default function JournalPage() {
 
   async function loadEntry(date: Date) {
     setLoading(true);
-    const iso = toISODate(date);
-    const { data: found } = await supabase
-      .from("journal_entries")
-      .select("*")
-      .eq("date", iso)
-      .maybeSingle();
+    const found = await getJournalEntry(toISODate(date));
     if (found) {
       setEntry(found);
       setContent(found.content);
@@ -60,12 +59,7 @@ export default function JournalPage() {
   }
 
   async function loadRecent() {
-    const { data } = await supabase
-      .from("journal_entries")
-      .select("*")
-      .order("date", { ascending: false })
-      .limit(7);
-    if (data) setRecentEntries(data);
+    setRecentEntries(await listRecentJournalEntries());
   }
 
   useEffect(() => {
@@ -100,32 +94,10 @@ export default function JournalPage() {
       highlights,
     };
 
-    let error;
-    let saved: JournalEntry | null = null;
-    if (entry) {
-      const res = await supabase
-        .from("journal_entries")
-        .update(payload)
-        .eq("id", entry.id)
-        .select()
-        .single();
-      error = res.error;
-      saved = res.data;
-    } else {
-      const userId = await getUserId();
-      if (!userId) { setSaving(false); return; }
-      const res = await supabase
-        .from("journal_entries")
-        .insert({ ...payload, user_id: userId })
-        .select()
-        .single();
-      error = res.error;
-      saved = res.data;
-    }
-
+    const saved = await saveJournalEntry(entry?.id ?? null, payload);
     setSaving(false);
-    if (reportError(error)) return;
-    if (saved) setEntry(saved);
+    if (!saved) return;
+    setEntry(saved);
     toast({ title: "Journal saved", variant: "success" });
     loadRecent();
   }
@@ -133,9 +105,9 @@ export default function JournalPage() {
   async function handleDelete() {
     if (!entry) return;
     setDeleting(true);
-    const { error } = await supabase.from("journal_entries").delete().eq("id", entry.id);
+    const ok = await deleteJournalEntry(entry.id);
     setDeleting(false);
-    if (reportError(error)) return;
+    if (!ok) return;
     // Reset the editor back to a fresh entry for the same date.
     setEntry(null);
     setContent("");

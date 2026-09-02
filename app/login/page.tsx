@@ -2,8 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import { authCallbackUrl } from "@/lib/authRedirect";
+import { getSession, sendPasswordReset, signIn } from "@/lib/api/auth";
 import {
   Card,
   CardHeader,
@@ -47,10 +46,8 @@ function LoginForm() {
 
   // If already signed in, skip the login page (was handled by middleware).
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        router.replace("/dashboard");
-      }
+    getSession().then((session) => {
+      if (session) router.replace("/dashboard");
     });
   }, [router]);
 
@@ -59,10 +56,10 @@ function LoginForm() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const message = await signIn(email, password);
 
-    if (error) {
-      setError(error.message);
+    if (message) {
+      setError(message);
       setLoading(false);
       return;
     }
@@ -76,16 +73,11 @@ function LoginForm() {
     setResetLoading(true);
     setResetError(null);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-      redirectTo: authCallbackUrl("/update-password"),
-    });
+    const message = await sendPasswordReset(resetEmail);
 
     setResetLoading(false);
-    if (error) {
-      setResetError(error.message);
-    } else {
-      setResetSent(true);
-    }
+    if (message) setResetError(message);
+    else setResetSent(true);
   }
 
   function switchMode(next: Mode) {

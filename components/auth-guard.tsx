@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase";
+import { watchSession } from "@/lib/api/auth";
 
 // Client-side replacement for the old proxy.ts middleware: gates the dashboard
 // behind a Supabase session and bounces to /login when signed out. Required
@@ -12,31 +12,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const supabase = createClient();
-    let active = true;
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!active) return;
-      if (session) setReady(true);
-      else router.replace("/login");
+    return watchSession((session) => {
+      setReady(!!session);
+      if (!session) router.replace("/login");
     });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!active) return;
-      if (session) {
-        setReady(true);
-      } else {
-        setReady(false);
-        router.replace("/login");
-      }
-    });
-
-    return () => {
-      active = false;
-      subscription.unsubscribe();
-    };
   }, [router]);
 
   if (!ready) {
