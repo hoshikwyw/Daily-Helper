@@ -61,6 +61,17 @@ export const KIND_SIGNS: Record<EntryKind, string> = {
   expense: "−",
 };
 
+/**
+ * Coerces an unknown value to a valid ledger side, defaulting to "expense".
+ *
+ * Rows written before the income migration have no `kind` at all, and an
+ * undefined kind used as a lookup key crashes the render. Normalising at the
+ * boundary means old data reads as spending instead of taking the page down.
+ */
+export function normalizeKind(value: unknown): EntryKind {
+  return value === "income" ? "income" : "expense";
+}
+
 // ── Formatting ──────────────────────────────────────────────────────────────
 
 /** Formats an amount as the app's currency, e.g. `K 1,200`. */
@@ -76,7 +87,7 @@ export function fmtSigned(amount: number): string {
 
 /** Formats an entry the way it should read in a list: `−K 500` for a spend. */
 export function fmtEntry(entry: Expense): string {
-  return `${KIND_SIGNS[entry.kind]}${fmt(entry.amount)}`;
+  return `${KIND_SIGNS[normalizeKind(entry.kind)]}${fmt(entry.amount)}`;
 }
 
 // ── Totals ──────────────────────────────────────────────────────────────────
@@ -95,14 +106,14 @@ export function getTotals(entries: Expense[]): Totals {
   let income = 0;
   let expense = 0;
   for (const entry of entries) {
-    if (entry.kind === "income") income += entry.amount;
+    if (normalizeKind(entry.kind) === "income") income += entry.amount;
     else expense += entry.amount;
   }
   return { income, expense, net: income - expense };
 }
 
 export function filterByKind(entries: Expense[], kind: EntryKind): Expense[] {
-  return entries.filter((e) => e.kind === kind);
+  return entries.filter((e) => normalizeKind(e.kind) === kind);
 }
 
 /** Share of income kept rather than spent, 0-100. 0 when nothing came in. */
@@ -125,7 +136,9 @@ export function mergeCategories(
 ): Record<EntryKind, { name: string; color: string }[]> {
   const forKind = (kind: EntryKind) => [
     ...DEFAULT_CATEGORIES[kind],
-    ...custom.filter((c) => c.kind === kind).map((c) => ({ name: c.name, color: c.color })),
+    ...custom
+      .filter((c) => normalizeKind(c.kind) === kind)
+      .map((c) => ({ name: c.name, color: c.color })),
   ];
   return { expense: forKind("expense"), income: forKind("income") };
 }
@@ -141,7 +154,7 @@ export function buildColorMap(
 }
 
 export function categoryColor(map: ColorMap, kind: EntryKind, name: string): string {
-  return map[kind][name] ?? FALLBACK_CATEGORY_COLOR;
+  return map[normalizeKind(kind)]?.[name] ?? FALLBACK_CATEGORY_COLOR;
 }
 
 // ── Breakdowns ──────────────────────────────────────────────────────────────
