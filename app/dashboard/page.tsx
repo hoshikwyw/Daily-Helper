@@ -6,6 +6,7 @@ import { createTask, listTasksDueOrActive, setTaskStatus } from "@/lib/api/tasks
 import { listActiveProjects } from "@/lib/api/projects";
 import { getJournalEntry, setJournalMood } from "@/lib/api/journal";
 import { formatDayLabel, todayISO } from "@/lib/date";
+import { useSettings } from "@/hooks/use-settings";
 import { PageContainer } from "@/components/ui/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { TodaySummaryCards } from "./_components/today-summary-cards";
@@ -23,6 +24,7 @@ function getGreeting() {
 }
 
 export default function TodayPage() {
+  const { settings } = useSettings();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [journal, setJournal] = useState<JournalEntry | null>(null);
@@ -82,11 +84,13 @@ export default function TodayPage() {
   const doneTasks = tasks.filter((t) => t.status === "done");
   const pendingTasks = tasks.filter((t) => t.status !== "done");
   const allDone = doneTasks.length > 0 && doneTasks.length === tasks.length;
+  // Falls back to a bare greeting if the display name is cleared in Settings.
+  const name = settings.displayName.trim();
 
   return (
     <PageContainer squares={[[1, 1], [3, 2], [6, 4], [9, 1]]}>
       <PageHeader
-        title={`${getGreeting()}, Kayv ✦`}
+        title={name ? `${getGreeting()}, ${name} ✦` : `${getGreeting()} ✦`}
         subtitle={formatDayLabel(new Date())}
         actions={
           allDone ? (
