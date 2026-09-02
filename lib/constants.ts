@@ -13,21 +13,27 @@ export const PROJECT_COLORS = [
   "#10b981", "#06b6d4", "#f59e0b", "#ef4444",
 ] as const;
 
-export const MOOD_OPTIONS: { value: Mood; label: string }[] = [
-  { value: "great", label: "😄 Great" },
-  { value: "good", label: "🙂 Good" },
-  { value: "okay", label: "😐 Okay" },
-  { value: "bad", label: "😕 Bad" },
-  { value: "terrible", label: "😞 Terrible" },
-];
-
-export const MOOD_VARIANTS: Record<Mood, UIVariant> = {
-  great: "success",
-  good: "primary",
-  okay: "warning",
-  bad: "danger",
-  terrible: "danger",
+/**
+ * Everything the UI needs for a mood in one place: its emoji, its display
+ * name, and its badge color. Previously the emoji was recovered by splitting
+ * the combined label on a space, which broke silently if a label changed.
+ */
+export const MOOD_META: Record<Mood, { emoji: string; label: string; variant: UIVariant }> = {
+  great: { emoji: "😄", label: "Great", variant: "success" },
+  good: { emoji: "🙂", label: "Good", variant: "primary" },
+  okay: { emoji: "😐", label: "Okay", variant: "warning" },
+  bad: { emoji: "😕", label: "Bad", variant: "danger" },
+  terrible: { emoji: "😞", label: "Terrible", variant: "danger" },
 };
+
+/** Moods from best to worst — the order they appear in a picker. */
+export const MOODS = Object.keys(MOOD_META) as Mood[];
+
+/** Options for a mood `<select>`, e.g. "😄 Great". */
+export const MOOD_OPTIONS = MOODS.map((value) => ({
+  value,
+  label: `${MOOD_META[value].emoji} ${MOOD_META[value].label}`,
+}));
 
 export const PROJECT_STATUS_VARIANTS: Record<ProjectStatus, UIVariant> = {
   active: "primary",

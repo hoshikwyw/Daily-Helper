@@ -1,5 +1,5 @@
 import { Card, CardHeader, CardContent, Progress } from "@kwyw/kayv-glass-ui";
-import { progressPercent, progressVariant } from "@/lib/projects";
+import { progressPercent, progressVariant } from "@/lib/progress";
 import { formatDate } from "@/lib/date";
 import { FieldLabel } from "@/components/ui/label";
 import type { Project } from "@/lib/types";

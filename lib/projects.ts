@@ -17,18 +17,6 @@ export function formatTechStack(stack: string[]): string {
   return stack.join(", ");
 }
 
-// ── Progress ────────────────────────────────────────────────────────────────
-
-/** Percentage of a project's tasks that are done; 0 when it has none. */
-export function progressPercent(done: number, total: number): number {
-  return total > 0 ? Math.round((done / total) * 100) : 0;
-}
-
-/** Progress bars turn green only at a genuine 100%. */
-export function progressVariant(percent: number): "success" | "primary" {
-  return percent === 100 ? "success" : "primary";
-}
-
 // ── List filtering ──────────────────────────────────────────────────────────
 
 export type ProjectFilter = "all" | ProjectStatus;

@@ -11,7 +11,7 @@ import {
   ConfettiButton,
 } from "@kwyw/kayv-glass-ui";
 import { PROJECT_STATUS_VARIANTS } from "@/lib/constants";
-import { progressPercent, progressVariant } from "@/lib/projects";
+import { progressPercent, progressVariant } from "@/lib/progress";
 import type { TaskCount } from "@/lib/api/tasks";
 import type { Project } from "@/lib/types";
 

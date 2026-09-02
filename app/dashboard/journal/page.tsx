@@ -1,44 +1,31 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  CardFooter,
-  Badge,
-  Button,
-  Input,
-  Select,
-  Alert,
-  Calendar,
-  toast,
-} from "@kwyw/kayv-glass-ui";
+import { toast } from "@kwyw/kayv-glass-ui";
 import {
   deleteJournalEntry,
   getJournalEntry,
   listRecentJournalEntries,
   saveJournalEntry,
 } from "@/lib/api/journal";
-import { formatDayLabel, formatFullDayLabel, fromISODate, toISODate } from "@/lib/date";
-import { MOOD_OPTIONS, MOOD_VARIANTS } from "@/lib/constants";
+import {
+  draftFromEntry,
+  draftToPayload,
+  emptyJournalDraft,
+  type JournalDraft,
+} from "@/lib/journal";
+import { toISODate, todayISO } from "@/lib/date";
 import { PageContainer } from "@/components/ui/page-container";
 import { PageHeader } from "@/components/ui/page-header";
-import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/ui/empty-state";
-import { TextArea } from "@/components/ui/text-area";
-import { FormLabel } from "@/components/ui/label";
-import type { JournalEntry, Mood } from "@/lib/types";
-
-const MOOD_SELECT_OPTIONS = [{ value: "", label: "Select mood…" }, ...MOOD_OPTIONS];
+import { JournalSidebar } from "./_components/journal-sidebar";
+import { JournalEditorCard } from "./_components/journal-editor-card";
+import type { JournalEntry } from "@/lib/types";
 
 export default function JournalPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [entry, setEntry] = useState<JournalEntry | null>(null);
-  const [content, setContent] = useState("");
-  const [mood, setMood] = useState<string>("");
-  const [highlight, setHighlight] = useState("");
-  const [highlights, setHighlights] = useState<string[]>([]);
+  // The editor's fields travel together, so one draft rather than three hooks.
+  const [draft, setDraft] = useState<JournalDraft>(emptyJournalDraft);
   const [recentEntries, setRecentEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -47,17 +34,8 @@ export default function JournalPage() {
   async function loadEntry(date: Date) {
     setLoading(true);
     const found = await getJournalEntry(toISODate(date));
-    if (found) {
-      setEntry(found);
-      setContent(found.content);
-      setMood(found.mood ?? "");
-      setHighlights(found.highlights ?? []);
-    } else {
-      setEntry(null);
-      setContent("");
-      setMood("");
-      setHighlights([]);
-    }
+    setEntry(found);
+    setDraft(draftFromEntry(found));
     setLoading(false);
   }
 
@@ -72,32 +50,21 @@ export default function JournalPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function handleDateChange(date: Date | null) {
-    if (!date) return;
+  function handleDateChange(date: Date) {
     setSelectedDate(date);
     loadEntry(date);
   }
 
-  function addHighlight() {
-    if (!highlight.trim()) return;
-    setHighlights((prev) => [...prev, highlight.trim()]);
-    setHighlight("");
-  }
-
-  function removeHighlight(idx: number) {
-    setHighlights((prev) => prev.filter((_, i) => i !== idx));
+  function patchDraft(patch: Partial<JournalDraft>) {
+    setDraft((prev) => ({ ...prev, ...patch }));
   }
 
   async function handleSave() {
     setSaving(true);
-    const payload = {
-      date: toISODate(selectedDate),
-      content,
-      mood: (mood || null) as Mood | null,
-      highlights,
-    };
-
-    const saved = await saveJournalEntry(entry?.id ?? null, payload);
+    const saved = await saveJournalEntry(
+      entry?.id ?? null,
+      draftToPayload(draft, toISODate(selectedDate))
+    );
     setSaving(false);
     if (!saved) return;
     setEntry(saved);
@@ -113,14 +80,10 @@ export default function JournalPage() {
     if (!ok) return;
     // Reset the editor back to a fresh entry for the same date.
     setEntry(null);
-    setContent("");
-    setMood("");
-    setHighlights([]);
+    setDraft(emptyJournalDraft());
     toast({ title: "Entry deleted", variant: "warning" });
     loadRecent();
   }
-
-  const isToday = toISODate(selectedDate) === toISODate(new Date());
 
   return (
     <PageContainer squares={[[1, 2], [4, 1], [7, 3]]}>
@@ -131,133 +94,24 @@ export default function JournalPage() {
       />
 
       <div className="relative grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Calendar + recent */}
-        <div className="space-y-4">
-          <Card variant="elevated">
-            <CardHeader title="Pick a date" />
-            <CardContent>
-              <Calendar
-                mode="single"
-                value={selectedDate}
-                onChange={handleDateChange}
-              />
-            </CardContent>
-          </Card>
+        <JournalSidebar
+          selectedDate={selectedDate}
+          onDateChange={handleDateChange}
+          recentEntries={recentEntries}
+        />
 
-          <Card variant="elevated">
-            <CardHeader title="Recent entries" />
-            <CardContent>
-              {recentEntries.length === 0 ? (
-                <EmptyState padding="sm">No entries yet.</EmptyState>
-              ) : (
-                <div className="space-y-2">
-                  {recentEntries.map((e) => (
-                    <button
-                      key={e.id}
-                      onClick={() => {
-                        const d = fromISODate(e.date);
-                        setSelectedDate(d);
-                        loadEntry(d);
-                      }}
-                      className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white/10 transition-colors text-left"
-                    >
-                      <span className="text-slate-300 text-sm font-medium w-20 shrink-0">{e.date}</span>
-                      {e.mood && (
-                        <Badge variant={MOOD_VARIANTS[e.mood]} size="sm">{e.mood}</Badge>
-                      )}
-                      <span className="text-slate-500 text-xs truncate flex-1">{e.content.slice(0, 30) || "…"}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Editor */}
-        <Card variant="elevated" className="lg:col-span-2">
-          <CardHeader
-            title={
-              isToday
-                ? `Today — ${formatDayLabel(new Date())}`
-                : formatFullDayLabel(selectedDate)
-            }
-            description={entry ? "Editing existing entry" : "New entry"}
-          />
-          <CardContent>
-            {loading ? (
-              <div className="space-y-4">
-                <Skeleton className="h-8" />
-                <Skeleton className="h-48" />
-              </div>
-            ) : (
-              <div className="space-y-5">
-                {isToday && !entry?.content && (
-                  <Alert variant="info" title="Start writing">
-                    What did you work on? What went well? What did you learn?
-                  </Alert>
-                )}
-
-                <Select
-                  label="Mood"
-                  value={mood}
-                  onChange={setMood}
-                  options={MOOD_SELECT_OPTIONS}
-                />
-
-                <TextArea
-                  label="Journal entry"
-                  value={content}
-                  onChange={setContent}
-                  placeholder="Write your thoughts..."
-                  rows={10}
-                />
-
-                <div>
-                  <FormLabel>Highlights</FormLabel>
-                  <div className="flex gap-2 mb-3">
-                    <Input
-                      placeholder="Add a highlight..."
-                      value={highlight}
-                      onChange={(e) => setHighlight(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addHighlight(); } }}
-                      className="flex-1"
-                    />
-                    <Button variant="ghost" size="sm" onClick={addHighlight} type="button">Add</Button>
-                  </div>
-                  {highlights.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {highlights.map((h, i) => (
-                        <button
-                          key={i}
-                          onClick={() => removeHighlight(i)}
-                          className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-kv-500/20 text-kv-300 text-xs hover:bg-red-500/20 hover:text-red-300 transition-colors"
-                        >
-                          ✦ {h} <span className="ml-1 opacity-60">×</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </CardContent>
-          <CardFooter>
-            <Button variant="primary" onClick={handleSave} disabled={saving || loading}>
-              {saving ? "Saving…" : entry ? "Update Entry" : "Save Entry"}
-            </Button>
-            {entry && (
-              <Button
-                variant="ghost"
-                onClick={handleDelete}
-                disabled={deleting || loading}
-                className="ml-auto text-red-400 hover:text-red-300"
-              >
-                {deleting ? "Deleting…" : "Delete"}
-              </Button>
-            )}
-          </CardFooter>
-        </Card>
+        <JournalEditorCard
+          selectedDate={selectedDate}
+          isToday={toISODate(selectedDate) === todayISO()}
+          entry={entry}
+          draft={draft}
+          onChange={patchDraft}
+          loading={loading}
+          saving={saving}
+          deleting={deleting}
+          onSave={handleSave}
+          onDelete={handleDelete}
+        />
       </div>
     </PageContainer>
   );
