@@ -1,5 +1,7 @@
 "use client";
 
+import { FieldLabel } from "@/components/ui/label";
+
 // A row of selectable color swatches. Used by the project and expense-category
 // forms, which each previously inlined the same button grid.
 
@@ -26,7 +28,7 @@ export function ColorPicker({
   return (
     <div>
       {label && (
-        <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">{label}</p>
+        <FieldLabel>{label}</FieldLabel>
       )}
       <div className="flex gap-2 flex-wrap">
         {colors.map((c) => (

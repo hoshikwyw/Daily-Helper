@@ -19,7 +19,7 @@ import {
   listExpensesForYear,
   type NewExpense,
 } from "@/lib/api/expenses";
-import { toISODate, todayISO } from "@/lib/date";
+import { formatLongDate, formatWeekday, toISODate, todayISO } from "@/lib/date";
 import {
   DEFAULT_CATEGORIES,
   MONTHS,
@@ -227,11 +227,10 @@ export default function ExpensesPage() {
                 colorMap={colorMap}
                 onDelete={handleDelete}
                 onExport={() => {
-                  const d = new Date(selectedDate + "T00:00:00");
                   handleExportImage(
                     "Daily",
-                    d.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" }),
-                    d.toLocaleDateString(undefined, { weekday: "long" }),
+                    formatLongDate(selectedDate),
+                    formatWeekday(selectedDate),
                     dailyExpenses
                   );
                 }}

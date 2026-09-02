@@ -28,6 +28,7 @@ import {
 import type { ThemeName } from "@kwyw/kayv-glass-ui";
 import { PageContainer } from "@/components/ui/page-container";
 import { PageHeader } from "@/components/ui/page-header";
+import { FieldLabel, FormLabel } from "@/components/ui/label";
 
 const FAQ = [
   {
@@ -112,7 +113,7 @@ export default function SettingsPage() {
                       options={TIMEZONES}
                     />
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">Supabase connection</label>
+                      <FormLabel>Supabase connection</FormLabel>
                       <div className="flex items-center gap-2 p-3 rounded-lg bg-white/5 border border-white/10">
                         {process.env.NEXT_PUBLIC_SUPABASE_URL ? (
                           <>
@@ -142,7 +143,7 @@ export default function SettingsPage() {
                 <CardContent>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-3">Theme</label>
+                      <FormLabel mb="3">Theme</FormLabel>
                       <div className="grid grid-cols-3 gap-2">
                         {themes.map((t) => (
                           <button
@@ -231,7 +232,7 @@ export default function SettingsPage() {
                   </div>
 
                   <div>
-                    <p className="text-xs text-slate-500 uppercase tracking-wide mb-3">FAQ</p>
+                    <FieldLabel mb="3">FAQ</FieldLabel>
                     <Accordion>
                       {FAQ.map((item, i) => (
                         <AccordionItem key={i} value={String(i)}>

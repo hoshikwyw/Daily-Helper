@@ -8,6 +8,7 @@ import {
 } from "@kwyw/kayv-glass-ui";
 import { fmt, getCategoryBreakdown, MONTHS, FALLBACK_CATEGORY_COLOR } from "@/lib/expenses";
 import { ExpenseRow } from "./expense-row";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { Expense } from "@/lib/types";
 
 type MonthlyTabProps = {
@@ -64,7 +65,7 @@ export function MonthlyTab({
           <CardHeader title="By Category" />
           <CardContent>
             {expenses.length === 0 ? (
-              <p className="text-slate-500 text-sm text-center py-8">No expenses this month.</p>
+              <EmptyState padding="lg">No expenses this month.</EmptyState>
             ) : (
               <div className="space-y-4">
                 {getCategoryBreakdown(expenses).map(({ category, amount, pct }) => (
@@ -97,7 +98,7 @@ export function MonthlyTab({
           />
           <CardContent>
             {expenses.length === 0 ? (
-              <p className="text-slate-500 text-sm text-center py-8">No expenses this month.</p>
+              <EmptyState padding="lg">No expenses this month.</EmptyState>
             ) : (
               <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                 {expenses.map((expense) => (

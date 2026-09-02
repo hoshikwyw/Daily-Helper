@@ -3,6 +3,7 @@
 import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { completeAuthCallback } from "@/lib/api/auth";
+import { PageBackdrop } from "@/components/ui/page-loader";
 import type { EmailOtpType } from "@supabase/supabase-js";
 
 // Client-side auth callback (replaces the server Route Handler). The browser
@@ -33,7 +34,7 @@ function Callback() {
 
 export default function AuthCallbackPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#0a0a0a]" />}>
+    <Suspense fallback={<PageBackdrop />}>
       <Callback />
     </Suspense>
   );

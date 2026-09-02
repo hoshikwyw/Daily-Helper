@@ -10,6 +10,7 @@ import {
   Input,
 } from "@kwyw/kayv-glass-ui";
 import { ColorPicker } from "@/components/ui/color-picker";
+import { FieldLabel } from "@/components/ui/label";
 import { PRESET_COLORS } from "@/lib/expenses";
 import type { CustomCategory } from "@/lib/types";
 
@@ -51,7 +52,7 @@ export function ManageCategoriesModal({
         <div className="space-y-5">
           {/* Add new category */}
           <div>
-            <p className="text-xs text-slate-500 uppercase tracking-wide mb-3">Add New Category</p>
+            <FieldLabel mb="3">Add New Category</FieldLabel>
             <form onSubmit={handleAdd} className="space-y-3">
               <Input
                 label="Category name"
@@ -71,7 +72,7 @@ export function ManageCategoriesModal({
 
           {/* Default categories (read-only) */}
           <div>
-            <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Default</p>
+            <FieldLabel>Default</FieldLabel>
             <div className="space-y-1.5">
               {defaultCategories.map((c) => (
                 <div key={c.name} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg bg-white/5">
@@ -86,7 +87,7 @@ export function ManageCategoriesModal({
           {/* Custom categories */}
           {customCategories.length > 0 && (
             <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Custom</p>
+              <FieldLabel>Custom</FieldLabel>
               <div className="space-y-1.5">
                 {customCategories.map((c) => (
                   <div key={c.id} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg bg-white/5 group">

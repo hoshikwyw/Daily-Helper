@@ -8,6 +8,7 @@ import {
   Progress,
 } from "@kwyw/kayv-glass-ui";
 import { fmt, getCategoryBreakdown, FALLBACK_CATEGORY_COLOR } from "@/lib/expenses";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { Expense } from "@/lib/types";
 
 type MonthlyTotal = { month: string; sum: number; pct: number };
@@ -94,7 +95,7 @@ export function YearlyTab({
           <CardHeader title="By Category" />
           <CardContent>
             {expenses.length === 0 ? (
-              <p className="text-slate-500 text-sm text-center py-8">No expenses this year.</p>
+              <EmptyState padding="lg">No expenses this year.</EmptyState>
             ) : (
               <div className="space-y-3">
                 {getCategoryBreakdown(expenses).map(({ category, amount, pct }) => (

@@ -26,6 +26,7 @@ import { PageContainer } from "@/components/ui/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { Project, ProjectStatus } from "@/lib/types";
 
 export default function ProjectsPage() {
@@ -132,9 +133,9 @@ export default function ProjectsPage() {
           <div className="col-span-full">
             <Card variant="elevated">
               <CardContent>
-                <p className="text-slate-500 text-sm text-center py-10">
+                <EmptyState>
                   {activeFilter === "all" ? "No projects yet — create your first one!" : `No ${activeFilter} projects.`}
-                </p>
+                </EmptyState>
               </CardContent>
             </Card>
           </div>

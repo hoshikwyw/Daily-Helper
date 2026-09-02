@@ -1,5 +1,7 @@
 "use client";
 
+import { FormLabel } from "@/components/ui/label";
+
 // A styled native <select>. The glass UI library's <Select> renders a custom
 // popover, but several places need the OS-native picker (better on mobile) with
 // the app's glass styling. This wraps the raw element + dark <option> styling
@@ -50,7 +52,7 @@ export function NativeSelect({
 
   return (
     <div>
-      <label className="block text-sm font-medium text-slate-300 mb-1.5">{label}</label>
+      <FormLabel mb="1.5">{label}</FormLabel>
       {select}
     </div>
   );

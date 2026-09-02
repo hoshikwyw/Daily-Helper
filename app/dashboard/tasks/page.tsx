@@ -34,6 +34,8 @@ import { PageContainer } from "@/components/ui/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { NativeSelect } from "@/components/ui/native-select";
 import { SkeletonList } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { FieldLabel } from "@/components/ui/label";
 import type { Task, Project, TaskStatus, TaskPriority } from "@/lib/types";
 
 // Per-status card colors (left accent stripe + subtle tint) for quick recognition.
@@ -49,10 +51,6 @@ const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
   { value: "high", label: "High" },
   { value: "urgent", label: "Urgent" },
 ];
-
-function EmptyState({ label }: { label: string }) {
-  return <p className="text-slate-500 text-sm text-center py-10">{label}</p>;
-}
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -187,7 +185,7 @@ export default function TasksPage() {
                     {loading ? (
                       <SkeletonList count={4} rowClassName="h-14" className="space-y-3 pt-4" />
                     ) : filtered.length === 0 ? (
-                      <EmptyState label={tab === "done" ? "No completed tasks yet." : "No tasks here. Add one!"} />
+                      <EmptyState>{tab === "done" ? "No completed tasks yet." : "No tasks here. Add one!"}</EmptyState>
                     ) : (
                       <div className="space-y-2 pt-2">
                         {filtered.map((task) => (
@@ -302,36 +300,36 @@ export default function TasksPage() {
               <div className="space-y-5">
                 {selected.description && (
                   <div>
-                    <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Description</p>
+                    <FieldLabel mb="1">Description</FieldLabel>
                     <p className="text-slate-300 text-sm">{selected.description}</p>
                   </div>
                 )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Priority</p>
+                    <FieldLabel mb="1">Priority</FieldLabel>
                     <Badge variant={TASK_PRIORITY_VARIANTS[selected.priority]}>{selected.priority}</Badge>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Project</p>
+                    <FieldLabel mb="1">Project</FieldLabel>
                     <p className="text-slate-300 text-sm">{projectName(selected.project_id) ?? "—"}</p>
                   </div>
                   {selected.due_date && (
                     <div>
-                      <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Due</p>
+                      <FieldLabel mb="1">Due</FieldLabel>
                       <p className="text-slate-300 text-sm">{selected.due_date}</p>
                     </div>
                   )}
                   {selected.completed_at && (
                     <div>
-                      <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Completed</p>
+                      <FieldLabel mb="1">Completed</FieldLabel>
                       <p className="text-slate-300 text-sm">{new Date(selected.completed_at).toLocaleDateString()}</p>
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Status</p>
+                  <FieldLabel>Status</FieldLabel>
                   <Select
                     value={editStatus}
                     onChange={(value) => setEditStatus(value as TaskStatus)}

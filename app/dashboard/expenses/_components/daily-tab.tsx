@@ -7,6 +7,7 @@ import {
 } from "@kwyw/kayv-glass-ui";
 import { fmt, getCategoryBreakdown, FALLBACK_CATEGORY_COLOR } from "@/lib/expenses";
 import { SkeletonList } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ExpenseRow } from "./expense-row";
 import type { Expense } from "@/lib/types";
 
@@ -78,9 +79,9 @@ export function DailyTab({
           {loading ? (
             <SkeletonList />
           ) : expenses.length === 0 ? (
-            <p className="text-slate-500 text-sm text-center py-10">
+            <EmptyState>
               No expenses for {selectedDate}. Add one above!
-            </p>
+            </EmptyState>
           ) : (
             <div className="space-y-2">
               {expenses.map((expense) => (

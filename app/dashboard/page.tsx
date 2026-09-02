@@ -17,11 +17,12 @@ import {
 import { createTask, listTasksDueOrActive, setTaskStatus } from "@/lib/api/tasks";
 import { listActiveProjects } from "@/lib/api/projects";
 import { getJournalEntry, setJournalMood } from "@/lib/api/journal";
-import { todayISO } from "@/lib/date";
-import { MOOD_OPTIONS, MOOD_VARIANTS } from "@/lib/constants";
+import { formatDayLabel, todayISO } from "@/lib/date";
+import { MOOD_OPTIONS, MOOD_VARIANTS, TASK_PRIORITY_VARIANTS } from "@/lib/constants";
 import { PageContainer } from "@/components/ui/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { SkeletonList } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { Task, Project, JournalEntry, Mood } from "@/lib/types";
 
 function getGreeting() {
@@ -40,11 +41,7 @@ export default function TodayPage() {
   const [selectedMood, setSelectedMood] = useState<string>("");
 
   const today = todayISO();
-  const todayLabel = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
+  const todayLabel = formatDayLabel(new Date());
 
   async function loadData() {
     const [taskRows, projectRows, entry] = await Promise.all([
@@ -176,7 +173,7 @@ export default function TodayPage() {
             {loading ? (
               <SkeletonList count={3} rowClassName="h-10" />
             ) : tasks.length === 0 ? (
-              <p className="text-slate-500 text-sm text-center py-6">No tasks yet — add one above!</p>
+              <EmptyState padding="md">No tasks yet — add one above!</EmptyState>
             ) : (
               <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                 {pendingTasks.map((task) => (
@@ -187,10 +184,7 @@ export default function TodayPage() {
                   >
                     <span className="w-4 h-4 rounded border border-slate-500 group-hover:border-kv-400 transition-colors shrink-0" />
                     <span className="text-sm text-slate-200 flex-1">{task.title}</span>
-                    <Badge
-                      variant={task.priority === "urgent" ? "danger" : task.priority === "high" ? "warning" : "default"}
-                      size="sm"
-                    >
+                    <Badge variant={TASK_PRIORITY_VARIANTS[task.priority]} size="sm">
                       {task.priority}
                     </Badge>
                   </button>

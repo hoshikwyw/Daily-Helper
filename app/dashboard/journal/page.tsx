@@ -20,11 +20,14 @@ import {
   listRecentJournalEntries,
   saveJournalEntry,
 } from "@/lib/api/journal";
-import { toISODate } from "@/lib/date";
+import { formatDayLabel, formatFullDayLabel, fromISODate, toISODate } from "@/lib/date";
 import { MOOD_OPTIONS, MOOD_VARIANTS } from "@/lib/constants";
 import { PageContainer } from "@/components/ui/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TextArea } from "@/components/ui/text-area";
+import { FormLabel } from "@/components/ui/label";
 import type { JournalEntry, Mood } from "@/lib/types";
 
 const MOOD_SELECT_OPTIONS = [{ value: "", label: "Select mood…" }, ...MOOD_OPTIONS];
@@ -145,14 +148,14 @@ export default function JournalPage() {
             <CardHeader title="Recent entries" />
             <CardContent>
               {recentEntries.length === 0 ? (
-                <p className="text-slate-500 text-sm text-center py-4">No entries yet.</p>
+                <EmptyState padding="sm">No entries yet.</EmptyState>
               ) : (
                 <div className="space-y-2">
                   {recentEntries.map((e) => (
                     <button
                       key={e.id}
                       onClick={() => {
-                        const d = new Date(e.date + "T00:00:00");
+                        const d = fromISODate(e.date);
                         setSelectedDate(d);
                         loadEntry(d);
                       }}
@@ -176,8 +179,8 @@ export default function JournalPage() {
           <CardHeader
             title={
               isToday
-                ? "Today — " + new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
-                : selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
+                ? `Today — ${formatDayLabel(new Date())}`
+                : formatFullDayLabel(selectedDate)
             }
             description={entry ? "Editing existing entry" : "New entry"}
           />
@@ -202,19 +205,16 @@ export default function JournalPage() {
                   options={MOOD_SELECT_OPTIONS}
                 />
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Journal entry</label>
-                  <textarea
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder="Write your thoughts..."
-                    rows={10}
-                    className="w-full rounded-lg bg-white/5 border border-white/10 text-slate-200 placeholder-slate-600 text-sm p-3 resize-none focus:outline-none focus:border-kv-500 transition-colors"
-                  />
-                </div>
+                <TextArea
+                  label="Journal entry"
+                  value={content}
+                  onChange={setContent}
+                  placeholder="Write your thoughts..."
+                  rows={10}
+                />
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Highlights</label>
+                  <FormLabel>Highlights</FormLabel>
                   <div className="flex gap-2 mb-3">
                     <Input
                       placeholder="Add a highlight..."

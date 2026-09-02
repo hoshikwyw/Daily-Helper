@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { watchSession } from "@/lib/api/auth";
+import { PageLoader } from "@/components/ui/page-loader";
 
 // Client-side replacement for the old proxy.ts middleware: gates the dashboard
 // behind a Supabase session and bounces to /login when signed out. Required
@@ -19,7 +20,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   if (!ready) {
-    return <div className="min-h-screen animate-pulse bg-white/5" />;
+    return <PageLoader />;
   }
   return <>{children}</>;
 }

@@ -22,7 +22,10 @@ import { formatDate } from "@/lib/date";
 import { PROJECT_COLORS, PROJECT_STATUS_VARIANTS } from "@/lib/constants";
 import { PageContainer } from "@/components/ui/page-container";
 import { ColorPicker } from "@/components/ui/color-picker";
+import { TextArea } from "@/components/ui/text-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FieldLabel } from "@/components/ui/label";
+import { PageLoader } from "@/components/ui/page-loader";
 import type { Project, Task, ProjectStatus, TaskStatus } from "@/lib/types";
 
 const TASK_GROUPS: { status: TaskStatus; label: string; dot: string }[] = [
@@ -223,7 +226,7 @@ function ProjectDetail() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <p className="text-xs text-slate-500 uppercase tracking-wide mb-1.5">Status</p>
+                        <FieldLabel mb="1.5">Status</FieldLabel>
                         <Select
                           value={status}
                           onChange={(value) => setStatus(value as ProjectStatus)}
@@ -300,9 +303,9 @@ function ProjectDetail() {
                         if (groupTasks.length === 0) return null;
                         return (
                           <div key={group.status}>
-                            <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">
+                            <FieldLabel>
                               {group.label} ({groupTasks.length})
-                            </p>
+                            </FieldLabel>
                             <div className="space-y-1.5">
                               {groupTasks.map((task) => (
                                 <div
@@ -333,12 +336,12 @@ function ProjectDetail() {
               <Card variant="elevated">
                 <CardHeader title="Notes" description="Log updates, ideas, and progress for this project" />
                 <CardContent>
-                  <textarea
+                  <TextArea
                     value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
+                    onChange={setNotes}
                     rows={8}
                     placeholder="Write project notes, a changelog, or a running log of updates…"
-                    className="w-full rounded-lg bg-white/5 border border-white/10 px-3.5 py-3 text-sm text-slate-200 placeholder-slate-600 resize-y focus:outline-none focus:border-kv-500/60 transition-colors"
+                    resize="y"
                   />
                 </CardContent>
                 <CardFooter>
@@ -380,11 +383,11 @@ function ProjectDetail() {
                     </div>
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       <div>
-                        <p className="text-xs text-slate-500 uppercase tracking-wide">Created</p>
+                        <FieldLabel mb="0">Created</FieldLabel>
                         <p className="text-slate-300">{formatDate(project.created_at)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-slate-500 uppercase tracking-wide">Updated</p>
+                        <FieldLabel mb="0">Updated</FieldLabel>
                         <p className="text-slate-300">{formatDate(project.updated_at)}</p>
                       </div>
                     </div>
@@ -401,7 +404,7 @@ function ProjectDetail() {
 
 export default function ProjectDetailPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen animate-pulse bg-white/5" />}>
+    <Suspense fallback={<PageLoader />}>
       <ProjectDetail />
     </Suspense>
   );
