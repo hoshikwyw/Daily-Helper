@@ -53,3 +53,29 @@ export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
 export const TASK_STATUS_OPTIONS = (Object.keys(TASK_STATUS_LABELS) as TaskStatus[]).map(
   (value) => ({ value, label: TASK_STATUS_LABELS[value] })
 );
+
+/** Left accent stripe + background tint per status, for task rows. */
+export const TASK_STATUS_ROW_STYLES: Record<TaskStatus, string> = {
+  todo: "border-slate-500/60 bg-slate-500/5 hover:bg-slate-500/10",
+  in_progress: "border-kv-500/70 bg-kv-500/10 hover:bg-kv-500/15",
+  done: "border-green-500/60 bg-green-500/5 hover:bg-green-500/10",
+};
+
+/** Status dot color, used wherever a task is shown in a list. */
+export const TASK_STATUS_DOTS: Record<TaskStatus, string> = {
+  todo: "bg-slate-500",
+  in_progress: "bg-kv-400",
+  done: "bg-green-400",
+};
+
+export const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+  urgent: "Urgent",
+};
+
+/** Options for a priority `<select>`, ascending in urgency. */
+export const TASK_PRIORITY_OPTIONS = (Object.keys(TASK_PRIORITY_LABELS) as TaskPriority[]).map(
+  (value) => ({ value, label: TASK_PRIORITY_LABELS[value] })
+);

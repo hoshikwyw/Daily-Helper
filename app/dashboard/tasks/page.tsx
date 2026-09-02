@@ -1,73 +1,34 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Card,
-  CardContent,
-  Badge,
-  Button,
-  Input,
-  Select,
-  Modal,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Drawer,
-  DrawerHeader,
-  DrawerBody,
-  DrawerFooter,
-  Tabs,
-  TabList,
-  Tab,
-  TabPanels,
-  TabPanel,
-  toast,
-} from "@kwyw/kayv-glass-ui";
-import { createTask, deleteTask, listTasks, setTaskStatus } from "@/lib/api/tasks";
+import { Button, Tabs, TabList, Tab, TabPanels, TabPanel, toast } from "@kwyw/kayv-glass-ui";
+import { createTask, deleteTask, listTasks, setTaskStatus, type NewTask } from "@/lib/api/tasks";
 import { listProjectOptions } from "@/lib/api/projects";
+import { TASK_STATUS_LABELS } from "@/lib/constants";
 import {
-  TASK_PRIORITY_VARIANTS,
-  TASK_STATUS_LABELS,
-  TASK_STATUS_OPTIONS,
-} from "@/lib/constants";
+  TASK_TABS,
+  countByTab,
+  emptyLabelForTab,
+  filterByTab,
+  projectNameById,
+  type TaskTab,
+} from "@/lib/tasks";
 import { PageContainer } from "@/components/ui/page-container";
 import { PageHeader } from "@/components/ui/page-header";
-import { NativeSelect } from "@/components/ui/native-select";
-import { SkeletonList } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/ui/empty-state";
-import { FieldLabel } from "@/components/ui/label";
-import type { Task, Project, TaskStatus, TaskPriority } from "@/lib/types";
-
-// Per-status card colors (left accent stripe + subtle tint) for quick recognition.
-const STATUS_ROW_STYLES: Record<TaskStatus, string> = {
-  todo: "border-slate-500/60 bg-slate-500/5 hover:bg-slate-500/10",
-  in_progress: "border-kv-500/70 bg-kv-500/10 hover:bg-kv-500/15",
-  done: "border-green-500/60 bg-green-500/5 hover:bg-green-500/10",
-};
-
-const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
-  { value: "low", label: "Low" },
-  { value: "medium", label: "Medium" },
-  { value: "high", label: "High" },
-  { value: "urgent", label: "Urgent" },
-];
+import { TaskList } from "./_components/task-list";
+import { CreateTaskModal } from "./_components/create-task-modal";
+import { TaskDetailDrawer } from "./_components/task-detail-drawer";
+import type { Project, Task, TaskStatus } from "@/lib/types";
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("all");
-
-  // Create modal
+  const [activeTab, setActiveTab] = useState<TaskTab>("all");
   const [showCreate, setShowCreate] = useState(false);
-  const [newTitle, setNewTitle] = useState("");
-  const [newDesc, setNewDesc] = useState("");
-  const [newPriority, setNewPriority] = useState<TaskPriority>("medium");
-  const [newProject, setNewProject] = useState("");
-  const [newDue, setNewDue] = useState("");
-  const [saving, setSaving] = useState(false);
 
-  // Detail drawer
+  // Detail drawer. `editStatus` lives here rather than in the drawer so the
+  // pending edit isn't lost while the drawer animates in and out.
   const [selected, setSelected] = useState<Task | null>(null);
   const [editStatus, setEditStatus] = useState<TaskStatus>("todo");
 
@@ -90,28 +51,12 @@ export default function TasksPage() {
     setEditStatus(task.status);
   }
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newTitle.trim()) return;
-    setSaving(true);
-    const created = await createTask({
-      title: newTitle.trim(),
-      description: newDesc.trim() || null,
-      priority: newPriority,
-      status: "todo",
-      project_id: newProject || null,
-      due_date: newDue || null,
-    });
-    setSaving(false);
-    if (!created) return;
+  async function handleCreate(values: NewTask): Promise<boolean> {
+    const created = await createTask(values);
+    if (!created) return false;
     setTasks((prev) => [created, ...prev]);
-    setShowCreate(false);
-    setNewTitle("");
-    setNewDesc("");
-    setNewPriority("medium");
-    setNewProject("");
-    setNewDue("");
     toast({ title: "Task created", variant: "success" });
+    return true;
   }
 
   // Shared status writer used by both the inline row dropdown and the drawer.
@@ -125,14 +70,14 @@ export default function TasksPage() {
   // Inline quick-move from a task row.
   async function handleQuickStatus(task: Task, status: TaskStatus) {
     if (status === task.status) return;
-    const ok = await updateTaskStatus(task.id, status);
-    if (ok) toast({ title: `Moved to ${TASK_STATUS_LABELS[status]}`, variant: "success" });
+    if (await updateTaskStatus(task.id, status)) {
+      toast({ title: `Moved to ${TASK_STATUS_LABELS[status]}`, variant: "success" });
+    }
   }
 
   async function handleStatusUpdate() {
     if (!selected) return;
-    const ok = await updateTaskStatus(selected.id, editStatus);
-    if (ok) {
+    if (await updateTaskStatus(selected.id, editStatus)) {
       setSelected(null);
       toast({ title: "Status updated", variant: "success" });
     }
@@ -145,22 +90,15 @@ export default function TasksPage() {
     toast({ title: "Task deleted", variant: "warning" });
   }
 
-  const doneCount = tasks.filter((t) => t.status === "done").length;
-  const filtered = {
-    all: tasks,
-    todo: tasks.filter((t) => t.status === "todo"),
-    in_progress: tasks.filter((t) => t.status === "in_progress"),
-    done: tasks.filter((t) => t.status === "done"),
-  }[activeTab] ?? tasks;
-
-  const projectName = (id: string | null) => projects.find((p) => p.id === id)?.name ?? null;
+  const counts = countByTab(tasks);
+  const projectName = (id: string | null) => projectNameById(projects, id);
 
   return (
     <PageContainer>
       <PageHeader
         breadcrumb={[{ label: "Today", href: "/dashboard" }, { label: "Tasks" }]}
         title="Tasks"
-        subtitle={`${tasks.length} total · ${doneCount} done`}
+        subtitle={`${counts.all} total · ${counts.done} done`}
         actions={
           <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>
             + New Task
@@ -169,191 +107,48 @@ export default function TasksPage() {
       />
 
       <div className="relative">
-        <Tabs value={activeTab} onChange={setActiveTab}>
+        <Tabs value={activeTab} onChange={(v) => setActiveTab(v as TaskTab)}>
           <TabList>
-            <Tab value="all">All ({tasks.length})</Tab>
-            <Tab value="todo">To Do ({tasks.filter((t) => t.status === "todo").length})</Tab>
-            <Tab value="in_progress">In Progress ({tasks.filter((t) => t.status === "in_progress").length})</Tab>
-            <Tab value="done">Done ({doneCount})</Tab>
+            {TASK_TABS.map(({ value, label }) => (
+              <Tab key={value} value={value}>
+                {label} ({counts[value]})
+              </Tab>
+            ))}
           </TabList>
 
           <TabPanels className="mt-4">
-            {["all", "todo", "in_progress", "done"].map((tab) => (
-              <TabPanel key={tab} value={tab}>
-                <Card variant="elevated">
-                  <CardContent>
-                    {loading ? (
-                      <SkeletonList count={4} rowClassName="h-14" className="space-y-3 pt-4" />
-                    ) : filtered.length === 0 ? (
-                      <EmptyState>{tab === "done" ? "No completed tasks yet." : "No tasks here. Add one!"}</EmptyState>
-                    ) : (
-                      <div className="space-y-2 pt-2">
-                        {filtered.map((task) => (
-                          <div
-                            key={task.id}
-                            className={`w-full flex items-center gap-3 p-3 rounded-lg border-l-4 transition-colors ${STATUS_ROW_STYLES[task.status]}`}
-                          >
-                            <span
-                              className={`w-2 h-2 rounded-full shrink-0 ${
-                                task.status === "done" ? "bg-green-400" :
-                                task.status === "in_progress" ? "bg-kv-400" : "bg-slate-500"
-                              }`}
-                            />
-                            <button
-                              onClick={() => openDetail(task)}
-                              className="flex-1 min-w-0 text-left"
-                            >
-                              <p className={`text-sm font-medium ${task.status === "done" ? "text-slate-500 line-through" : "text-slate-200"}`}>
-                                {task.title}
-                              </p>
-                              {projectName(task.project_id) && (
-                                <p className="text-xs text-slate-500 mt-0.5">{projectName(task.project_id)}</p>
-                              )}
-                            </button>
-                            <div className="flex items-center gap-2 shrink-0">
-                              {task.due_date && (
-                                <span className="hidden sm:inline text-xs text-slate-500">{task.due_date}</span>
-                              )}
-                              <Badge variant={TASK_PRIORITY_VARIANTS[task.priority]} size="sm">
-                                {task.priority}
-                              </Badge>
-                              {/* Inline status switcher — moves the task between columns */}
-                              <NativeSelect
-                                size="sm"
-                                aria-label="Change status"
-                                value={task.status}
-                                onChange={(v) => handleQuickStatus(task, v as TaskStatus)}
-                                options={TASK_STATUS_OPTIONS}
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+            {TASK_TABS.map(({ value }) => (
+              <TabPanel key={value} value={value}>
+                <TaskList
+                  loading={loading}
+                  tasks={filterByTab(tasks, value)}
+                  emptyLabel={emptyLabelForTab(value)}
+                  projectName={projectName}
+                  onOpen={openDetail}
+                  onStatusChange={handleQuickStatus}
+                />
               </TabPanel>
             ))}
           </TabPanels>
         </Tabs>
       </div>
 
-      {/* Create Modal */}
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} size="md">
-        <ModalHeader>New Task</ModalHeader>
-        <form onSubmit={handleCreate}>
-          <ModalBody>
-            <div className="space-y-4">
-              <Input
-                label="Title"
-                placeholder="What needs to be done?"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                required
-              />
-              <Input
-                label="Description"
-                placeholder="Optional details..."
-                value={newDesc}
-                onChange={(e) => setNewDesc(e.target.value)}
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <NativeSelect
-                  label="Priority"
-                  value={newPriority}
-                  onChange={(v) => setNewPriority(v as TaskPriority)}
-                  options={PRIORITY_OPTIONS}
-                />
-                <NativeSelect
-                  label="Project"
-                  value={newProject}
-                  onChange={setNewProject}
-                  options={[
-                    { value: "", label: "No project" },
-                    ...projects.map((p) => ({ value: p.id, label: p.name })),
-                  ]}
-                />
-              </div>
-              <Input
-                label="Due date"
-                type="date"
-                value={newDue}
-                onChange={(e) => setNewDue(e.target.value)}
-              />
-            </div>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" onClick={() => setShowCreate(false)} type="button">Cancel</Button>
-            <Button variant="primary" type="submit" disabled={saving}>
-              {saving ? "Creating…" : "Create Task"}
-            </Button>
-          </ModalFooter>
-        </form>
-      </Modal>
+      <CreateTaskModal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        projects={projects}
+        onSubmit={handleCreate}
+      />
 
-      {/* Detail Drawer */}
-      <Drawer open={!!selected} onClose={() => setSelected(null)} placement="right" size="md">
-        {selected && (
-          <>
-            <DrawerHeader>{selected.title}</DrawerHeader>
-            <DrawerBody>
-              <div className="space-y-5">
-                {selected.description && (
-                  <div>
-                    <FieldLabel mb="1">Description</FieldLabel>
-                    <p className="text-slate-300 text-sm">{selected.description}</p>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <FieldLabel mb="1">Priority</FieldLabel>
-                    <Badge variant={TASK_PRIORITY_VARIANTS[selected.priority]}>{selected.priority}</Badge>
-                  </div>
-                  <div>
-                    <FieldLabel mb="1">Project</FieldLabel>
-                    <p className="text-slate-300 text-sm">{projectName(selected.project_id) ?? "—"}</p>
-                  </div>
-                  {selected.due_date && (
-                    <div>
-                      <FieldLabel mb="1">Due</FieldLabel>
-                      <p className="text-slate-300 text-sm">{selected.due_date}</p>
-                    </div>
-                  )}
-                  {selected.completed_at && (
-                    <div>
-                      <FieldLabel mb="1">Completed</FieldLabel>
-                      <p className="text-slate-300 text-sm">{new Date(selected.completed_at).toLocaleDateString()}</p>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <FieldLabel>Status</FieldLabel>
-                  <Select
-                    value={editStatus}
-                    onChange={(value) => setEditStatus(value as TaskStatus)}
-                    options={TASK_STATUS_OPTIONS}
-                  />
-                </div>
-              </div>
-            </DrawerBody>
-            <DrawerFooter>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDelete(selected.id)}
-                className="text-red-400 hover:text-red-300"
-              >
-                Delete
-              </Button>
-              <Button variant="primary" size="sm" onClick={handleStatusUpdate}>
-                Save Changes
-              </Button>
-            </DrawerFooter>
-          </>
-        )}
-      </Drawer>
+      <TaskDetailDrawer
+        task={selected}
+        projectName={projectName(selected?.project_id ?? null)}
+        status={editStatus}
+        onStatusChange={setEditStatus}
+        onClose={() => setSelected(null)}
+        onSave={handleStatusUpdate}
+        onDelete={handleDelete}
+      />
     </PageContainer>
   );
 }
