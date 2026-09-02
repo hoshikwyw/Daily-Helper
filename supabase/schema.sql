@@ -40,27 +40,35 @@ create table if not exists journal_entries (
   unique (user_id, date)
 );
 
+-- Money entries: one row is either money out ('expense') or money in
+-- ('income'). `amount` is always positive; `kind` carries the sign.
+--
+-- `category` is intentionally unconstrained: the valid set is per-user and
+-- lives in expense_categories, so a CHECK here would reject custom categories.
 create table if not exists expenses (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid not null references auth.users(id) on delete cascade,
+  kind text not null default 'expense' check (kind in ('expense', 'income')),
   amount decimal(10,2) not null check (amount > 0),
-  category text not null default 'Other' check (category in (
-    'Food & Drink', 'Transport', 'Shopping', 'Entertainment',
-    'Health', 'Utilities', 'Education', 'Housing', 'Other'
-  )),
+  category text not null default 'Other',
   description text,
   date date not null default current_date,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
+create index if not exists expenses_user_date_idx on expenses (user_id, date);
+
+-- A category belongs to one side of the ledger, so "Other" can exist as both
+-- an expense and an income category.
 create table if not exists expense_categories (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid not null references auth.users(id) on delete cascade,
+  kind text not null default 'expense' check (kind in ('expense', 'income')),
   name text not null,
   color text not null default '#64748b',
   created_at timestamptz not null default now(),
-  unique (user_id, name)
+  unique (user_id, kind, name)
 );
 
 -- Auto-update updated_at

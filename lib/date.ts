@@ -72,3 +72,16 @@ export function formatFullDayLabel(value: Date | string): string {
     day: "numeric",
   });
 }
+
+/** First and last day of the month containing `date`, as `YYYY-MM-DD`. */
+export function monthRange(date: Date): { from: string; to: string } {
+  const y = date.getFullYear();
+  const m = date.getMonth();
+  // Day 0 of the next month is the last day of this one.
+  return { from: toISODate(new Date(y, m, 1)), to: toISODate(new Date(y, m + 1, 0)) };
+}
+
+/** "September" — the month name on its own. */
+export function formatMonthName(value: Date | string): string {
+  return asDate(value).toLocaleDateString(undefined, { month: "long" });
+}

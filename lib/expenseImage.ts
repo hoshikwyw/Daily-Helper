@@ -13,7 +13,10 @@ export interface ExpenseImageData {
   periodLabel: string; // "Daily" | "Monthly" | "Yearly"
   title: string; // "May 27, 2026" | "May 2026" | "2026"
   subtitle?: string; // optional small line under the title
-  total: string; // pre-formatted total, e.g. "K 12,345"
+  total: string; // pre-formatted headline figure, e.g. "+K 12,345"
+  totalLabel?: string; // defaults to "MONEY LEFT"
+  income?: string; // pre-formatted, shown in the stat row when present
+  expense?: string; // pre-formatted, shown in the stat row when present
   entries: number;
   categories: ExpenseImageCategory[];
   accent?: string; // hex accent (defaults to violet)
@@ -74,8 +77,9 @@ function renderExpenseImage(data: ExpenseImageData): string {
   const BADGE_H = 44;
 
   // --- height computation (must match the draw increments below) ---
+  const hasSplit = !!(data.income && data.expense);
   const headerH = BADGE_H + 30 + 56 + (data.subtitle ? 40 : 0) + 24;
-  const totalH = 40 + 90 + 30;
+  const totalH = 40 + 90 + (hasSplit ? 54 : 0) + 30;
   const catsH = cats.length ? 40 + cats.length * ROW : 70;
   const footerH = 96;
   const innerH = headerH + totalH + catsH + footerH;
@@ -172,10 +176,10 @@ function renderExpenseImage(data: ExpenseImageData): string {
   }
   y += 24;
 
-  // --- total ---
+  // --- headline figure ---
   ctx.fillStyle = "#64748b";
   ctx.font = `600 22px ${SANS}`;
-  ctx.fillText("TOTAL SPENT", left, y + 16);
+  ctx.fillText(data.totalLabel ?? "MONEY LEFT", left, y + 16);
   y += 40;
   ctx.fillStyle = "#ffffff";
   ctx.font = `800 72px ${SANS}`;
@@ -186,6 +190,19 @@ function renderExpenseImage(data: ExpenseImageData): string {
   ctx.fillText(`${data.entries} ${data.entries === 1 ? "entry" : "entries"}`, right, y + 52);
   ctx.textAlign = "left";
   y += 90;
+
+  // --- income / expense split ---
+  if (hasSplit) {
+    ctx.font = `600 26px ${SANS}`;
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#34d399";
+    ctx.fillText(`↓ In  ${data.income}`, left, y + 24);
+    ctx.fillStyle = "#fb7185";
+    ctx.textAlign = "right";
+    ctx.fillText(`Out  ${data.expense} ↑`, right, y + 24);
+    ctx.textAlign = "left";
+    y += 54;
+  }
 
   // --- divider ---
   ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
@@ -234,7 +251,7 @@ function renderExpenseImage(data: ExpenseImageData): string {
   } else {
     ctx.fillStyle = "#64748b";
     ctx.font = `400 24px ${SANS}`;
-    ctx.fillText("No expenses in this period.", left, y + 24);
+    ctx.fillText("Nothing recorded in this period.", left, y + 24);
   }
 
   // --- footer ---
@@ -246,7 +263,7 @@ function renderExpenseImage(data: ExpenseImageData): string {
   ctx.fillStyle = "#475569";
   ctx.font = `400 20px ${SANS}`;
   ctx.textAlign = "right";
-  ctx.fillText(data.footerNote ?? "Expense report", right, fy - 2);
+  ctx.fillText(data.footerNote ?? "Money report", right, fy - 2);
   ctx.textAlign = "left";
 
   return canvas.toDataURL("image/png");
@@ -266,7 +283,7 @@ export async function exportExpenseImage(data: ExpenseImageData, filename: strin
     const base64 = dataUrl.split(",")[1];
     await Filesystem.writeFile({ path: filename, data: base64, directory: Directory.Cache });
     const { uri } = await Filesystem.getUri({ path: filename, directory: Directory.Cache });
-    await Share.share({ title: "Expense report", text: data.title, files: [uri] });
+    await Share.share({ title: "Money report", text: data.title, files: [uri] });
     return;
   }
 

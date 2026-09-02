@@ -1,15 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import {
-  Button,
-  Tabs,
-  TabList,
-  Tab,
-  TabPanels,
-  TabPanel,
-  toast,
-} from "@kwyw/kayv-glass-ui";
+import { Button, Tabs, TabList, Tab, TabPanels, TabPanel, toast } from "@kwyw/kayv-glass-ui";
 import {
   createExpense,
   createExpenseCategory,
@@ -21,11 +13,15 @@ import {
 } from "@/lib/api/expenses";
 import { formatLongDate, formatWeekday, toISODate, todayISO } from "@/lib/date";
 import {
-  DEFAULT_CATEGORIES,
   MONTHS,
-  fmt,
+  buildColorMap,
   buildImageCategories,
+  fmt,
+  fmtSigned,
   getAccentHex,
+  getMonthlyTotals,
+  getTotals,
+  mergeCategories,
 } from "@/lib/expenses";
 import { exportExpenseImage } from "@/lib/expenseImage";
 import { PageContainer } from "@/components/ui/page-container";
@@ -33,15 +29,15 @@ import { PageHeader } from "@/components/ui/page-header";
 import { DailyTab } from "./_components/daily-tab";
 import { MonthlyTab } from "./_components/monthly-tab";
 import { YearlyTab } from "./_components/yearly-tab";
-import { AddExpenseModal } from "./_components/add-expense-modal";
+import { AddEntryModal } from "./_components/add-entry-modal";
 import { ManageCategoriesModal } from "./_components/manage-categories-modal";
-import type { Expense, CustomCategory } from "@/lib/types";
+import type { CustomCategory, EntryKind, Expense } from "@/lib/types";
 
 export default function ExpensesPage() {
   const today = new Date();
   const [activeTab, setActiveTab] = useState("daily");
 
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [entries, setEntries] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchYear, setFetchYear] = useState(today.getFullYear());
 
@@ -55,21 +51,14 @@ export default function ExpensesPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [showManageCategories, setShowManageCategories] = useState(false);
 
-  // Merged category list (built-in + custom) and a name → color lookup.
-  const allCategories = useMemo(
-    () => [...DEFAULT_CATEGORIES, ...customCategories.map((c) => ({ name: c.name, color: c.color }))],
-    [customCategories]
-  );
+  // Built-in plus custom categories, split per ledger, and a color lookup.
+  const allCategories = useMemo(() => mergeCategories(customCategories), [customCategories]);
 
-  const colorMap = useMemo(() => {
-    const m: Record<string, string> = {};
-    for (const c of allCategories) m[c.name] = c.color;
-    return m;
-  }, [allCategories]);
+  const colorMap = useMemo(() => buildColorMap(allCategories), [allCategories]);
 
-  async function loadExpenses(year: number) {
+  async function loadEntries(year: number) {
     setLoading(true);
-    setExpenses(await listExpensesForYear(year));
+    setEntries(await listExpensesForYear(year));
     setLoading(false);
   }
 
@@ -79,7 +68,7 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadExpenses(fetchYear);
+    loadEntries(fetchYear);
     loadCategories();
   }, [fetchYear]);
 
@@ -95,29 +84,36 @@ export default function ExpensesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, selectedMonthYear, selectedYear]);
 
-  async function handleCreateExpense(values: NewExpense): Promise<boolean> {
+  async function handleCreateEntry(values: NewExpense): Promise<boolean> {
     const created = await createExpense(values);
     if (!created) return false;
     // Only surface it immediately when it belongs to the year on screen.
     if (created.date.startsWith(String(fetchYear))) {
-      setExpenses((prev) => [created, ...prev]);
+      setEntries((prev) => [created, ...prev]);
     }
-    toast({ title: "Expense added", variant: "success" });
+    toast({
+      title: created.kind === "income" ? "Income added" : "Expense added",
+      variant: "success",
+    });
     return true;
   }
 
   async function handleDelete(id: string) {
     if (!(await deleteExpense(id))) return;
-    setExpenses((prev) => prev.filter((e) => e.id !== id));
-    toast({ title: "Expense deleted", variant: "warning" });
+    setEntries((prev) => prev.filter((e) => e.id !== id));
+    toast({ title: "Entry deleted", variant: "warning" });
   }
 
-  async function handleAddCategory(name: string, color: string): Promise<boolean> {
-    if (allCategories.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
+  async function handleAddCategory(
+    kind: EntryKind,
+    name: string,
+    color: string
+  ): Promise<boolean> {
+    if (allCategories[kind].some((c) => c.name.toLowerCase() === name.toLowerCase())) {
       toast({ title: "Category already exists", variant: "danger" });
       return false;
     }
-    const created = await createExpenseCategory(name, color);
+    const created = await createExpenseCategory(kind, name, color);
     if (!created) return false;
     setCustomCategories((prev) => [...prev, created]);
     toast({ title: "Category added", variant: "success" });
@@ -134,26 +130,29 @@ export default function ExpensesPage() {
     periodLabel: string,
     title: string,
     subtitle: string | undefined,
-    exps: Expense[]
+    scoped: Expense[]
   ) {
-    if (exps.length === 0) {
+    if (scoped.length === 0) {
       toast({ title: "Nothing to export here yet", variant: "warning" });
       return;
     }
-    const total = exps.reduce((s, e) => s + e.amount, 0);
+    const totals = getTotals(scoped);
     try {
       await exportExpenseImage(
         {
           periodLabel,
           title,
           subtitle,
-          total: fmt(total),
-          entries: exps.length,
-          categories: buildImageCategories(exps, colorMap),
+          total: fmtSigned(totals.net),
+          totalLabel: "MONEY LEFT",
+          income: fmt(totals.income),
+          expense: fmt(totals.expense),
+          entries: scoped.length,
+          categories: buildImageCategories(scoped, colorMap, "expense"),
           accent: getAccentHex(),
           footerNote: `Exported ${todayISO()}`,
         },
-        `kayv-expenses-${periodLabel.toLowerCase()}-${title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.png`
+        `kayv-money-${periodLabel.toLowerCase()}-${title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.png`
       );
       toast({ title: "Image ready 🎁", variant: "success" });
     } catch {
@@ -162,47 +161,36 @@ export default function ExpensesPage() {
   }
 
   // ── Derived data ──
-  const dailyExpenses = useMemo(
-    () => expenses.filter((e) => e.date === selectedDate),
-    [expenses, selectedDate]
+  const dailyEntries = useMemo(
+    () => entries.filter((e) => e.date === selectedDate),
+    [entries, selectedDate]
   );
 
-  const monthlyExpenses = useMemo(() => {
+  const monthlyEntries = useMemo(() => {
     const prefix = `${selectedMonthYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
-    return expenses.filter((e) => e.date.startsWith(prefix));
-  }, [expenses, selectedMonth, selectedMonthYear]);
+    return entries.filter((e) => e.date.startsWith(prefix));
+  }, [entries, selectedMonth, selectedMonthYear]);
 
-  const monthlyTotals = useMemo(() => {
-    const sums = Array.from({ length: 12 }, (_, i) => {
-      const prefix = `${selectedYear}-${String(i + 1).padStart(2, "0")}`;
-      return expenses.filter((e) => e.date.startsWith(prefix)).reduce((s, e) => s + e.amount, 0);
-    });
-    const maxMonth = Math.max(...sums, 1);
-    return sums.map((sum, i) => ({
-      month: MONTHS[i].slice(0, 3),
-      sum,
-      pct: Math.round((sum / maxMonth) * 100),
-    }));
-  }, [expenses, selectedYear]);
+  const monthlyTotals = useMemo(
+    () => getMonthlyTotals(entries, selectedYear),
+    [entries, selectedYear]
+  );
 
-  const dailyTotal = dailyExpenses.reduce((s, e) => s + e.amount, 0);
-  const monthlyTotal = monthlyExpenses.reduce((s, e) => s + e.amount, 0);
-  const yearlyTotal = expenses.reduce((s, e) => s + e.amount, 0);
   const yearList = Array.from({ length: 5 }, (_, i) => today.getFullYear() - 2 + i);
 
   return (
     <PageContainer>
       <PageHeader
-        breadcrumb={[{ label: "Today", href: "/dashboard" }, { label: "Expenses" }]}
-        title="Expenses"
-        subtitle="Track your daily, monthly, and yearly spending."
+        breadcrumb={[{ label: "Today", href: "/dashboard" }, { label: "Money" }]}
+        title="Money"
+        subtitle="Track income and spending, and see what's left."
         actions={
           <>
             <Button variant="ghost" size="sm" onClick={() => setShowManageCategories(true)}>
               ⚙ Categories
             </Button>
             <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>
-              + Add Expense
+              + Add Entry
             </Button>
           </>
         }
@@ -222,18 +210,17 @@ export default function ExpensesPage() {
                 selectedDate={selectedDate}
                 onDateChange={setSelectedDate}
                 loading={loading}
-                expenses={dailyExpenses}
-                total={dailyTotal}
+                entries={dailyEntries}
                 colorMap={colorMap}
                 onDelete={handleDelete}
-                onExport={() => {
+                onExport={() =>
                   handleExportImage(
                     "Daily",
                     formatLongDate(selectedDate),
                     formatWeekday(selectedDate),
-                    dailyExpenses
-                  );
-                }}
+                    dailyEntries
+                  )
+                }
               />
             </TabPanel>
 
@@ -244,8 +231,7 @@ export default function ExpensesPage() {
                 selectedMonthYear={selectedMonthYear}
                 onMonthYearChange={setSelectedMonthYear}
                 yearList={yearList}
-                expenses={monthlyExpenses}
-                total={monthlyTotal}
+                entries={monthlyEntries}
                 colorMap={colorMap}
                 onDelete={handleDelete}
                 onExport={() =>
@@ -253,7 +239,7 @@ export default function ExpensesPage() {
                     "Monthly",
                     `${MONTHS[selectedMonth]} ${selectedMonthYear}`,
                     undefined,
-                    monthlyExpenses
+                    monthlyEntries
                   )
                 }
               />
@@ -264,28 +250,28 @@ export default function ExpensesPage() {
                 selectedYear={selectedYear}
                 onYearChange={setSelectedYear}
                 yearList={yearList}
-                expenses={expenses}
-                total={yearlyTotal}
+                entries={entries}
                 monthlyTotals={monthlyTotals}
                 colorMap={colorMap}
-                onExport={() => handleExportImage("Yearly", String(selectedYear), undefined, expenses)}
+                onExport={() =>
+                  handleExportImage("Yearly", String(selectedYear), undefined, entries)
+                }
               />
             </TabPanel>
           </TabPanels>
         </Tabs>
       </div>
 
-      <AddExpenseModal
+      <AddEntryModal
         open={showCreate}
         onClose={() => setShowCreate(false)}
         categories={allCategories}
-        onSubmit={handleCreateExpense}
+        onSubmit={handleCreateEntry}
       />
 
       <ManageCategoriesModal
         open={showManageCategories}
         onClose={() => setShowManageCategories(false)}
-        defaultCategories={DEFAULT_CATEGORIES}
         customCategories={customCategories}
         onAddCategory={handleAddCategory}
         onDeleteCategory={handleDeleteCategory}

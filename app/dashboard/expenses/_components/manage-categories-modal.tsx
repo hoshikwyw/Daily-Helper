@@ -10,37 +10,39 @@ import {
   Input,
 } from "@kwyw/kayv-glass-ui";
 import { ColorPicker } from "@/components/ui/color-picker";
+import { NativeSelect } from "@/components/ui/native-select";
 import { FieldLabel } from "@/components/ui/label";
-import { PRESET_COLORS } from "@/lib/expenses";
-import type { CustomCategory } from "@/lib/types";
+import { DEFAULT_CATEGORIES, ENTRY_KINDS, PRESET_COLORS } from "@/lib/expenses";
+import type { CustomCategory, EntryKind } from "@/lib/types";
 
 type ManageCategoriesModalProps = {
   open: boolean;
   onClose: () => void;
-  defaultCategories: { name: string; color: string }[];
   customCategories: CustomCategory[];
   /** Adds a category; returns true on success (e.g. non-duplicate). */
-  onAddCategory: (name: string, color: string) => Promise<boolean>;
+  onAddCategory: (kind: EntryKind, name: string, color: string) => Promise<boolean>;
   onDeleteCategory: (id: string) => void;
 };
 
 export function ManageCategoriesModal({
   open,
   onClose,
-  defaultCategories,
   customCategories,
   onAddCategory,
   onDeleteCategory,
 }: ManageCategoriesModalProps) {
+  const [kind, setKind] = useState<EntryKind>("expense");
   const [name, setName] = useState("");
   const [color, setColor] = useState(PRESET_COLORS[0]);
   const [saving, setSaving] = useState(false);
+
+  const custom = customCategories.filter((c) => c.kind === kind);
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
     setSaving(true);
-    const ok = await onAddCategory(name.trim(), color);
+    const ok = await onAddCategory(kind, name.trim(), color);
     setSaving(false);
     if (ok) setName("");
   }
@@ -50,18 +52,34 @@ export function ManageCategoriesModal({
       <ModalHeader>Manage Categories</ModalHeader>
       <ModalBody>
         <div className="space-y-5">
-          {/* Add new category */}
+          {/* Categories are per-ledger, so pick which one you're editing */}
+          <NativeSelect
+            label="Ledger"
+            value={kind}
+            onChange={(v) => setKind(v as EntryKind)}
+            options={ENTRY_KINDS.map((k) => ({
+              value: k.value,
+              label: `${k.label} categories`,
+            }))}
+          />
+
           <div>
             <FieldLabel mb="3">Add New Category</FieldLabel>
             <form onSubmit={handleAdd} className="space-y-3">
               <Input
                 label="Category name"
-                placeholder="e.g. Subscriptions"
+                placeholder={kind === "income" ? "e.g. Bonus" : "e.g. Subscriptions"}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
               />
-              <ColorPicker label="Color" colors={PRESET_COLORS} value={color} onChange={setColor} size="sm" />
+              <ColorPicker
+                label="Color"
+                colors={PRESET_COLORS}
+                value={color}
+                onChange={setColor}
+                size="sm"
+              />
               <Button variant="primary" type="submit" size="sm" disabled={saving}>
                 {saving ? "Adding…" : "Add Category"}
               </Button>
@@ -70,13 +88,19 @@ export function ManageCategoriesModal({
 
           <div className="border-t border-white/10" />
 
-          {/* Default categories (read-only) */}
+          {/* Built-in categories (read-only) */}
           <div>
             <FieldLabel>Default</FieldLabel>
             <div className="space-y-1.5">
-              {defaultCategories.map((c) => (
-                <div key={c.name} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg bg-white/5">
-                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+              {DEFAULT_CATEGORIES[kind].map((c) => (
+                <div
+                  key={c.name}
+                  className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg bg-white/5"
+                >
+                  <span
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ backgroundColor: c.color }}
+                  />
                   <span className="text-slate-300 text-sm flex-1">{c.name}</span>
                   <span className="text-slate-600 text-xs">built-in</span>
                 </div>
@@ -84,14 +108,19 @@ export function ManageCategoriesModal({
             </div>
           </div>
 
-          {/* Custom categories */}
-          {customCategories.length > 0 && (
+          {custom.length > 0 && (
             <div>
               <FieldLabel>Custom</FieldLabel>
               <div className="space-y-1.5">
-                {customCategories.map((c) => (
-                  <div key={c.id} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg bg-white/5 group">
-                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+                {custom.map((c) => (
+                  <div
+                    key={c.id}
+                    className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg bg-white/5 group"
+                  >
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: c.color }}
+                    />
                     <span className="text-slate-300 text-sm flex-1">{c.name}</span>
                     <button
                       onClick={() => onDeleteCategory(c.id)}

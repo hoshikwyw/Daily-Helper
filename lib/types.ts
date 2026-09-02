@@ -2,6 +2,8 @@ export type ProjectStatus = "active" | "paused" | "completed" | "archived";
 export type TaskStatus = "todo" | "in_progress" | "done";
 export type TaskPriority = "low" | "medium" | "high" | "urgent";
 export type Mood = "great" | "good" | "okay" | "bad" | "terrible";
+/** Which side of the ledger a money entry sits on. */
+export type EntryKind = "expense" | "income";
 
 // NOTE: these row shapes are `type` aliases, not `interface`s, on purpose.
 // TypeScript gives object-literal type aliases an implicit index signature but
@@ -52,14 +54,21 @@ export type ExpenseCategory = string;
 export type CustomCategory = {
   id: string;
   user_id: string;
+  kind: EntryKind;
   name: string;
   color: string;
   created_at: string;
 };
 
+/**
+ * A money entry. The table is still called `expenses` for historical reasons,
+ * but a row is money OUT or money IN depending on `kind`. `amount` is always
+ * positive — the sign lives in `kind`, never in the number.
+ */
 export type Expense = {
   id: string;
   user_id: string;
+  kind: EntryKind;
   amount: number;
   category: string;
   description: string | null;
@@ -103,6 +112,7 @@ type JournalInsert = {
 
 type ExpenseInsert = {
   user_id: string;
+  kind?: EntryKind;
   amount: number;
   category?: string;
   description?: string | null;
@@ -111,6 +121,7 @@ type ExpenseInsert = {
 
 type CategoryInsert = {
   user_id: string;
+  kind?: EntryKind;
   name: string;
   color?: string;
 };

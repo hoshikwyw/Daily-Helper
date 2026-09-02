@@ -1,14 +1,9 @@
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  Button,
-  Select,
-  Progress,
-} from "@kwyw/kayv-glass-ui";
-import { fmt, getCategoryBreakdown, MONTHS, FALLBACK_CATEGORY_COLOR } from "@/lib/expenses";
-import { ExpenseRow } from "./expense-row";
+import { Card, CardHeader, CardContent, Button, Select } from "@kwyw/kayv-glass-ui";
+import { MONTHS, getTotals, type ColorMap } from "@/lib/expenses";
 import { EmptyState } from "@/components/ui/empty-state";
+import { BalanceSummary } from "@/components/ui/balance-summary";
+import { CategoryBreakdown } from "@/components/ui/category-breakdown";
+import { ExpenseRow } from "./expense-row";
 import type { Expense } from "@/lib/types";
 
 type MonthlyTabProps = {
@@ -17,9 +12,8 @@ type MonthlyTabProps = {
   selectedMonthYear: number;
   onMonthYearChange: (value: number) => void;
   yearList: number[];
-  expenses: Expense[];
-  total: number;
-  colorMap: Record<string, string>;
+  entries: Expense[];
+  colorMap: ColorMap;
   onDelete: (id: string) => void;
   onExport: () => void;
 };
@@ -30,12 +24,13 @@ export function MonthlyTab({
   selectedMonthYear,
   onMonthYearChange,
   yearList,
-  expenses,
-  total,
+  entries,
   colorMap,
   onDelete,
   onExport,
 }: MonthlyTabProps) {
+  const totals = getTotals(entries);
+
   return (
     <div className="space-y-4 mt-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -49,66 +44,61 @@ export function MonthlyTab({
           onChange={(v) => onMonthYearChange(Number(v))}
           options={yearList.map((y) => ({ value: String(y), label: String(y) }))}
         />
-        <div className="ml-auto flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={onExport}>
-            ⬇ Save image
-          </Button>
-          <div className="text-right">
-            <p className="text-slate-500 text-xs">Total</p>
-            <p className="text-2xl font-bold text-white">{fmt(total)}</p>
-          </div>
-        </div>
+        <Button variant="ghost" size="sm" onClick={onExport} className="ml-auto">
+          ⬇ Save image
+        </Button>
       </div>
+
+      <BalanceSummary totals={totals} netLabel="Collected this month" />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card variant="elevated">
-          <CardHeader title="By Category" />
+          <CardHeader title="Spent by category" />
           <CardContent>
-            {expenses.length === 0 ? (
-              <EmptyState padding="lg">No expenses this month.</EmptyState>
-            ) : (
-              <div className="space-y-4">
-                {getCategoryBreakdown(expenses).map(({ category, amount, pct }) => (
-                  <div key={category} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-300 flex items-center gap-2">
-                        <span
-                          className="w-2 h-2 rounded-full shrink-0"
-                          style={{ backgroundColor: colorMap[category] ?? FALLBACK_CATEGORY_COLOR }}
-                        />
-                        {category}
-                      </span>
-                      <span className="text-slate-400">
-                        {fmt(amount)}{" "}
-                        <span className="text-xs text-slate-600">({pct}%)</span>
-                      </span>
-                    </div>
-                    <Progress value={pct} variant="primary" size="sm" />
-                  </div>
-                ))}
-              </div>
-            )}
+            <CategoryBreakdown
+              entries={entries}
+              kind="expense"
+              colorMap={colorMap}
+              emptyLabel="No expenses this month."
+            />
           </CardContent>
         </Card>
 
         <Card variant="elevated">
-          <CardHeader
-            title="All Entries"
-            description={`${expenses.length} expense${expenses.length !== 1 ? "s" : ""}`}
-          />
+          <CardHeader title="Earned by category" />
           <CardContent>
-            {expenses.length === 0 ? (
-              <EmptyState padding="lg">No expenses this month.</EmptyState>
-            ) : (
-              <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-                {expenses.map((expense) => (
-                  <ExpenseRow key={expense.id} expense={expense} colorMap={colorMap} onDelete={onDelete} />
-                ))}
-              </div>
-            )}
+            <CategoryBreakdown
+              entries={entries}
+              kind="income"
+              colorMap={colorMap}
+              emptyLabel="No income this month."
+            />
           </CardContent>
         </Card>
       </div>
+
+      <Card variant="elevated">
+        <CardHeader
+          title="All Entries"
+          description={`${entries.length} ${entries.length === 1 ? "entry" : "entries"}`}
+        />
+        <CardContent>
+          {entries.length === 0 ? (
+            <EmptyState padding="lg">No entries this month.</EmptyState>
+          ) : (
+            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+              {entries.map((entry) => (
+                <ExpenseRow
+                  key={entry.id}
+                  expense={entry}
+                  colorMap={colorMap}
+                  onDelete={onDelete}
+                />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

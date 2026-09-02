@@ -1,6 +1,6 @@
 # ✦ Orbit Dashboard
 
-A personal productivity dashboard built with Next.js 16, Supabase, and a glassmorphism UI. Manage your tasks, projects, journal, and expenses — all in one place, secured behind a single-user login.
+A personal productivity dashboard built with Next.js 16, Supabase, and a glassmorphism UI. Manage your tasks, projects, journal, and money — all in one place, secured behind a single-user login.
 
 Runs as a web app and, via Capacitor, as native Android and iOS apps from the same codebase. See [MOBILE.md](MOBILE.md) for the native builds.
 
@@ -10,11 +10,11 @@ Runs as a web app and, via Capacitor, as native Android and iOS apps from the sa
 
 | Module | Description |
 |---|---|
-| **Today** | Daily overview — tasks due today, active projects, mood check-in, journal snapshot |
+| **Today** | Daily overview — tasks due today, active projects, mood check-in, journal snapshot, and this month's money stats by category |
 | **Tasks** | Create, filter, and manage tasks with priority levels and project links |
 | **Projects** | Track projects with status, tech stack, color labels, and linked tasks |
 | **Journal** | Daily journal entries with mood tracking, highlights, and a date picker |
-| **Expenses** | Expense tracker in MMK (K) with daily/monthly/yearly views, custom categories, category breakdown charts, and PNG export |
+| **Money** | Income **and** expense tracker in MMK (K) with daily/monthly/yearly views, what's-left totals, per-category stats for both ledgers, custom categories, and PNG export |
 
 ---
 
@@ -62,7 +62,7 @@ orbit-dashboard/
 │   │   ├── journal/                # page.tsx + _components/
 │   │   ├── projects/               # page.tsx + _components/
 │   │   ├── project/                # single-project detail (?id=…)
-│   │   ├── expenses/               # page.tsx + _components/
+│   │   ├── expenses/               # Money tracker: page.tsx + _components/
 │   │   └── settings/               # page.tsx + _components/
 │   ├── auth/callback/page.tsx      # Completes email links (PKCE / OTP)
 │   ├── login/page.tsx              # Sign in + password reset
@@ -87,7 +87,8 @@ orbit-dashboard/
 │   ├── types.ts                    # Row + Insert/Update types
 │   └── tasks.ts, projects.ts, journal.ts, expenses.ts
 └── supabase/
-    └── schema.sql                  # Full database schema with RLS
+    ├── schema.sql                  # Full database schema with RLS
+    └── migrations/                 # Incremental changes for existing databases
 ```
 
 ---
@@ -142,10 +143,20 @@ Five tables, all protected by Row Level Security (RLS). Every row is tied to the
 | `projects` | `name`, `status`, `color`, `tech_stack`, `repository_url`, `notes` |
 | `tasks` | `title`, `status`, `priority`, `project_id`, `due_date`, `completed_at` |
 | `journal_entries` | `date`, `content`, `mood`, `highlights` |
-| `expenses` | `amount`, `category`, `description`, `date` |
-| `expense_categories` | `name`, `color` (custom categories per user) |
+| `expenses` | `kind` (`expense`/`income`), `amount`, `category`, `description`, `date` |
+| `expense_categories` | `kind`, `name`, `color` (custom categories per user, per ledger) |
 
 RLS policies ensure every query automatically filters to the logged-in user's data — even if the anon key is exposed.
+
+### Migrations
+
+`schema.sql` is the current state, for fresh projects. If your database predates a change, apply the matching file from [`supabase/migrations/`](supabase/migrations) in the Supabase SQL editor instead of re-running the whole schema.
+
+| Migration | What it does |
+|---|---|
+| `001_add_income.sql` | Adds `kind` to `expenses` and `expense_categories` so the tracker records income as well as spending. Also drops the old `category` CHECK, which only allowed the nine built-in names and rejected user-created categories. |
+
+Each migration is guarded (`if not exists`, `drop constraint if exists`), so re-running one is harmless.
 
 ---
 
@@ -188,11 +199,17 @@ npm run android:install  # Build and install on a connected device
 
 ---
 
-## Expense Categories
+## Money Tracker
 
-Default categories ship with the app (Food & Drink, Transport, Shopping, etc.). You can add custom categories with a custom color from the **⚙ Categories** menu on the Expenses page. Custom categories are saved to Supabase and persist across sessions.
+Every row in `expenses` is either money **out** or money **in**, decided by its `kind`. `amount` is always positive — the sign lives in `kind`, never in the number — so totals can never be corrupted by a stray negative.
 
-Each tab can export its summary as a PNG — rendered on a canvas, with no external dependency.
+- **Money left** is `income − expense`, shown on every tab and on the home page. Negative means you outspent what came in.
+- **Collected by month** on the Yearly tab charts net per month, with bars scaled to the largest absolute net so a heavy loss reads as clearly as a heavy gain.
+- **Category stats** are computed per ledger, so spending and earning each get their own breakdown.
+
+Each ledger has its own categories: expenses default to Food & Drink, Transport, Shopping, etc.; income defaults to Salary, Freelance, Business, and so on. Because categories are scoped by `kind`, a name like "Other" can exist on both sides. Add your own with a custom color from the **⚙ Categories** menu.
+
+Each tab exports its summary as a PNG — rendered on a canvas, with no external dependency.
 
 ---
 

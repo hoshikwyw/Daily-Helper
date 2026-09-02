@@ -1,9 +1,9 @@
-import type { Expense } from "@/lib/types";
+import type { EntryKind, Expense } from "@/lib/types";
 
-// Domain helpers and constants for the Expenses feature. Pure functions live
-// here so the page and its sub-components share one implementation.
+// Domain helpers and constants for the money tracker. Pure functions live here
+// so the page and its sub-components share one implementation.
 
-export const DEFAULT_CATEGORIES: { name: string; color: string }[] = [
+export const DEFAULT_EXPENSE_CATEGORIES: { name: string; color: string }[] = [
   { name: "Food & Drink", color: "#f97316" },
   { name: "Transport", color: "#06b6d4" },
   { name: "Shopping", color: "#8b5cf6" },
@@ -13,6 +13,27 @@ export const DEFAULT_CATEGORIES: { name: string; color: string }[] = [
   { name: "Education", color: "#f59e0b" },
   { name: "Housing", color: "#ef4444" },
   { name: "Other", color: "#64748b" },
+];
+
+export const DEFAULT_INCOME_CATEGORIES: { name: string; color: string }[] = [
+  { name: "Salary", color: "#22c55e" },
+  { name: "Freelance", color: "#14b8a6" },
+  { name: "Business", color: "#0ea5e9" },
+  { name: "Investment", color: "#a855f7" },
+  { name: "Gift", color: "#f43f5e" },
+  { name: "Refund", color: "#84cc16" },
+  { name: "Other", color: "#64748b" },
+];
+
+/** Built-in categories for each side of the ledger. */
+export const DEFAULT_CATEGORIES: Record<EntryKind, { name: string; color: string }[]> = {
+  expense: DEFAULT_EXPENSE_CATEGORIES,
+  income: DEFAULT_INCOME_CATEGORIES,
+};
+
+export const ENTRY_KINDS: { value: EntryKind; label: string }[] = [
+  { value: "expense", label: "Expense" },
+  { value: "income", label: "Income" },
 ];
 
 export const PRESET_COLORS = [
@@ -29,18 +50,109 @@ export const MONTHS = [
 
 export const FALLBACK_CATEGORY_COLOR = "#64748b";
 
+/** Money in is green, money out is rose — used consistently across the tabs. */
+export const KIND_TEXT_COLORS: Record<EntryKind, string> = {
+  income: "text-emerald-400",
+  expense: "text-rose-400",
+};
+
+export const KIND_SIGNS: Record<EntryKind, string> = {
+  income: "+",
+  expense: "−",
+};
+
+// ── Formatting ──────────────────────────────────────────────────────────────
+
 /** Formats an amount as the app's currency, e.g. `K 1,200`. */
 export function fmt(amount: number): string {
-  return `K ${Math.round(amount).toLocaleString("en-US")}`;
+  return `K ${Math.round(Math.abs(amount)).toLocaleString("en-US")}`;
 }
+
+/** Formats with an explicit sign, e.g. `+K 1,200` or `−K 500`. */
+export function fmtSigned(amount: number): string {
+  if (amount === 0) return fmt(0);
+  return `${amount > 0 ? "+" : "−"}${fmt(amount)}`;
+}
+
+/** Formats an entry the way it should read in a list: `−K 500` for a spend. */
+export function fmtEntry(entry: Expense): string {
+  return `${KIND_SIGNS[entry.kind]}${fmt(entry.amount)}`;
+}
+
+// ── Totals ──────────────────────────────────────────────────────────────────
+
+export type Totals = {
+  income: number;
+  expense: number;
+  /** What's left over: income − expense. Negative means overspending. */
+  net: number;
+};
+
+export const ZERO_TOTALS: Totals = { income: 0, expense: 0, net: 0 };
+
+/** Sums a set of entries into income, expense, and what remains. */
+export function getTotals(entries: Expense[]): Totals {
+  let income = 0;
+  let expense = 0;
+  for (const entry of entries) {
+    if (entry.kind === "income") income += entry.amount;
+    else expense += entry.amount;
+  }
+  return { income, expense, net: income - expense };
+}
+
+export function filterByKind(entries: Expense[], kind: EntryKind): Expense[] {
+  return entries.filter((e) => e.kind === kind);
+}
+
+/** Share of income kept rather than spent, 0-100. 0 when nothing came in. */
+export function savingsRate(totals: Totals): number {
+  if (totals.income <= 0) return 0;
+  return Math.round((totals.net / totals.income) * 100);
+}
+
+// ── Category colors ─────────────────────────────────────────────────────────
+
+/**
+ * Category colors, keyed by kind then name. Nested because the two ledgers have
+ * independent category lists and a name like "Other" exists in both.
+ */
+export type ColorMap = Record<EntryKind, Record<string, string>>;
+
+/** Built-in categories plus the user's own, split per ledger. */
+export function mergeCategories(
+  custom: { kind: EntryKind; name: string; color: string }[]
+): Record<EntryKind, { name: string; color: string }[]> {
+  const forKind = (kind: EntryKind) => [
+    ...DEFAULT_CATEGORIES[kind],
+    ...custom.filter((c) => c.kind === kind).map((c) => ({ name: c.name, color: c.color })),
+  ];
+  return { expense: forKind("expense"), income: forKind("income") };
+}
+
+export function buildColorMap(
+  categories: Record<EntryKind, { name: string; color: string }[]>
+): ColorMap {
+  const map: ColorMap = { expense: {}, income: {} };
+  for (const kind of ["expense", "income"] as EntryKind[]) {
+    for (const c of categories[kind]) map[kind][c.name] = c.color;
+  }
+  return map;
+}
+
+export function categoryColor(map: ColorMap, kind: EntryKind, name: string): string {
+  return map[kind][name] ?? FALLBACK_CATEGORY_COLOR;
+}
+
+// ── Breakdowns ──────────────────────────────────────────────────────────────
 
 export type CategorySlice = { category: string; amount: number; pct: number };
 
-/** Groups expenses by category, sorted by spend descending, with percentages. */
-export function getCategoryBreakdown(exps: Expense[]): CategorySlice[] {
-  const total = exps.reduce((sum, e) => sum + e.amount, 0);
+/** Groups entries by category, sorted by amount descending, with percentages. */
+export function getCategoryBreakdown(entries: Expense[]): CategorySlice[] {
+  const total = entries.reduce((sum, e) => sum + e.amount, 0);
   const byCategory: Record<string, number> = {};
-  for (const e of exps) {
+  for (const e of entries) {
     byCategory[e.category] = (byCategory[e.category] || 0) + e.amount;
   }
   return Object.entries(byCategory)
@@ -51,6 +163,35 @@ export function getCategoryBreakdown(exps: Expense[]): CategorySlice[] {
       pct: total > 0 ? Math.round((amount / total) * 100) : 0,
     }));
 }
+
+export type MonthTotals = Totals & {
+  /** Short month name, e.g. "Jan". */
+  month: string;
+  /** Bar width 0-100, scaled against the year's largest absolute net. */
+  pct: number;
+};
+
+/**
+ * Per-month income, expense, and net for one year. Bars are scaled to the
+ * biggest month by absolute net, so a heavy loss reads as prominently as a
+ * heavy gain.
+ */
+export function getMonthlyTotals(entries: Expense[], year: number): MonthTotals[] {
+  const perMonth = Array.from({ length: 12 }, (_, i) => {
+    const prefix = `${year}-${String(i + 1).padStart(2, "0")}`;
+    return getTotals(entries.filter((e) => e.date.startsWith(prefix)));
+  });
+
+  const peak = Math.max(...perMonth.map((t) => Math.abs(t.net)), 1);
+
+  return perMonth.map((totals, i) => ({
+    ...totals,
+    month: MONTHS[i].slice(0, 3),
+    pct: Math.round((Math.abs(totals.net) / peak) * 100),
+  }));
+}
+
+// ── Image export ────────────────────────────────────────────────────────────
 
 // Reads the active theme's accent (set on <html> by ThemeProvider) as a hex
 // string so the exported image matches the user's chosen theme.
@@ -66,13 +207,16 @@ export type ExportCategory = { category: string; amount: string; pct: number; co
 
 /** Builds the colored, pre-formatted category list the image exporter expects. */
 export function buildImageCategories(
-  exps: Expense[],
-  colorMap: Record<string, string>
+  entries: Expense[],
+  colorMap: ColorMap,
+  kind: EntryKind
 ): ExportCategory[] {
-  return getCategoryBreakdown(exps).map(({ category, amount, pct }) => ({
-    category,
-    amount: fmt(amount),
-    pct,
-    color: colorMap[category] ?? FALLBACK_CATEGORY_COLOR,
-  }));
+  return getCategoryBreakdown(filterByKind(entries, kind)).map(
+    ({ category, amount, pct }) => ({
+      category,
+      amount: fmt(amount),
+      pct,
+      color: categoryColor(colorMap, kind, category),
+    })
+  );
 }

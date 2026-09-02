@@ -1,26 +1,22 @@
+import { Card, CardHeader, CardContent, Button, Select, Progress } from "@kwyw/kayv-glass-ui";
 import {
-  Card,
-  CardHeader,
-  CardContent,
-  Badge,
-  Button,
-  Select,
-  Progress,
-} from "@kwyw/kayv-glass-ui";
-import { fmt, getCategoryBreakdown, FALLBACK_CATEGORY_COLOR } from "@/lib/expenses";
-import { EmptyState } from "@/components/ui/empty-state";
+  fmt,
+  fmtSigned,
+  getTotals,
+  type ColorMap,
+  type MonthTotals,
+} from "@/lib/expenses";
+import { BalanceSummary } from "@/components/ui/balance-summary";
+import { CategoryBreakdown } from "@/components/ui/category-breakdown";
 import type { Expense } from "@/lib/types";
-
-type MonthlyTotal = { month: string; sum: number; pct: number };
 
 type YearlyTabProps = {
   selectedYear: number;
   onYearChange: (value: number) => void;
   yearList: number[];
-  expenses: Expense[];
-  total: number;
-  monthlyTotals: MonthlyTotal[];
-  colorMap: Record<string, string>;
+  entries: Expense[];
+  monthlyTotals: MonthTotals[];
+  colorMap: ColorMap;
   onExport: () => void;
 };
 
@@ -28,18 +24,26 @@ export function YearlyTab({
   selectedYear,
   onYearChange,
   yearList,
-  expenses,
-  total,
+  entries,
   monthlyTotals,
   colorMap,
   onExport,
 }: YearlyTabProps) {
+  const totals = getTotals(entries);
+
   const stats = [
-    { label: "Avg/month", value: fmt(total / 12) },
-    { label: "Avg/day", value: fmt(total / 365) },
-    { label: "Entries", value: String(expenses.length) },
-    { label: "Categories", value: String(new Set(expenses.map((e) => e.category)).size) },
+    { label: "Avg income/mo", value: fmt(totals.income / 12) },
+    { label: "Avg spend/mo", value: fmt(totals.expense / 12) },
+    { label: "Avg saved/mo", value: fmtSigned(totals.net / 12) },
+    { label: "Entries", value: String(entries.length) },
   ];
+
+  // Months with nothing recorded shouldn't read as a break-even month.
+  const activeMonths = monthlyTotals.filter((m) => m.income > 0 || m.expense > 0);
+  const bestMonth = activeMonths.reduce<MonthTotals | null>(
+    (best, m) => (!best || m.net > best.net ? m : best),
+    null
+  );
 
   return (
     <div className="space-y-4 mt-4">
@@ -49,16 +53,12 @@ export function YearlyTab({
           onChange={(v) => onYearChange(Number(v))}
           options={yearList.map((y) => ({ value: String(y), label: String(y) }))}
         />
-        <div className="ml-auto flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={onExport}>
-            ⬇ Save image
-          </Button>
-          <div className="text-right">
-            <p className="text-slate-500 text-xs">Total {selectedYear}</p>
-            <p className="text-2xl font-bold text-white">{fmt(total)}</p>
-          </div>
-        </div>
+        <Button variant="ghost" size="sm" onClick={onExport} className="ml-auto">
+          ⬇ Save image
+        </Button>
       </div>
+
+      <BalanceSummary totals={totals} netLabel={`Collected in ${selectedYear}`} />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {stats.map(({ label, value }) => (
@@ -71,46 +71,65 @@ export function YearlyTab({
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card variant="elevated">
-          <CardHeader title="Monthly Breakdown" />
-          <CardContent>
-            <div className="space-y-2">
-              {monthlyTotals.map(({ month, sum, pct }) => (
+      <Card variant="elevated">
+        <CardHeader
+          title="Collected by month"
+          description={
+            bestMonth
+              ? `Best month: ${bestMonth.month} (${fmtSigned(bestMonth.net)})`
+              : "Income minus expenses, month by month"
+          }
+        />
+        <CardContent>
+          <div className="space-y-2">
+            {monthlyTotals.map(({ month, income, expense, net, pct }) => {
+              const idle = income === 0 && expense === 0;
+              return (
                 <div key={month} className="flex items-center gap-3">
                   <span className="text-slate-500 text-xs w-8 shrink-0">{month}</span>
                   <div className="flex-1">
-                    <Progress value={pct} variant={sum > 0 ? "primary" : "warning"} size="sm" />
+                    <Progress
+                      value={pct}
+                      variant={net >= 0 ? "success" : "danger"}
+                      size="sm"
+                    />
                   </div>
-                  <span className="text-slate-300 text-xs w-24 text-right shrink-0 font-medium">
-                    {sum > 0 ? fmt(sum) : "—"}
+                  <span
+                    className={`text-xs w-28 text-right shrink-0 font-medium ${
+                      idle ? "text-slate-600" : net >= 0 ? "text-emerald-400" : "text-rose-400"
+                    }`}
+                  >
+                    {idle ? "—" : fmtSigned(net)}
                   </span>
                 </div>
-              ))}
-            </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card variant="elevated">
+          <CardHeader title="Spent by category" />
+          <CardContent>
+            <CategoryBreakdown
+              entries={entries}
+              kind="expense"
+              colorMap={colorMap}
+              emptyLabel="No expenses this year."
+            />
           </CardContent>
         </Card>
 
         <Card variant="elevated">
-          <CardHeader title="By Category" />
+          <CardHeader title="Earned by category" />
           <CardContent>
-            {expenses.length === 0 ? (
-              <EmptyState padding="lg">No expenses this year.</EmptyState>
-            ) : (
-              <div className="space-y-3">
-                {getCategoryBreakdown(expenses).map(({ category, amount, pct }) => (
-                  <div key={category} className="flex items-center gap-3">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: colorMap[category] ?? FALLBACK_CATEGORY_COLOR }}
-                    />
-                    <span className="text-slate-300 text-sm flex-1">{category}</span>
-                    <Badge variant="default" size="sm">{pct}%</Badge>
-                    <span className="text-slate-400 text-sm font-medium">{fmt(amount)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <CategoryBreakdown
+              entries={entries}
+              kind="income"
+              colorMap={colorMap}
+              emptyLabel="No income this year."
+            />
           </CardContent>
         </Card>
       </div>
