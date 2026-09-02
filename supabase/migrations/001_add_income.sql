@@ -36,3 +36,15 @@ end $$;
 
 -- 4. Every screen filters by user + date range, and now by kind.
 create index if not exists expenses_user_date_idx on expenses (user_id, date);
+
+-- 5. Supabase serves the REST API through PostgREST, which answers writes from
+--    a cached copy of the schema. Without this it keeps rejecting `kind` with
+--    "PGRST204: Could not find the 'kind' column" even though the column now
+--    exists. This tells it to reload immediately.
+notify pgrst, 'reload schema';
+
+-- Verify (should return two rows, `kind` for each table):
+--   select table_name, column_name, data_type
+--   from information_schema.columns
+--   where column_name = 'kind'
+--     and table_name in ('expenses', 'expense_categories');

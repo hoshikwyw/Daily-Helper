@@ -9,18 +9,30 @@ import type { CustomCategory, EntryKind, Expense } from "@/lib/types";
 // `expenses` is money out or money in depending on its `kind`. Pure
 // formatting/grouping helpers for the same feature live in `lib/expenses.ts`.
 
-// Postgres raises 42703 (undefined_column) until 001_add_income.sql has been
-// applied, because `kind` doesn't exist yet. A raw driver message helps nobody,
-// so point at the actual fix.
-const UNDEFINED_COLUMN = "42703";
+// Writes fail with a 400 until 001_add_income.sql has been applied, but the
+// code varies by which layer rejects it:
+//
+//   PGRST204  PostgREST's schema cache has no `kind` column. This is the usual
+//             one — it also fires briefly after the migration until the cache
+//             reloads, which the migration's NOTIFY handles.
+//   42703     Postgres itself reports the column as undefined.
+//   23514     A CHECK rejected the row — before the migration, the old
+//             `category` constraint only allowed the nine built-in names, so
+//             custom and income categories bounce here.
+//
+// All three mean the same fix, so map them to one actionable message and keep
+// the underlying text so anything unexpected is still legible.
+const MIGRATION_ERROR_CODES = new Set(["PGRST204", "42703", "23514"]);
+
+const MIGRATION_HINT =
+  "Run supabase/migrations/001_add_income.sql in the Supabase SQL editor, then reload the page.";
 
 function reportWriteError(error: PostgrestError | null): boolean {
   if (!error) return false;
-  if (error.code === UNDEFINED_COLUMN) {
+  if (MIGRATION_ERROR_CODES.has(error.code)) {
     toast({
       title: "Database needs updating",
-      description:
-        "Run supabase/migrations/001_add_income.sql in the Supabase SQL editor to enable income tracking.",
+      description: `${MIGRATION_HINT} (${error.message})`,
       variant: "danger",
     });
     return true;

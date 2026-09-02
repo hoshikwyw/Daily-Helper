@@ -158,6 +158,8 @@ RLS policies ensure every query automatically filters to the logged-in user's da
 
 Each migration is guarded (`if not exists`, `drop constraint if exists`), so re-running one is harmless.
 
+**If writes still fail with `PGRST204: Could not find the 'kind' column` after migrating**, PostgREST is serving a stale schema cache. `001_add_income.sql` ends with `notify pgrst, 'reload schema';` to prevent this; if you ran only part of the file, run that line on its own.
+
 ---
 
 ## Authentication Flow
