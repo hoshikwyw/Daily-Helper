@@ -45,7 +45,7 @@ export function JournalSidebar({
                   onClick={() => onDateChange(fromISODate(entry.date))}
                   className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white/10 transition-colors text-left"
                 >
-                  <span className="text-slate-300 text-sm font-medium w-20 shrink-0">
+                  <span className="text-slate-200 text-sm font-medium w-20 shrink-0">
                     {entry.date}
                   </span>
                   {entry.mood && (
@@ -53,7 +53,7 @@ export function JournalSidebar({
                       {entry.mood}
                     </Badge>
                   )}
-                  <span className="text-slate-500 text-xs truncate flex-1">
+                  <span className="text-slate-400 text-xs truncate flex-1">
                     {entryPreview(entry)}
                   </span>
                 </button>

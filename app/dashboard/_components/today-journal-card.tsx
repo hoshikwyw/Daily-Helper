@@ -14,7 +14,7 @@ export function TodayJournalCard({ entry }: TodayJournalCardProps) {
       <CardHeader title="Journal" description={written ? "Today's entry" : "No entry yet"} />
       <CardContent>
         {written ? (
-          <p className="text-slate-300 text-sm line-clamp-4">{entry.content}</p>
+          <p className="text-slate-200 text-sm line-clamp-4">{entry.content}</p>
         ) : (
           <Alert variant="info" title="Start your day's journal">
             Write about what you worked on, how you felt, or what you learned.

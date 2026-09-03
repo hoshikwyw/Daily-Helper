@@ -35,7 +35,7 @@ export function TextArea({
       onChange={(e) => onChange(e.target.value)}
       rows={rows}
       placeholder={placeholder}
-      className={`w-full rounded-lg bg-white/5 border border-white/10 px-3.5 py-3 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-kv-500 transition-colors ${RESIZE[resize]}`}
+      className={`w-full rounded-lg bg-white/5 border border-white/10 px-3.5 py-3 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-kv-500 transition-colors ${RESIZE[resize]}`}
     />
   );
 

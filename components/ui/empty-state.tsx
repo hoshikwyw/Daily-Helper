@@ -1,5 +1,5 @@
 // The "nothing here yet" line shown inside an otherwise-empty card or list.
-// Replaces the `<p className="text-slate-500 text-sm text-center py-N">`
+// Replaces the `<p className="text-slate-400 text-sm text-center py-N">`
 // paragraph that was hand-written in eight places.
 
 // Vertical breathing room. Denser lists (a sidebar) use less than a full card.
@@ -17,6 +17,6 @@ type EmptyStateProps = {
 
 export function EmptyState({ children, padding = "xl" }: EmptyStateProps) {
   return (
-    <p className={`text-slate-500 text-sm text-center ${PADDING[padding]}`}>{children}</p>
+    <p className={`text-slate-400 text-sm text-center ${PADDING[padding]}`}>{children}</p>
   );
 }

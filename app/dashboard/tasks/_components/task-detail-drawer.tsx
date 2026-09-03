@@ -43,7 +43,7 @@ export function TaskDetailDrawer({
               {task.description && (
                 <div>
                   <FieldLabel mb="1">Description</FieldLabel>
-                  <p className="text-slate-300 text-sm">{task.description}</p>
+                  <p className="text-slate-200 text-sm">{task.description}</p>
                 </div>
               )}
 
@@ -54,18 +54,18 @@ export function TaskDetailDrawer({
                 </div>
                 <div>
                   <FieldLabel mb="1">Project</FieldLabel>
-                  <p className="text-slate-300 text-sm">{projectName ?? "—"}</p>
+                  <p className="text-slate-200 text-sm">{projectName ?? "—"}</p>
                 </div>
                 {task.due_date && (
                   <div>
                     <FieldLabel mb="1">Due</FieldLabel>
-                    <p className="text-slate-300 text-sm">{formatDate(task.due_date)}</p>
+                    <p className="text-slate-200 text-sm">{formatDate(task.due_date)}</p>
                   </div>
                 )}
                 {task.completed_at && (
                   <div>
                     <FieldLabel mb="1">Completed</FieldLabel>
-                    <p className="text-slate-300 text-sm">{formatDate(task.completed_at)}</p>
+                    <p className="text-slate-200 text-sm">{formatDate(task.completed_at)}</p>
                   </div>
                 )}
               </div>

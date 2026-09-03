@@ -104,7 +104,7 @@ export default function TodayPage() {
   const name = settings.displayName.trim();
 
   return (
-    <PageContainer squares={[[1, 1], [3, 2], [6, 4], [9, 1]]}>
+    <PageContainer>
       <PageHeader
         title={name ? `${getGreeting()}, ${name} ✦` : `${getGreeting()} ✦`}
         subtitle={formatDayLabel(new Date())}

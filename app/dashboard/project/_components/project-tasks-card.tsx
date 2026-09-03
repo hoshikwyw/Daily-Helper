@@ -25,7 +25,7 @@ export function ProjectTasksCard({ tasks, done }: ProjectTasksCardProps) {
       />
       <CardContent>
         {total === 0 ? (
-          <p className="text-slate-500 text-sm">
+          <p className="text-slate-400 text-sm">
             No tasks linked to this project. Assign a project when creating a task to see it
             here.
           </p>
@@ -51,13 +51,13 @@ export function ProjectTasksCard({ tasks, done }: ProjectTasksCardProps) {
                         />
                         <span
                           className={
-                            status === "done" ? "text-slate-500 line-through" : "text-slate-200"
+                            status === "done" ? "text-slate-400 line-through" : "text-slate-200"
                           }
                         >
                           {task.title}
                         </span>
                         {task.due_date && (
-                          <span className="ml-auto text-xs text-slate-500">
+                          <span className="ml-auto text-xs text-slate-400">
                             {formatDate(task.due_date)}
                           </span>
                         )}

@@ -46,7 +46,7 @@ export function MoodPicker({ value, onChange, label = "How was your day?" }: Moo
           );
         })}
       </div>
-      <p className="text-xs text-slate-500 mt-2">
+      <p className="text-xs text-slate-400 mt-2">
         {value ? "Tap the same face again to clear it." : "Optional — tap a face if you like."}
       </p>
     </div>

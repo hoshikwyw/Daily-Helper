@@ -64,7 +64,7 @@ export function YearlyTab({
         {stats.map(({ label, value }) => (
           <Card key={label} variant="elevated">
             <CardContent>
-              <p className="text-slate-500 text-xs">{label}</p>
+              <p className="text-slate-400 text-xs">{label}</p>
               <p className="text-lg font-bold text-white mt-0.5">{value}</p>
             </CardContent>
           </Card>
@@ -86,7 +86,7 @@ export function YearlyTab({
               const idle = income === 0 && expense === 0;
               return (
                 <div key={month} className="flex items-center gap-3">
-                  <span className="text-slate-500 text-xs w-8 shrink-0">{month}</span>
+                  <span className="text-slate-400 text-xs w-8 shrink-0">{month}</span>
                   <div className="flex-1">
                     <Progress
                       value={pct}
@@ -96,7 +96,7 @@ export function YearlyTab({
                   </div>
                   <span
                     className={`text-xs w-28 text-right shrink-0 font-medium ${
-                      idle ? "text-slate-600" : net >= 0 ? "text-emerald-400" : "text-rose-400"
+                      idle ? "text-slate-500" : net >= 0 ? "text-emerald-400" : "text-rose-400"
                     }`}
                   >
                     {idle ? "—" : fmtSigned(net)}

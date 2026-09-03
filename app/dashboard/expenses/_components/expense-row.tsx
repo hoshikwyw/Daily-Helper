@@ -31,7 +31,7 @@ export function ExpenseRow({
         <p className="text-sm text-slate-200 truncate">
           {expense.description || expense.category}
         </p>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-400">
           {expense.category} · {expense.date}
         </p>
       </div>
@@ -41,7 +41,7 @@ export function ExpenseRow({
       </span>
       <button
         onClick={() => onDelete(expense.id)}
-        className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-red-400 text-lg leading-none shrink-0 px-1"
+        className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-red-400 text-lg leading-none shrink-0 px-1"
         aria-label="Delete"
       >
         ×

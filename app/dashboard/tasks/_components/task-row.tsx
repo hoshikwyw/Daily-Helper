@@ -28,16 +28,16 @@ export function TaskRow({ task, projectName, onOpen, onStatusChange }: TaskRowPr
 
       <button onClick={() => onOpen(task)} className="flex-1 min-w-0 text-left">
         <p
-          className={`text-sm font-medium ${done ? "text-slate-500 line-through" : "text-slate-200"}`}
+          className={`text-sm font-medium ${done ? "text-slate-400 line-through" : "text-slate-200"}`}
         >
           {task.title}
         </p>
-        {projectName && <p className="text-xs text-slate-500 mt-0.5">{projectName}</p>}
+        {projectName && <p className="text-xs text-slate-400 mt-0.5">{projectName}</p>}
       </button>
 
       <div className="flex items-center gap-2 shrink-0">
         {task.due_date && (
-          <span className="hidden sm:inline text-xs text-slate-500">
+          <span className="hidden sm:inline text-xs text-slate-400">
             {formatDate(task.due_date)}
           </span>
         )}

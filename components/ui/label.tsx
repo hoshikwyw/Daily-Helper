@@ -28,7 +28,7 @@ type FieldLabelProps = {
  */
 export function FieldLabel({ children, mb = "2" }: FieldLabelProps) {
   return (
-    <p className={`text-xs text-slate-500 uppercase tracking-wide ${FIELD_MARGINS[mb]}`}>
+    <p className={`text-xs text-slate-400 uppercase tracking-wide ${FIELD_MARGINS[mb]}`}>
       {children}
     </p>
   );
@@ -43,7 +43,7 @@ type FormLabelProps = {
 /** Standard form-control label — a real `<label>`, for inputs the user edits. */
 export function FormLabel({ children, htmlFor, mb = "2" }: FormLabelProps) {
   return (
-    <label htmlFor={htmlFor} className={`block text-sm font-medium text-slate-300 ${FORM_MARGINS[mb]}`}>
+    <label htmlFor={htmlFor} className={`block text-sm font-medium text-slate-200 ${FORM_MARGINS[mb]}`}>
       {children}
     </label>
   );

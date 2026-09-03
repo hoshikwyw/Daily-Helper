@@ -2,7 +2,9 @@
 @source "../node_modules/@kwyw/kayv-glass-ui/dist";
 
 :root {
-  --background: #0d0d1a;
+  /* A neutral near-black. The old #0d0d1a carried a violet cast that fought
+     whichever accent theme was active. */
+  --background: #0a0a10;
   --foreground: #e2e8f0;
   /* Default indigo palette — used until ThemeProvider sets [data-theme] on <html> */
   --kv-p-50: 238 242 255;
@@ -105,4 +107,19 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans, system-ui, sans-serif);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* One visible focus ring everywhere, in the active accent. Several controls
+   previously had no focus style at all, which made keyboard use guesswork. */
+:focus-visible {
+  outline: 2px solid rgb(var(--kv-p-500));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: rgb(var(--kv-p-500) / 0.35);
+  color: #fff;
 }

@@ -25,21 +25,21 @@ export function BalanceSummary({
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
       <Card variant="elevated">
         <CardContent>
-          <p className="text-slate-500 text-xs">Income</p>
+          <p className="text-slate-400 text-xs">Income</p>
           <p className="text-xl font-bold text-emerald-400 mt-0.5">{fmt(totals.income)}</p>
         </CardContent>
       </Card>
 
       <Card variant="elevated">
         <CardContent>
-          <p className="text-slate-500 text-xs">Expense</p>
+          <p className="text-slate-400 text-xs">Expense</p>
           <p className="text-xl font-bold text-rose-400 mt-0.5">{fmt(totals.expense)}</p>
         </CardContent>
       </Card>
 
       <Card variant="elevated" className="col-span-2 sm:col-span-1">
         <CardContent>
-          <p className="text-slate-500 text-xs">{netLabel}</p>
+          <p className="text-slate-400 text-xs">{netLabel}</p>
           <p
             className={`text-xl font-bold mt-0.5 ${
               positive ? "text-white" : "text-rose-400"
@@ -48,7 +48,7 @@ export function BalanceSummary({
             {fmtSigned(totals.net)}
           </p>
           {showSavingsRate && totals.income > 0 && (
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-400 mt-0.5">
               {positive ? `kept ${rate}% of income` : "spent more than earned"}
             </p>
           )}

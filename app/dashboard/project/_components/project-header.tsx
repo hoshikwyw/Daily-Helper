@@ -25,7 +25,7 @@ export function ProjectHeader({ project, color, done, total }: ProjectHeaderProp
             <Badge variant={PROJECT_STATUS_VARIANTS[project.status]} size="sm">
               {project.status}
             </Badge>
-            <span className="text-slate-500 text-sm">
+            <span className="text-slate-400 text-sm">
               {done}/{total} tasks done
             </span>
           </div>

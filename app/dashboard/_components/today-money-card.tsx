@@ -40,7 +40,7 @@ export function TodayMoneyCard({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
-                <p className="text-xs text-slate-500 uppercase tracking-wide mb-3">
+                <p className="text-xs text-slate-400 uppercase tracking-wide mb-3">
                   Spent by category
                 </p>
                 <CategoryBreakdown
@@ -53,7 +53,7 @@ export function TodayMoneyCard({
               </div>
 
               <div>
-                <p className="text-xs text-slate-500 uppercase tracking-wide mb-3">
+                <p className="text-xs text-slate-400 uppercase tracking-wide mb-3">
                   Earned by category
                 </p>
                 <CategoryBreakdown

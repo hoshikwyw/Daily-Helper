@@ -19,7 +19,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <PageContainer squares={[[1, 1], [4, 3], [7, 2]]}>
+    <PageContainer>
       <PageHeader
         breadcrumb={[{ label: "Today", href: "/dashboard" }, { label: "Settings" }]}
         title="Settings"

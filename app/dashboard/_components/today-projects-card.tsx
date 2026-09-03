@@ -19,7 +19,7 @@ export function TodayProjectsCard({ projects }: { projects: Project[] }) {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-slate-200 truncate">{project.name}</p>
                 {project.tech_stack.length > 0 && (
-                  <p className="text-xs text-slate-500 truncate">
+                  <p className="text-xs text-slate-400 truncate">
                     {project.tech_stack.slice(0, VISIBLE_TECH).join(" · ")}
                   </p>
                 )}

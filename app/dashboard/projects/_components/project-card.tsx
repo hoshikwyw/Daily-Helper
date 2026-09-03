@@ -49,7 +49,7 @@ export function ProjectCard({ project, taskCount }: ProjectCardProps) {
 
         {taskCount && taskCount.total > 0 && (
           <div className="space-y-1">
-            <div className="flex justify-between text-xs text-slate-500">
+            <div className="flex justify-between text-xs text-slate-400">
               <span>Tasks</span>
               <span>
                 {taskCount.done}/{taskCount.total}
@@ -61,7 +61,7 @@ export function ProjectCard({ project, taskCount }: ProjectCardProps) {
 
         {overflowTech.length > 0 && (
           <Tooltip content={overflowTech.join(", ")}>
-            <span className="text-xs text-slate-500 cursor-default">
+            <span className="text-xs text-slate-400 cursor-default">
               +{overflowTech.length} more
             </span>
           </Tooltip>

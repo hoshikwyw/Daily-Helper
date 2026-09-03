@@ -87,7 +87,7 @@ export function JournalEditorCard({
             {saving ? "Saving…" : entry ? "Save changes" : "Save entry"}
           </Button>
           {!loading && (
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-slate-400">
               {dirty ? "Unsaved changes" : entry ? "All changes saved" : "Nothing to save yet"}
             </span>
           )}

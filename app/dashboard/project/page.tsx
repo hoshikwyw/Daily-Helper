@@ -94,7 +94,7 @@ function ProjectDetail() {
   const done = tasks.filter((t) => t.status === "done").length;
 
   return (
-    <PageContainer squares={[[2, 2], [5, 1], [7, 4]]}>
+    <PageContainer>
       <div className="relative">
         <Breadcrumb
           items={[

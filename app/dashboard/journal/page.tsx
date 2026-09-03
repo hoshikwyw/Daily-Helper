@@ -87,7 +87,7 @@ export default function JournalPage() {
   }
 
   return (
-    <PageContainer squares={[[1, 2], [4, 1], [7, 3]]}>
+    <PageContainer>
       <PageHeader
         breadcrumb={[{ label: "Today", href: "/dashboard" }, { label: "Journal" }]}
         title="Daily Journal"

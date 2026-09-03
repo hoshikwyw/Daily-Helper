@@ -101,8 +101,8 @@ export function ManageCategoriesModal({
                     className="w-2.5 h-2.5 rounded-full shrink-0"
                     style={{ backgroundColor: c.color }}
                   />
-                  <span className="text-slate-300 text-sm flex-1">{c.name}</span>
-                  <span className="text-slate-600 text-xs">built-in</span>
+                  <span className="text-slate-200 text-sm flex-1">{c.name}</span>
+                  <span className="text-slate-500 text-xs">built-in</span>
                 </div>
               ))}
             </div>
@@ -121,10 +121,10 @@ export function ManageCategoriesModal({
                       className="w-2.5 h-2.5 rounded-full shrink-0"
                       style={{ backgroundColor: c.color }}
                     />
-                    <span className="text-slate-300 text-sm flex-1">{c.name}</span>
+                    <span className="text-slate-200 text-sm flex-1">{c.name}</span>
                     <button
                       onClick={() => onDeleteCategory(c.id)}
-                      className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition-all text-base leading-none px-1"
+                      className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-400 transition-all text-base leading-none px-1"
                       aria-label="Delete category"
                     >
                       ×

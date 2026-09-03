@@ -63,7 +63,7 @@ export function ProfileTab({ settings, onSave }: ProfileTabProps) {
                   <Badge variant="warning" dot size="sm">
                     Not configured
                   </Badge>
-                  <span className="text-slate-500 text-sm">Add .env.local to connect</span>
+                  <span className="text-slate-400 text-sm">Add .env.local to connect</span>
                 </>
               )}
             </div>

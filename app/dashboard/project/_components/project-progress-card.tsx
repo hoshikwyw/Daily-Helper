@@ -28,11 +28,11 @@ export function ProjectProgressCard({ project, done, total }: ProjectProgressCar
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
               <FieldLabel mb="0">Created</FieldLabel>
-              <p className="text-slate-300">{formatDate(project.created_at)}</p>
+              <p className="text-slate-200">{formatDate(project.created_at)}</p>
             </div>
             <div>
               <FieldLabel mb="0">Updated</FieldLabel>
-              <p className="text-slate-300">{formatDate(project.updated_at)}</p>
+              <p className="text-slate-200">{formatDate(project.updated_at)}</p>
             </div>
           </div>
         </div>

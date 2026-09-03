@@ -51,7 +51,7 @@ export default function ProjectsPage() {
   const filtered = filterProjects(projects, activeFilter);
 
   return (
-    <PageContainer squares={[[2, 2], [5, 1], [7, 4]]}>
+    <PageContainer>
       <PageHeader
         breadcrumb={[{ label: "Today", href: "/dashboard" }, { label: "Projects" }]}
         title="Projects"

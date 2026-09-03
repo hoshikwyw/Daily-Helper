@@ -43,7 +43,7 @@ export function CategoryBreakdown({
       {shown.map(({ category, amount, pct }) => (
         <div key={category} className="space-y-1.5">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-300 flex items-center gap-2 min-w-0">
+            <span className="text-slate-200 flex items-center gap-2 min-w-0">
               <span
                 className="w-2 h-2 rounded-full shrink-0"
                 style={{ backgroundColor: categoryColor(colorMap, kind, category) }}
@@ -51,7 +51,7 @@ export function CategoryBreakdown({
               <span className="truncate">{category}</span>
             </span>
             <span className="text-slate-400 shrink-0 ml-2">
-              {fmt(amount)} <span className="text-xs text-slate-600">({pct}%)</span>
+              {fmt(amount)} <span className="text-xs text-slate-500">({pct}%)</span>
             </span>
           </div>
           <Progress
@@ -62,7 +62,7 @@ export function CategoryBreakdown({
         </div>
       ))}
       {hidden > 0 && (
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-400">
           +{hidden} more {hidden === 1 ? "category" : "categories"}
         </p>
       )}

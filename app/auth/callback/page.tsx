@@ -26,7 +26,7 @@ function Callback() {
   }, [router, searchParams]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <p className="text-white/60 text-sm">Signing you in…</p>
     </div>
   );

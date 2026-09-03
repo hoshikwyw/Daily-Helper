@@ -27,7 +27,7 @@ export function HighlightsField({ highlights, onChange }: HighlightsFieldProps) 
   return (
     <div>
       <FormLabel mb="1.5">Good things that happened</FormLabel>
-      <p className="text-xs text-slate-500 mb-2">
+      <p className="text-xs text-slate-400 mb-2">
         One short line each — a small win, something nice, anything you want to remember.
       </p>
       <div className="flex gap-2 mb-3">
@@ -62,10 +62,10 @@ export function HighlightsField({ highlights, onChange }: HighlightsFieldProps) 
               </button>
             ))}
           </div>
-          <p className="text-xs text-slate-500 mt-2">Tap one to remove it.</p>
+          <p className="text-xs text-slate-400 mt-2">Tap one to remove it.</p>
         </>
       ) : (
-        <p className="text-xs text-slate-600">
+        <p className="text-xs text-slate-500">
           Nothing added yet — press Enter after typing to add one.
         </p>
       )}

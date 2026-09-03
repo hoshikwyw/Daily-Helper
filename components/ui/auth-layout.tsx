@@ -1,16 +1,12 @@
-import { GradientBackground, GridPattern } from "@kwyw/kayv-glass-ui";
+import { GradientBackground } from "@kwyw/kayv-glass-ui";
 
-// Centered full-screen shell for the signed-out auth pages (login, password
-// reset). Shared so the background + grid treatment stays identical.
+// Centered full-screen shell for the signed-out pages (login, password reset).
+// Matches PageContainer: one muted gradient, no dot-grid overlay on top of it.
 export function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#0a0a0a]">
-      <GradientBackground fixed={false} />
-      <GridPattern
-        className="absolute inset-0 opacity-5 [mask-image:radial-gradient(ellipse_at_center,white_20%,transparent_70%)]"
-        squares={[[1, 1], [4, 3], [7, 2]]}
-      />
-      <div className="relative">{children}</div>
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background p-4">
+      <GradientBackground fixed={false} className="opacity-25" />
+      <div className="relative w-full max-w-sm">{children}</div>
     </div>
   );
 }
