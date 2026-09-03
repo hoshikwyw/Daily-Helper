@@ -1,17 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// Geist ships as an npm package with the font files bundled, rather than
+// `next/font/google`, which downloads them from Google Fonts during the build.
+// That fetch fails on any network where Google is blocked or offline, taking
+// the whole build with it — including the Capacitor mobile builds. These
+// expose the same --font-geist-sans / --font-geist-mono variables globals.css
+// already relies on, so the rendered type is unchanged.
 
 export const metadata: Metadata = {
   title: "Orbit — glassmorphism SaaS dashboard",
@@ -24,7 +22,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} dark`}
+      className={`${GeistSans.variable} ${GeistMono.variable} dark`}
     >
       <body className="min-h-screen antialiased">
         <Providers>{children}</Providers>
