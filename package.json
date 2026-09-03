@@ -10,8 +10,8 @@
     "mobile:sync": "next build && cap sync",
     "mobile:android": "next build && cap sync android && cap open android",
     "mobile:ios": "next build && cap sync ios && cap open ios",
-    "android:apk": "next build && cap sync android && cd android && gradlew.bat assembleDebug",
-    "android:install": "next build && cap sync android && cd android && gradlew.bat installDebug"
+    "android:apk": "next build && cap sync android && cd android && .\\gradlew.bat assembleDebug",
+    "android:install": "next build && cap sync android && cd android && .\\gradlew.bat installDebug"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",
