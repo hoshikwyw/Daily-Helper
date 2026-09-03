@@ -10,7 +10,10 @@ type HighlightsFieldProps = {
   onChange: (highlights: string[]) => void;
 };
 
-/** Tag-style list of the day's wins. Owns its own draft input. */
+/**
+ * Short list of good things from the day. Labelled in plain words rather than
+ * "Highlights", which doesn't tell a first-time user what belongs here.
+ */
 export function HighlightsField({ highlights, onChange }: HighlightsFieldProps) {
   const [draft, setDraft] = useState("");
 
@@ -23,10 +26,13 @@ export function HighlightsField({ highlights, onChange }: HighlightsFieldProps) 
 
   return (
     <div>
-      <FormLabel>Highlights</FormLabel>
+      <FormLabel mb="1.5">Good things that happened</FormLabel>
+      <p className="text-xs text-slate-500 mb-2">
+        One short line each — a small win, something nice, anything you want to remember.
+      </p>
       <div className="flex gap-2 mb-3">
         <Input
-          placeholder="Add a highlight..."
+          placeholder="e.g. finished the login page"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
@@ -41,18 +47,27 @@ export function HighlightsField({ highlights, onChange }: HighlightsFieldProps) 
           Add
         </Button>
       </div>
-      {highlights.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {highlights.map((highlight, i) => (
-            <button
-              key={i}
-              onClick={() => onChange(removeHighlight(highlights, i))}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-kv-500/20 text-kv-300 text-xs hover:bg-red-500/20 hover:text-red-300 transition-colors"
-            >
-              ✦ {highlight} <span className="ml-1 opacity-60">×</span>
-            </button>
-          ))}
-        </div>
+      {highlights.length > 0 ? (
+        <>
+          <div className="flex flex-wrap gap-2">
+            {highlights.map((highlight, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => onChange(removeHighlight(highlights, i))}
+                title="Tap to remove"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-kv-500/20 text-kv-300 text-xs hover:bg-red-500/20 hover:text-red-300 transition-colors"
+              >
+                ✦ {highlight} <span className="ml-1 opacity-60">×</span>
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-slate-500 mt-2">Tap one to remove it.</p>
+        </>
+      ) : (
+        <p className="text-xs text-slate-600">
+          Nothing added yet — press Enter after typing to add one.
+        </p>
       )}
     </div>
   );

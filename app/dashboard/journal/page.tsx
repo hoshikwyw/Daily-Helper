@@ -12,6 +12,7 @@ import {
   draftFromEntry,
   draftToPayload,
   emptyJournalDraft,
+  isJournalDirty,
   type JournalDraft,
 } from "@/lib/journal";
 import { toISODate, todayISO } from "@/lib/date";
@@ -90,22 +91,27 @@ export default function JournalPage() {
       <PageHeader
         breadcrumb={[{ label: "Today", href: "/dashboard" }, { label: "Journal" }]}
         title="Daily Journal"
-        subtitle="Capture your thoughts, mood, and wins."
+        subtitle="Tap a mood, write a line or two. That's it."
       />
 
       <div className="relative grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* The editor leads on mobile — opening the journal should show a
+            place to write, not a date picker. */}
         <JournalSidebar
           selectedDate={selectedDate}
           onDateChange={handleDateChange}
           recentEntries={recentEntries}
+          className="order-2 lg:order-1"
         />
 
         <JournalEditorCard
+          className="order-1 lg:order-2"
           selectedDate={selectedDate}
           isToday={toISODate(selectedDate) === todayISO()}
           entry={entry}
           draft={draft}
           onChange={patchDraft}
+          dirty={isJournalDirty(entry, draft)}
           loading={loading}
           saving={saving}
           deleting={deleting}

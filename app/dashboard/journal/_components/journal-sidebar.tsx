@@ -9,6 +9,7 @@ type JournalSidebarProps = {
   selectedDate: Date;
   onDateChange: (date: Date) => void;
   recentEntries: JournalEntry[];
+  className?: string;
 };
 
 /** Left rail: the date picker plus a jump-list of the latest entries. */
@@ -16,11 +17,12 @@ export function JournalSidebar({
   selectedDate,
   onDateChange,
   recentEntries,
+  className = "",
 }: JournalSidebarProps) {
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${className}`}>
       <Card variant="elevated">
-        <CardHeader title="Pick a date" />
+        <CardHeader title="Write about another day" />
         <CardContent>
           <Calendar
             mode="single"
