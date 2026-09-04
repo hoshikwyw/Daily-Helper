@@ -1,7 +1,7 @@
 import { CategoryBreakdown } from "@/components/ui/category-breakdown";
 import { FieldLabel } from "@/components/ui/label";
-import type { ColorMap } from "@/lib/expenses";
-import type { Expense } from "@/lib/types";
+import { filterByKind, fmt, getCategoryStats, type ColorMap } from "@/lib/expenses";
+import type { EntryKind, Expense } from "@/lib/types";
 
 type CategorySplitProps = {
   entries: Expense[];
@@ -13,7 +13,7 @@ type CategorySplitProps = {
 };
 
 /**
- * Spending and earning broken down side by side.
+ * Spending and earning statistics side by side.
  *
  * Deliberately not a Card. Every money tab used to render two separate cards
  * for this, which on a phone meant two sets of borders and padding stacked down
@@ -23,26 +23,65 @@ type CategorySplitProps = {
 export function CategorySplit({ entries, colorMap, limit, period }: CategorySplitProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-      <div>
-        <FieldLabel mb="3">Spent</FieldLabel>
-        <CategoryBreakdown
-          entries={entries}
-          kind="expense"
-          colorMap={colorMap}
-          limit={limit}
-          emptyLabel={`Nothing spent ${period}.`}
-        />
+      <CategorySide
+        entries={entries}
+        kind="expense"
+        colorMap={colorMap}
+        limit={limit}
+        label="Spent"
+        emptyLabel={`Nothing spent ${period}.`}
+      />
+      <CategorySide
+        entries={entries}
+        kind="income"
+        colorMap={colorMap}
+        limit={limit}
+        label="Earned"
+        emptyLabel={`No income ${period}.`}
+      />
+    </div>
+  );
+}
+
+type CategorySideProps = {
+  entries: Expense[];
+  kind: EntryKind;
+  colorMap: ColorMap;
+  limit?: number;
+  label: string;
+  emptyLabel: string;
+};
+
+/** One ledger: a headline summary, then the per-category rows. */
+function CategorySide({
+  entries,
+  kind,
+  colorMap,
+  limit,
+  label,
+  emptyLabel,
+}: CategorySideProps) {
+  const stats = getCategoryStats(filterByKind(entries, kind));
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-2 mb-3">
+        <FieldLabel mb="0">{label}</FieldLabel>
+        {stats.entries > 0 && (
+          <span className="text-xs text-slate-500">
+            {stats.categories} {stats.categories === 1 ? "category" : "categories"} ·{" "}
+            {stats.entries} {stats.entries === 1 ? "entry" : "entries"} · avg{" "}
+            {fmt(stats.average)}
+          </span>
+        )}
       </div>
-      <div>
-        <FieldLabel mb="3">Earned</FieldLabel>
-        <CategoryBreakdown
-          entries={entries}
-          kind="income"
-          colorMap={colorMap}
-          limit={limit}
-          emptyLabel={`No income ${period}.`}
-        />
-      </div>
+      <CategoryBreakdown
+        entries={entries}
+        kind={kind}
+        colorMap={colorMap}
+        limit={limit}
+        emptyLabel={emptyLabel}
+      />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   fmtEntry,
   fmtSigned,
   getCategoryBreakdown,
+  getCategoryStats,
   getMonthlyTotals,
   getTotals,
   mergeCategories,
@@ -120,15 +121,75 @@ describe("category colours", () => {
 });
 
 describe("getCategoryBreakdown", () => {
-  it("groups by category, largest first, with percentages", () => {
+  it("reports totals, share, count, average and largest per category", () => {
     expect(getCategoryBreakdown(filterByKind(SEPTEMBER, "expense"))).toEqual([
-      { category: "Food & Drink", amount: 100_000, pct: 69 },
-      { category: "Transport", amount: 45_000, pct: 31 },
+      {
+        category: "Food & Drink",
+        amount: 100_000,
+        pct: 69,
+        count: 2,
+        average: 50_000,
+        largest: 80_000,
+      },
+      {
+        category: "Transport",
+        amount: 45_000,
+        pct: 31,
+        count: 1,
+        average: 45_000,
+        largest: 45_000,
+      },
     ]);
+  });
+
+  it("sorts by total, biggest first", () => {
+    const slices = getCategoryBreakdown(filterByKind(SEPTEMBER, "expense"));
+    expect(slices.map((s) => s.category)).toEqual(["Food & Drink", "Transport"]);
+  });
+
+  it("distinguishes one large entry from many small ones", () => {
+    // Same total either way; count, average and largest are what tell them apart.
+    const oneBig = getCategoryBreakdown([entry("expense", 90_000, "Housing", "2026-09-01")])[0];
+    const manySmall = getCategoryBreakdown([
+      entry("expense", 30_000, "Housing", "2026-09-01"),
+      entry("expense", 30_000, "Housing", "2026-09-02"),
+      entry("expense", 30_000, "Housing", "2026-09-03"),
+    ])[0];
+
+    expect(oneBig.amount).toBe(manySmall.amount);
+    expect(oneBig).toMatchObject({ count: 1, average: 90_000, largest: 90_000 });
+    expect(manySmall).toMatchObject({ count: 3, average: 30_000, largest: 30_000 });
   });
 
   it("has no percentages to divide by when empty", () => {
     expect(getCategoryBreakdown([])).toEqual([]);
+  });
+});
+
+describe("getCategoryStats", () => {
+  it("summarises one side of the ledger", () => {
+    expect(getCategoryStats(filterByKind(SEPTEMBER, "expense"))).toMatchObject({
+      categories: 2,
+      entries: 3,
+      total: 145_000,
+      average: 48_333,
+    });
+  });
+
+  it("names the biggest category", () => {
+    expect(getCategoryStats(filterByKind(SEPTEMBER, "expense")).top?.category).toBe(
+      "Food & Drink"
+    );
+  });
+
+  it("is empty rather than NaN with nothing recorded", () => {
+    expect(getCategoryStats([])).toEqual({
+      categories: 0,
+      entries: 0,
+      total: 0,
+      average: 0,
+      top: null,
+    });
   });
 });
 

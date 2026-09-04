@@ -159,22 +159,72 @@ export function categoryColor(map: ColorMap, kind: EntryKind, name: string): str
 
 // ── Breakdowns ──────────────────────────────────────────────────────────────
 
-export type CategorySlice = { category: string; amount: number; pct: number };
+export type CategorySlice = {
+  category: string;
+  /** Total across every entry in this category. */
+  amount: number;
+  /** Share of the period's total, 0-100. */
+  pct: number;
+  /** How many entries make up the total. */
+  count: number;
+  /** Mean value of one entry, rounded. */
+  average: number;
+  /** The single biggest entry — shows whether a total is one big item or many small ones. */
+  largest: number;
+};
 
-/** Groups entries by category, sorted by amount descending, with percentages. */
+/**
+ * Per-category statistics, biggest total first.
+ *
+ * The count and average matter as much as the total: "K 100,000 on Food" reads
+ * very differently as one restaurant bill versus thirty coffees.
+ */
 export function getCategoryBreakdown(entries: Expense[]): CategorySlice[] {
   const total = entries.reduce((sum, e) => sum + e.amount, 0);
-  const byCategory: Record<string, number> = {};
+
+  const byCategory = new Map<string, { amount: number; count: number; largest: number }>();
   for (const e of entries) {
-    byCategory[e.category] = (byCategory[e.category] || 0) + e.amount;
+    const acc = byCategory.get(e.category) ?? { amount: 0, count: 0, largest: 0 };
+    acc.amount += e.amount;
+    acc.count += 1;
+    acc.largest = Math.max(acc.largest, e.amount);
+    byCategory.set(e.category, acc);
   }
-  return Object.entries(byCategory)
-    .sort((a, b) => b[1] - a[1])
-    .map(([category, amount]) => ({
+
+  return [...byCategory.entries()]
+    .sort((a, b) => b[1].amount - a[1].amount)
+    .map(([category, { amount, count, largest }]) => ({
       category,
       amount,
+      count,
+      largest,
+      average: Math.round(amount / count),
       pct: total > 0 ? Math.round((amount / total) * 100) : 0,
     }));
+}
+
+export type CategoryStats = {
+  /** How many distinct categories were used. */
+  categories: number;
+  entries: number;
+  total: number;
+  /** Mean value of one entry across all categories. */
+  average: number;
+  /** The category with the highest total, or null when there is nothing. */
+  top: CategorySlice | null;
+};
+
+/** Headline figures for one side of the ledger over a period. */
+export function getCategoryStats(entries: Expense[]): CategoryStats {
+  const slices = getCategoryBreakdown(entries);
+  const total = entries.reduce((sum, e) => sum + e.amount, 0);
+  return {
+    categories: slices.length,
+    entries: entries.length,
+    total,
+    average: entries.length > 0 ? Math.round(total / entries.length) : 0,
+    top: slices[0] ?? null,
+  };
 }
 
 export type MonthTotals = Totals & {
