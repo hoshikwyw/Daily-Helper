@@ -48,7 +48,7 @@ lib/api/<entity>.ts    All Supabase access. The ONLY place queries are written.
 
 - Nothing outside `lib/api/` and `lib/db.ts` imports `@/lib/supabase`. Pages call `listTasks()`, not `supabase.from("tasks")`.
 - In `lib/api/*`, reads return `[]`/`null`, writes return the row or `null`, deletes return `boolean`. Errors are toasted inside the layer, so call sites read `if (!created) return;`.
-- `lib/*.ts` domain modules are pure and React-free, so they are trivially testable.
+- `lib/*.ts` domain modules are pure and React-free, so they are testable without a DOM — see `npm test`.
 - Shared vocabulary — status colors, badge variants, select options — lives once in `lib/constants.ts` and is derived, never re-typed.
 
 ```
@@ -191,6 +191,8 @@ npm run dev              # Start development server
 npm run build            # Static export to out/
 npm run start            # Serve a production build
 npm run lint             # Run ESLint
+npm test                 # Run the domain-logic test suite
+npm run test:watch       # Same, in watch mode
 
 npm run mobile:sync      # Build + sync into the native projects
 npm run mobile:android   # Build, sync, open Android Studio
@@ -198,6 +200,16 @@ npm run mobile:ios       # Build, sync, open Xcode
 npm run android:apk      # Build a debug APK
 npm run android:install  # Build and install on a connected device
 ```
+
+---
+
+## Tests
+
+`npm test` runs [Vitest](https://vitest.dev/) over the pure modules in `lib/` — the money maths, local-time date handling, and the draft/dirty comparisons behind the Save buttons. No DOM, no database, no network.
+
+Coverage is deliberately narrow: it targets logic that is easy to get subtly wrong and expensive to notice, rather than chasing a percentage. Several cases exist because the bug happened — entries saved before the income migration have no `kind`, and using that as a lookup key took the whole page down.
+
+Tests live beside the module they cover (`lib/expenses.test.ts`), so a module and its tests move together.
 
 ---
 
