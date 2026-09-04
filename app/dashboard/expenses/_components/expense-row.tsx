@@ -31,7 +31,7 @@ export function ExpenseRow({
         <p className="text-sm text-slate-200 truncate">
           {expense.description || expense.category}
         </p>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-400 truncate">
           {expense.category} · {expense.date}
         </p>
       </div>

@@ -119,7 +119,9 @@ function ProjectDetail() {
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-            <div className="lg:col-span-2 space-y-6">
+            {/* Progress leads on mobile — it summarises the project, so it
+                belongs above the form rather than after it. */}
+            <div className="lg:col-span-2 space-y-6 order-2 lg:order-1">
               <ProjectOverviewCard
                 draft={draft}
                 onChange={patchDraft}
@@ -137,7 +139,7 @@ function ProjectDetail() {
               />
             </div>
 
-            <div className="lg:sticky lg:top-6 space-y-6">
+            <div className="lg:sticky lg:top-6 space-y-6 order-1 lg:order-2">
               <ProjectProgressCard project={project} done={done} total={tasks.length} />
             </div>
           </div>

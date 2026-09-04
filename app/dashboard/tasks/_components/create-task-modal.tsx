@@ -72,7 +72,7 @@ export function CreateTaskModal({ open, onClose, projects, onSubmit }: CreateTas
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <NativeSelect
                 label="Priority"
                 value={priority}

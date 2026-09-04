@@ -33,7 +33,7 @@ export function MonthlyTab({
 
   return (
     <div className="space-y-4 mt-4">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         <Select
           value={String(selectedMonth)}
           onChange={(v) => onMonthChange(Number(v))}
