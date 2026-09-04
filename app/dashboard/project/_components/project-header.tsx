@@ -13,14 +13,16 @@ type ProjectHeaderProps = {
 
 export function ProjectHeader({ project, color, done, total }: ProjectHeaderProps) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-4">
-      <div className="flex items-start gap-3">
+    <header className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-4 border-b border-white/8 pb-4 sm:pb-5">
+      <div className="flex items-start gap-3 min-w-0">
         <span
           className="w-5 h-5 rounded-full shrink-0 mt-1.5"
           style={{ backgroundColor: color }}
         />
-        <div>
-          <h1 className="text-2xl font-bold text-white">{project.name}</h1>
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white break-words">
+            {project.name}
+          </h1>
           <div className="flex items-center gap-2 mt-1.5">
             <Badge variant={PROJECT_STATUS_VARIANTS[project.status]} size="sm">
               {project.status}
@@ -31,11 +33,11 @@ export function ProjectHeader({ project, color, done, total }: ProjectHeaderProp
           </div>
         </div>
       </div>
-      <Link href="/dashboard/projects">
+      <Link href="/dashboard/projects" className="shrink-0">
         <Button variant="ghost" size="sm">
           ← All projects
         </Button>
       </Link>
-    </div>
+    </header>
   );
 }

@@ -95,7 +95,7 @@ function ProjectDetail() {
 
   return (
     <PageContainer>
-      <div className="relative">
+      <div className="relative scroll-x">
         <Breadcrumb
           items={[
             { label: "Today", href: "/dashboard" },
