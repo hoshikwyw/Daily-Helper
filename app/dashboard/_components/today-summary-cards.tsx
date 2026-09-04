@@ -24,7 +24,7 @@ export function TodaySummaryCards({
   const moodMeta = mood ? MOOD_META[mood as Mood] : null;
 
   return (
-    <div className="relative grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div className="relative grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
       <Card variant="elevated">
         <CardHeader title="Today's Tasks" />
         <CardContent>
@@ -48,7 +48,7 @@ export function TodaySummaryCards({
         </CardContent>
       </Card>
 
-      <Card variant="elevated">
+      <Card variant="elevated" className="col-span-2 sm:col-span-1">
         <CardHeader title="Today's Mood" />
         <CardContent>
           {moodMeta ? (

@@ -7,7 +7,7 @@ import {
   type MonthTotals,
 } from "@/lib/expenses";
 import { BalanceSummary } from "@/components/ui/balance-summary";
-import { CategoryBreakdown } from "@/components/ui/category-breakdown";
+import { CategorySplit } from "@/components/ui/category-split";
 import type { Expense } from "@/lib/types";
 
 type YearlyTabProps = {
@@ -60,12 +60,12 @@ export function YearlyTab({
 
       <BalanceSummary totals={totals} netLabel={`Collected in ${selectedYear}`} />
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         {stats.map(({ label, value }) => (
           <Card key={label} variant="elevated">
             <CardContent>
               <p className="text-slate-400 text-xs">{label}</p>
-              <p className="text-lg font-bold text-white mt-0.5">{value}</p>
+              <p className="text-base sm:text-lg font-semibold text-white mt-0.5 truncate">{value}</p>
             </CardContent>
           </Card>
         ))}
@@ -108,31 +108,12 @@ export function YearlyTab({
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card variant="elevated">
-          <CardHeader title="Spent by category" />
-          <CardContent>
-            <CategoryBreakdown
-              entries={entries}
-              kind="expense"
-              colorMap={colorMap}
-              emptyLabel="No expenses this year."
-            />
-          </CardContent>
-        </Card>
-
-        <Card variant="elevated">
-          <CardHeader title="Earned by category" />
-          <CardContent>
-            <CategoryBreakdown
-              entries={entries}
-              kind="income"
-              colorMap={colorMap}
-              emptyLabel="No income this year."
-            />
-          </CardContent>
-        </Card>
-      </div>
+      <Card variant="elevated">
+        <CardHeader title="By category" />
+        <CardContent>
+          <CategorySplit entries={entries} colorMap={colorMap} period="this year" />
+        </CardContent>
+      </Card>
     </div>
   );
 }

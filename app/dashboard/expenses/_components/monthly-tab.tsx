@@ -2,7 +2,7 @@ import { Card, CardHeader, CardContent, Button, Select } from "@kwyw/kayv-glass-
 import { MONTHS, getTotals, type ColorMap } from "@/lib/expenses";
 import { EmptyState } from "@/components/ui/empty-state";
 import { BalanceSummary } from "@/components/ui/balance-summary";
-import { CategoryBreakdown } from "@/components/ui/category-breakdown";
+import { CategorySplit } from "@/components/ui/category-split";
 import { ExpenseRow } from "./expense-row";
 import type { Expense } from "@/lib/types";
 
@@ -51,31 +51,12 @@ export function MonthlyTab({
 
       <BalanceSummary totals={totals} netLabel="Collected this month" />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card variant="elevated">
-          <CardHeader title="Spent by category" />
-          <CardContent>
-            <CategoryBreakdown
-              entries={entries}
-              kind="expense"
-              colorMap={colorMap}
-              emptyLabel="No expenses this month."
-            />
-          </CardContent>
-        </Card>
-
-        <Card variant="elevated">
-          <CardHeader title="Earned by category" />
-          <CardContent>
-            <CategoryBreakdown
-              entries={entries}
-              kind="income"
-              colorMap={colorMap}
-              emptyLabel="No income this month."
-            />
-          </CardContent>
-        </Card>
-      </div>
+      <Card variant="elevated">
+        <CardHeader title="By category" />
+        <CardContent>
+          <CategorySplit entries={entries} colorMap={colorMap} period="this month" />
+        </CardContent>
+      </Card>
 
       <Card variant="elevated">
         <CardHeader
