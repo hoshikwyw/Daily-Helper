@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "./globals.css";
@@ -10,6 +10,16 @@ import { Providers } from "@/components/providers";
 // the whole build with it — including the Capacitor mobile builds. These
 // expose the same --font-geist-sans / --font-geist-mono variables globals.css
 // already relies on, so the rendered type is unchanged.
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Lets the page extend under the notch and home indicator, which is what
+  // makes env(safe-area-inset-*) resolve to real values in the native shell.
+  // Zoom is deliberately left enabled — pinch-to-zoom is an accessibility need.
+  viewportFit: "cover",
+  themeColor: "#0a0a10",
+};
 
 export const metadata: Metadata = {
   title: "Orbit — glassmorphism SaaS dashboard",

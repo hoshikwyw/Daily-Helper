@@ -33,7 +33,7 @@ export default function SettingsPage() {
           <Skeleton className="h-96 rounded-xl" />
         ) : (
           <Tabs defaultValue="profile">
-            <TabList>
+            <TabList className="scroll-x">
               <Tab value="profile">Profile</Tab>
               <Tab value="appearance">Appearance</Tab>
               <Tab value="notifications">Notifications</Tab>

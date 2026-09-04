@@ -41,7 +41,7 @@ export function ExpenseRow({
       </span>
       <button
         onClick={() => onDelete(expense.id)}
-        className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-red-400 text-lg leading-none shrink-0 px-1"
+        className="hover-reveal transition-opacity text-slate-400 hover:text-red-400 text-xl leading-none shrink-0 h-11 w-11 flex items-center justify-center rounded-lg -mr-2"
         aria-label="Delete"
       >
         ×

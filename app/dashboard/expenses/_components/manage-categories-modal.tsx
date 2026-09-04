@@ -115,7 +115,7 @@ export function ManageCategoriesModal({
                 {custom.map((c) => (
                   <div
                     key={c.id}
-                    className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg bg-white/5 group"
+                    className="flex items-center gap-2.5 pl-2 pr-1 py-1 rounded-lg bg-white/5 group"
                   >
                     <span
                       className="w-2.5 h-2.5 rounded-full shrink-0"
@@ -124,7 +124,7 @@ export function ManageCategoriesModal({
                     <span className="text-slate-200 text-sm flex-1">{c.name}</span>
                     <button
                       onClick={() => onDeleteCategory(c.id)}
-                      className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-400 transition-all text-base leading-none px-1"
+                      className="hover-reveal transition-opacity text-slate-400 hover:text-red-400 text-xl leading-none h-10 w-10 flex items-center justify-center rounded-lg shrink-0"
                       aria-label="Delete category"
                     >
                       ×

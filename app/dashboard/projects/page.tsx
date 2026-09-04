@@ -69,7 +69,7 @@ export default function ProjectsPage() {
           <button
             key={value}
             onClick={() => setActiveFilter(value)}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            className={`px-3.5 py-2 rounded-full text-sm font-medium transition-colors ${
               activeFilter === value
                 ? "bg-kv-500 text-white"
                 : "bg-white/5 text-slate-400 hover:bg-white/10"

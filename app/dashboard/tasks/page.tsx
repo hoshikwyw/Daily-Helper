@@ -108,7 +108,7 @@ export default function TasksPage() {
 
       <div className="relative">
         <Tabs value={activeTab} onChange={(v) => setActiveTab(v as TaskTab)}>
-          <TabList>
+          <TabList className="scroll-x">
             {TASK_TABS.map(({ value, label }) => (
               <Tab key={value} value={value}>
                 {label} ({counts[value]})

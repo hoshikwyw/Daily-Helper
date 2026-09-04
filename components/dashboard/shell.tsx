@@ -68,7 +68,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         onValueChange={handleValueChange}
         display="responsive"
         className="shrink-0"
-        bottomNavClassName="fixed inset-x-0 bottom-0 z-40"
+        bottomNavClassName="fixed inset-x-0 bottom-0 z-40 pb-[env(safe-area-inset-bottom)]"
       >
         <MenuBarBrand>
           <span className="text-base font-bold text-white">✦ Kayv</span>
@@ -109,7 +109,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </MenuBarSection>
       </MenuBar>
 
-      <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto pb-20 lg:pb-0">
+      <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
         {children}
       </main>
     </div>

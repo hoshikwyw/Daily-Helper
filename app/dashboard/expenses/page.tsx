@@ -198,7 +198,7 @@ export default function ExpensesPage() {
 
       <div className="relative">
         <Tabs value={activeTab} onChange={setActiveTab}>
-          <TabList>
+          <TabList className="scroll-x">
             <Tab value="daily">Daily</Tab>
             <Tab value="monthly">Monthly</Tab>
             <Tab value="yearly">Yearly</Tab>

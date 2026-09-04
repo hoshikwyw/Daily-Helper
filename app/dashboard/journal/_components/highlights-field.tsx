@@ -56,7 +56,7 @@ export function HighlightsField({ highlights, onChange }: HighlightsFieldProps) 
                 type="button"
                 onClick={() => onChange(removeHighlight(highlights, i))}
                 title="Tap to remove"
-                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-kv-500/20 text-kv-300 text-xs hover:bg-red-500/20 hover:text-red-300 transition-colors"
+                className="flex items-center gap-1 px-3 py-2 rounded-full bg-kv-500/20 text-kv-300 text-xs hover:bg-red-500/20 hover:text-red-300 transition-colors"
               >
                 ✦ {highlight} <span className="ml-1 opacity-60">×</span>
               </button>

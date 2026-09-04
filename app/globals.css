@@ -123,3 +123,47 @@ body {
   background: rgb(var(--kv-p-500) / 0.35);
   color: #fff;
 }
+
+/*
+ * Controls that fade in on hover must stay visible where there is no hover.
+ * `group-hover` never fires on a touch screen, which made the row delete
+ * buttons unreachable on a phone. Visible by default; hidden only on devices
+ * that actually have a pointer.
+ */
+.hover-reveal {
+  opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hover-reveal {
+    opacity: 0;
+  }
+
+  .group:hover .hover-reveal,
+  .hover-reveal:focus-visible {
+    opacity: 1;
+  }
+}
+
+/*
+ * iOS zooms the whole viewport when a focused field's text is under 16px, and
+ * does not zoom back out. Every form control in the app was 13-14px.
+ */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Horizontal strips (tab rows) scroll instead of overflowing a narrow screen. */
+.scroll-x {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scroll-x::-webkit-scrollbar {
+  display: none;
+}

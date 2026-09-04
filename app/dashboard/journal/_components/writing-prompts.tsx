@@ -18,7 +18,7 @@ export function WritingPrompts({ onPick }: WritingPromptsProps) {
             key={prompt}
             type="button"
             onClick={() => onPick(prompt)}
-            className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-slate-200 text-xs hover:bg-kv-500/15 hover:border-kv-500/50 hover:text-kv-200 transition-colors"
+            className="px-3 py-2 rounded-full bg-white/5 border border-white/10 text-slate-200 text-xs hover:bg-kv-500/15 hover:border-kv-500/50 hover:text-kv-200 transition-colors"
           >
             + {prompt}
           </button>

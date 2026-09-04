@@ -13,9 +13,10 @@ type ColorPickerProps = {
   size?: "sm" | "md";
 };
 
+// Sized for a finger, not a cursor: 24px swatches were unhittable on a phone.
 const SIZES = {
-  sm: "w-6 h-6",
-  md: "w-7 h-7",
+  sm: "w-9 h-9",
+  md: "w-10 h-10",
 } as const;
 
 export function ColorPicker({

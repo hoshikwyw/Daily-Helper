@@ -95,7 +95,7 @@ export function YearlyTab({
                     />
                   </div>
                   <span
-                    className={`text-xs w-28 text-right shrink-0 font-medium ${
+                    className={`text-xs w-20 sm:w-28 text-right shrink-0 font-medium ${
                       idle ? "text-slate-500" : net >= 0 ? "text-emerald-400" : "text-rose-400"
                     }`}
                   >
