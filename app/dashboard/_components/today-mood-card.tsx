@@ -1,7 +1,5 @@
-import { Card, CardHeader, CardContent, Select } from "@kwyw/kayv-glass-ui";
-import { moodSelectOptions } from "@/lib/journal";
-
-const OPTIONS = moodSelectOptions("Select your mood…");
+import { Card, CardHeader, CardContent } from "@kwyw/kayv-glass-ui";
+import { MoodPicker } from "@/components/ui/mood-picker";
 
 type TodayMoodCardProps = {
   value: string;
@@ -14,7 +12,9 @@ export function TodayMoodCard({ value, onChange }: TodayMoodCardProps) {
     <Card variant="elevated">
       <CardHeader title="How are you feeling today?" />
       <CardContent>
-        <Select value={value} onChange={onChange} options={OPTIONS} />
+        {/* The card header already asks the question, so the picker's own
+            label is suppressed. */}
+        <MoodPicker value={value} onChange={onChange} label={null} />
       </CardContent>
     </Card>
   );

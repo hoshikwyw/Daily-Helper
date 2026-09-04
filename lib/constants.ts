@@ -29,11 +29,6 @@ export const MOOD_META: Record<Mood, { emoji: string; label: string; variant: UI
 /** Moods from best to worst — the order they appear in a picker. */
 export const MOODS = Object.keys(MOOD_META) as Mood[];
 
-/** Options for a mood `<select>`, e.g. "😄 Great". */
-export const MOOD_OPTIONS = MOODS.map((value) => ({
-  value,
-  label: `${MOOD_META[value].emoji} ${MOOD_META[value].label}`,
-}));
 
 export const PROJECT_STATUS_VARIANTS: Record<ProjectStatus, UIVariant> = {
   active: "primary",

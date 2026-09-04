@@ -7,7 +7,8 @@ type MoodPickerProps = {
   /** "" when no mood has been recorded. */
   value: string;
   onChange: (mood: string) => void;
-  label?: string;
+  /** Pass null where a surrounding card header already asks the question. */
+  label?: string | null;
 };
 
 /**
@@ -20,7 +21,7 @@ type MoodPickerProps = {
 export function MoodPicker({ value, onChange, label = "How was your day?" }: MoodPickerProps) {
   return (
     <div>
-      <FormLabel>{label}</FormLabel>
+      {label && <FormLabel>{label}</FormLabel>}
       <div className="grid grid-cols-5 gap-2">
         {MOODS.map((mood) => {
           const active = value === mood;

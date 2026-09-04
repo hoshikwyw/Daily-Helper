@@ -1,14 +1,7 @@
-import { MOOD_OPTIONS } from "@/lib/constants";
 import type { JournalPayload } from "@/lib/api/journal";
 import type { JournalEntry, Mood } from "@/lib/types";
 
-// Domain helpers for the Journal feature: the editor draft, highlight list
-// edits, and the mood picker's options.
-
-/** Mood options preceded by a placeholder row for "no mood recorded". */
-export function moodSelectOptions(placeholder: string) {
-  return [{ value: "", label: placeholder }, ...MOOD_OPTIONS];
-}
+// Domain helpers for the Journal feature: the editor draft and highlight edits.
 
 /** The editor's fields. `mood` is a plain string so "" can mean unset. */
 export type JournalDraft = {
