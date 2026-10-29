@@ -116,3 +116,15 @@ export function monthGrid(
 export function monthPrefix(year: number, month: number): string {
   return `${year}-${String(month + 1).padStart(2, "0")}`;
 }
+
+/**
+ * The same day-of-month as `iso`, moved into another month and clamped to
+ * that month's length: the 31st becomes the 30th in June and the 28th or
+ * 29th in February. Used when the calendar flips months so the selected
+ * day travels with it instead of pointing at a month that is off screen.
+ */
+export function sameDayInMonth(iso: string, year: number, month: number): string {
+  const day = Number(iso.slice(-2));
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  return toISODate(new Date(year, month, Math.min(day, lastDay)));
+}

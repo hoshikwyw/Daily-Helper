@@ -11,7 +11,13 @@ import {
   listExpensesForYear,
   type NewExpense,
 } from "@/lib/api/expenses";
-import { formatLongDate, formatWeekday, toISODate, todayISO } from "@/lib/date";
+import {
+  formatLongDate,
+  formatWeekday,
+  sameDayInMonth,
+  toISODate,
+  todayISO,
+} from "@/lib/date";
 import {
   MONTHS,
   buildColorMap,
@@ -96,8 +102,12 @@ export default function ExpensesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, calendarView.year, selectedMonthYear, selectedYear]);
 
+  // Flipping months carries the selected day along (same day number, clamped
+  // to the new month). The figures beside the calendar then always describe a
+  // day that is on screen and inside the loaded year.
   function handleCalendarViewChange(year: number, month: number) {
     setCalendarView({ year, month });
+    setSelectedDate((prev) => sameDayInMonth(prev, year, month));
   }
 
   async function handleCreateEntry(values: NewExpense): Promise<boolean> {
@@ -235,6 +245,7 @@ export default function ExpensesPage() {
                 entries={dailyEntries}
                 colorMap={colorMap}
                 onDelete={handleDelete}
+                onAdd={() => setShowCreate(true)}
                 onExport={() =>
                   handleExportImage(
                     "Daily",
@@ -287,6 +298,7 @@ export default function ExpensesPage() {
       <AddEntryModal
         open={showCreate}
         onClose={() => setShowCreate(false)}
+        defaultDate={selectedDate}
         categories={allCategories}
         onSubmit={handleCreateEntry}
       />

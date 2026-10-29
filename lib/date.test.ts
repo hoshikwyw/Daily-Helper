@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { fromISODate, monthGrid, monthPrefix, monthRange, toISODate, todayISO } from "@/lib/date";
+import {
+  fromISODate,
+  monthGrid,
+  monthPrefix,
+  monthRange,
+  sameDayInMonth,
+  toISODate,
+  todayISO,
+} from "@/lib/date";
 
 // Every helper here formats in LOCAL time on purpose. `Date.toISOString()` and
 // `new Date("2026-05-27")` both work in UTC, which shifts the calendar day
@@ -116,5 +124,24 @@ describe("monthPrefix", () => {
   it("zero-pads the month and matches toISODate", () => {
     expect(monthPrefix(2026, 0)).toBe("2026-01");
     expect(toISODate(new Date(2026, 0, 9)).startsWith(monthPrefix(2026, 0))).toBe(true);
+  });
+});
+
+describe("sameDayInMonth", () => {
+  it("keeps the day number when the target month has it", () => {
+    expect(sameDayInMonth("2026-10-24", 2026, 8)).toBe("2026-09-24");
+  });
+
+  it("clamps the 31st to a shorter month", () => {
+    expect(sameDayInMonth("2026-10-31", 2026, 10)).toBe("2026-11-30");
+  });
+
+  it("clamps into February, respecting leap years", () => {
+    expect(sameDayInMonth("2026-01-30", 2026, 1)).toBe("2026-02-28");
+    expect(sameDayInMonth("2028-01-30", 2028, 1)).toBe("2028-02-29");
+  });
+
+  it("moves across a year boundary", () => {
+    expect(sameDayInMonth("2026-01-15", 2025, 11)).toBe("2025-12-15");
   });
 });

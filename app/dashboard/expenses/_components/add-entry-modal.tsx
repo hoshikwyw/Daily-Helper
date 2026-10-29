@@ -18,19 +18,40 @@ import type { EntryKind } from "@/lib/types";
 type AddEntryModalProps = {
   open: boolean;
   onClose: () => void;
+  /**
+   * `YYYY-MM-DD` the date field starts on each time the modal opens — the day
+   * picked in the calendar, so adding to a past day needs no retyping.
+   */
+  defaultDate?: string;
   /** Categories for each ledger; the picker swaps when the kind changes. */
   categories: Record<EntryKind, { name: string; color: string }[]>;
   /** Persists the entry; returns true on success. */
   onSubmit: (values: NewExpense) => Promise<boolean>;
 };
 
-export function AddEntryModal({ open, onClose, categories, onSubmit }: AddEntryModalProps) {
+export function AddEntryModal({
+  open,
+  onClose,
+  defaultDate = todayISO(),
+  categories,
+  onSubmit,
+}: AddEntryModalProps) {
   const [kind, setKind] = useState<EntryKind>("expense");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState(categories.expense[0]?.name ?? "");
   const [description, setDescription] = useState("");
-  const [date, setDate] = useState(todayISO());
+  const [date, setDate] = useState(defaultDate);
   const [saving, setSaving] = useState(false);
+
+  // The modal stays mounted between uses, so the date is re-seeded on the
+  // open transition rather than once at mount. Done during render (React's
+  // "adjust state from props" pattern) to avoid a one-frame flash of the old
+  // date that an effect would cause.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setDate(defaultDate);
+  }
 
   const income = kind === "income";
 

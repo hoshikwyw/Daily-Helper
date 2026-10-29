@@ -20,6 +20,8 @@ type DailyTabProps = {
   entries: Expense[];
   colorMap: ColorMap;
   onDelete: (id: string) => void;
+  /** Opens the add-entry form, pre-dated to the selected day. */
+  onAdd: () => void;
   onExport: () => void;
 };
 
@@ -34,6 +36,7 @@ export function DailyTab({
   entries,
   colorMap,
   onDelete,
+  onAdd,
   onExport,
 }: DailyTabProps) {
   const totals = getTotals(entries);
@@ -91,7 +94,14 @@ export function DailyTab({
             {loading ? (
               <SkeletonList />
             ) : entries.length === 0 ? (
-              <EmptyState>No entries for {selectedDate}. Add one above!</EmptyState>
+              <div className="text-center py-6 space-y-3">
+                <EmptyState padding="sm">
+                  Nothing logged {isToday ? "today" : "on this day"} yet.
+                </EmptyState>
+                <Button variant="ghost" size="sm" onClick={onAdd}>
+                  + Add entry for this day
+                </Button>
+              </div>
             ) : (
               <div className="space-y-2">
                 {entries.map((entry) => (
