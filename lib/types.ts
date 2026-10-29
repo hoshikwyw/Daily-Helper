@@ -134,6 +134,28 @@ export type Budget = {
   updated_at: string;
 };
 
+/** A daily habit. Archived habits keep their history and can be restored. */
+export type Habit = {
+  id: string;
+  user_id: string;
+  name: string;
+  emoji: string;
+  /** Order of the chips on the Today page, ascending. */
+  position: number;
+  archived: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+/** One day a habit was done. Absence of a row means it was not. */
+export type HabitCheck = {
+  id: string;
+  user_id: string;
+  habit_id: string;
+  date: string;
+  created_at: string;
+};
+
 // Insert shapes mirror the SQL schema: `user_id` and genuinely-required columns
 // are mandatory; anything nullable or carrying a DB default is optional. Update
 // shapes are `Partial<Insert>` — every writable column, all optional.
@@ -190,6 +212,20 @@ type BudgetInsert = {
   category: string;
   month: string;
   amount: number;
+};
+
+type HabitInsert = {
+  user_id: string;
+  name: string;
+  emoji?: string;
+  position?: number;
+  archived?: boolean;
+};
+
+type HabitCheckInsert = {
+  user_id: string;
+  habit_id: string;
+  date: string;
 };
 
 type RecurrenceInsert = {
@@ -256,6 +292,18 @@ export interface Database {
         Row: Budget;
         Insert: BudgetInsert;
         Update: Partial<BudgetInsert>;
+        Relationships: [];
+      };
+      habits: {
+        Row: Habit;
+        Insert: HabitInsert;
+        Update: Partial<HabitInsert>;
+        Relationships: [];
+      };
+      habit_checks: {
+        Row: HabitCheck;
+        Insert: HabitCheckInsert;
+        Update: Partial<HabitCheckInsert>;
         Relationships: [];
       };
     };

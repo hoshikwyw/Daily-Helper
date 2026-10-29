@@ -131,6 +131,31 @@ create table if not exists budgets (
   unique (user_id, category, month)
 );
 
+-- Daily habits and the days they were done. Archiving a habit keeps its
+-- history; streaks are computed in the app from the check dates. See
+-- migrations/004_habits.sql.
+create table if not exists habits (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  name text not null,
+  emoji text not null default '✅',
+  position integer not null default 0,
+  archived boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists habit_checks (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  habit_id uuid not null references habits(id) on delete cascade,
+  date date not null,
+  created_at timestamptz not null default now(),
+  unique (habit_id, date)
+);
+
+create index if not exists habit_checks_user_date_idx on habit_checks (user_id, date);
+
 -- Auto-update updated_at
 create or replace function update_updated_at()
 returns trigger as $$
@@ -164,6 +189,10 @@ drop trigger if exists budgets_updated_at on budgets;
 create trigger budgets_updated_at before update on budgets
   for each row execute function update_updated_at();
 
+drop trigger if exists habits_updated_at on habits;
+create trigger habits_updated_at before update on habits
+  for each row execute function update_updated_at();
+
 -- Row Level Security
 alter table projects enable row level security;
 alter table tasks enable row level security;
@@ -172,6 +201,8 @@ alter table expenses enable row level security;
 alter table expense_categories enable row level security;
 alter table recurrences enable row level security;
 alter table budgets enable row level security;
+alter table habits enable row level security;
+alter table habit_checks enable row level security;
 
 create policy "Own data only" on projects for all using (auth.uid() = user_id);
 create policy "Own data only" on tasks for all using (auth.uid() = user_id);
@@ -180,3 +211,5 @@ create policy "Own data only" on expenses for all using (auth.uid() = user_id);
 create policy "Own data only" on expense_categories for all using (auth.uid() = user_id);
 create policy "Own data only" on recurrences for all using (auth.uid() = user_id);
 create policy "Own data only" on budgets for all using (auth.uid() = user_id);
+create policy "Own data only" on habits for all using (auth.uid() = user_id);
+create policy "Own data only" on habit_checks for all using (auth.uid() = user_id);
