@@ -15,7 +15,7 @@ import {
   isJournalDirty,
   type JournalDraft,
 } from "@/lib/journal";
-import { toISODate, todayISO } from "@/lib/date";
+import { fromISODate, toISODate, todayISO } from "@/lib/date";
 import { PageContainer } from "@/components/ui/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { JournalSidebar } from "./_components/journal-sidebar";
@@ -45,8 +45,15 @@ export default function JournalPage() {
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadEntry(selectedDate);
+    // A `?date=YYYY-MM-DD` link (from the weekly review) opens that day
+    // instead of today. Read from the window: this page is a static export
+    // with no server to parse the query for it.
+    const linked = new URLSearchParams(window.location.search).get("date");
+    const start = linked && /^\d{4}-\d{2}-\d{2}$/.test(linked) ? fromISODate(linked) : selectedDate;
+    /* eslint-disable react-hooks/set-state-in-effect -- one-time seed from the URL, then the fetch */
+    if (start !== selectedDate) setSelectedDate(start);
+    loadEntry(start);
+    /* eslint-enable react-hooks/set-state-in-effect */
     loadRecent();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -89,3 +89,15 @@ export async function deleteJournalEntry(id: string): Promise<boolean> {
   const { error } = await supabase.from("journal_entries").delete().eq("id", id);
   return !reportError(error);
 }
+
+/** Entries within an inclusive date range, oldest first — the weekly review. */
+export async function listJournalEntriesInRange(from: string, to: string): Promise<JournalEntry[]> {
+  const { data, error } = await supabase
+    .from("journal_entries")
+    .select("*")
+    .gte("date", from)
+    .lte("date", to)
+    .order("date");
+  if (reportError(error)) return [];
+  return data ?? [];
+}

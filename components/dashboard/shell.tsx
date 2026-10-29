@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { value: "journal", label: "Journal", href: "/dashboard/journal", icon: "📓" },
   { value: "projects", label: "Projects", href: "/dashboard/projects", icon: "🚀" },
   { value: "expenses", label: "Money", href: "/dashboard/expenses", icon: "💰" },
+  { value: "review", label: "Review", href: "/dashboard/review", icon: "🗓️" },
 ];
 
 const SETTINGS_ITEMS = [

@@ -13,7 +13,7 @@ import {
   JumpButton,
   PickerHeader,
   tileClass,
-} from "./picker-chrome";
+} from "@/components/ui/picker-chrome";
 
 const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 

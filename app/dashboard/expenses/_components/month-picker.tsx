@@ -6,7 +6,7 @@ import {
   JumpButton,
   PickerHeader,
   tileClass,
-} from "./picker-chrome";
+} from "@/components/ui/picker-chrome";
 
 type MonthPickerProps = {
   year: number;
