@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   buildColorMap,
   categoryColor,
+  countActiveDays,
   filterByKind,
   fmt,
   fmtEntry,
   fmtSigned,
   getCategoryBreakdown,
   getCategoryStats,
+  getDayActivity,
   getMonthlyTotals,
   getTotals,
   mergeCategories,
@@ -222,5 +224,43 @@ describe("getMonthlyTotals", () => {
 
   it("leaves untouched months at zero rather than inventing a break-even", () => {
     expect(months[2]).toMatchObject({ income: 0, expense: 0, net: 0, month: "Mar", pct: 0 });
+  });
+});
+
+describe("getDayActivity", () => {
+  it("marks which ledger sides each day has and how many entries", () => {
+    const activity = getDayActivity(SEPTEMBER);
+    expect(activity["2026-09-01"]).toEqual({ income: true, expense: false, count: 1, net: 500_000 });
+    expect(activity["2026-09-02"]).toEqual({ income: false, expense: true, count: 1, net: -80_000 });
+  });
+
+  it("omits days with no entries", () => {
+    expect(getDayActivity(SEPTEMBER)["2026-09-05"]).toBeUndefined();
+    expect(getDayActivity([])).toEqual({});
+  });
+
+  it("flags both sides when income and expense share a day", () => {
+    const activity = getDayActivity([
+      entry("income", 300, "Salary", "2026-09-20"),
+      entry("expense", 100, "Food & Drink", "2026-09-20"),
+    ]);
+    expect(activity["2026-09-20"]).toEqual({ income: true, expense: true, count: 2, net: 200 });
+  });
+
+  it("treats a missing kind as expense", () => {
+    const legacy = { amount: 50, category: "Other", date: "2026-09-21" } as Expense;
+    expect(getDayActivity([legacy])["2026-09-21"].expense).toBe(true);
+  });
+});
+
+describe("countActiveDays", () => {
+  it("counts only days inside the given month", () => {
+    const activity = getDayActivity([
+      ...SEPTEMBER,
+      entry("expense", 10, "Other", "2026-10-01"),
+    ]);
+    expect(countActiveDays(activity, "2026-09")).toBe(5);
+    expect(countActiveDays(activity, "2026-10")).toBe(1);
+    expect(countActiveDays(activity, "2026-11")).toBe(0);
   });
 });

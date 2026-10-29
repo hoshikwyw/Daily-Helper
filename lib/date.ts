@@ -85,3 +85,34 @@ export function monthRange(date: Date): { from: string; to: string } {
 export function formatMonthName(value: Date | string): string {
   return asDate(value).toLocaleDateString(undefined, { month: "long" });
 }
+
+/**
+ * The calendar grid for one month: rows of seven, each cell a `YYYY-MM-DD`
+ * string or `null` where the row is padding before the 1st or after the last
+ * day. `month` is zero-based like `Date.getMonth()`. Weeks start on Monday by
+ * default (`firstDayOfWeek = 1`); pass `0` for Sunday.
+ */
+export function monthGrid(
+  year: number,
+  month: number,
+  firstDayOfWeek: 0 | 1 = 1
+): (string | null)[][] {
+  let lead = new Date(year, month, 1).getDay() - firstDayOfWeek;
+  if (lead < 0) lead += 7;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const cells: (string | null)[] = Array(lead).fill(null);
+  for (let day = 1; day <= daysInMonth; day++) {
+    cells.push(toISODate(new Date(year, month, day)));
+  }
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const rows: (string | null)[][] = [];
+  for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7));
+  return rows;
+}
+
+/** `YYYY-MM` — the prefix every date in a given month shares. */
+export function monthPrefix(year: number, month: number): string {
+  return `${year}-${String(month + 1).padStart(2, "0")}`;
+}

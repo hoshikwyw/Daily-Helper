@@ -283,3 +283,36 @@ export function buildImageCategories(
     })
   );
 }
+
+// ── Calendar ────────────────────────────────────────────────────────────────
+
+export type DayActivity = {
+  /** At least one income entry was filed on this day. */
+  income: boolean;
+  /** At least one expense entry was filed on this day. */
+  expense: boolean;
+  count: number;
+  net: number;
+};
+
+/** Which days have entries, keyed by `YYYY-MM-DD`. Days with nothing are absent. */
+export function getDayActivity(entries: Expense[]): Record<string, DayActivity> {
+  const byDay: Record<string, DayActivity> = {};
+  for (const entry of entries) {
+    const day = (byDay[entry.date] ??= { income: false, expense: false, count: 0, net: 0 });
+    day.count += 1;
+    if (normalizeKind(entry.kind) === "income") {
+      day.income = true;
+      day.net += entry.amount;
+    } else {
+      day.expense = true;
+      day.net -= entry.amount;
+    }
+  }
+  return byDay;
+}
+
+/** How many days of one month have at least one entry. `prefix` is `YYYY-MM`. */
+export function countActiveDays(activity: Record<string, DayActivity>, prefix: string): number {
+  return Object.keys(activity).filter((day) => day.startsWith(prefix)).length;
+}

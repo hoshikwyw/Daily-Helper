@@ -19,6 +19,7 @@ import {
   fmt,
   fmtSigned,
   getAccentHex,
+  getDayActivity,
   getMonthlyTotals,
   getTotals,
   mergeCategories,
@@ -42,6 +43,12 @@ export default function ExpensesPage() {
   const [fetchYear, setFetchYear] = useState(today.getFullYear());
 
   const [selectedDate, setSelectedDate] = useState(toISODate(today));
+  // The month the daily calendar is showing. Kept apart from selectedDate so
+  // the user can browse other months without losing the day they picked.
+  const [calendarView, setCalendarView] = useState({
+    year: today.getFullYear(),
+    month: today.getMonth(),
+  });
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth());
   const [selectedMonthYear, setSelectedMonthYear] = useState(today.getFullYear());
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
@@ -72,17 +79,26 @@ export default function ExpensesPage() {
     loadCategories();
   }, [fetchYear]);
 
-  // Monthly/yearly tabs can select a year outside the currently-loaded one;
-  // syncing fetchYear triggers the reload above.
+  // Each tab can land on a year outside the currently-loaded one — the daily
+  // calendar by flipping months, the others via their year pickers. Syncing
+  // fetchYear triggers the reload above.
   useEffect(() => {
     const target =
-      activeTab === "monthly" ? selectedMonthYear : activeTab === "yearly" ? selectedYear : null;
-    if (target !== null && target !== fetchYear) {
+      activeTab === "daily"
+        ? calendarView.year
+        : activeTab === "monthly"
+          ? selectedMonthYear
+          : selectedYear;
+    if (target !== fetchYear) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setFetchYear(target);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, selectedMonthYear, selectedYear]);
+  }, [activeTab, calendarView.year, selectedMonthYear, selectedYear]);
+
+  function handleCalendarViewChange(year: number, month: number) {
+    setCalendarView({ year, month });
+  }
 
   async function handleCreateEntry(values: NewExpense): Promise<boolean> {
     const created = await createExpense(values);
@@ -166,6 +182,8 @@ export default function ExpensesPage() {
     [entries, selectedDate]
   );
 
+  const dayActivity = useMemo(() => getDayActivity(entries), [entries]);
+
   const monthlyEntries = useMemo(() => {
     const prefix = `${selectedMonthYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
     return entries.filter((e) => e.date.startsWith(prefix));
@@ -209,6 +227,10 @@ export default function ExpensesPage() {
               <DailyTab
                 selectedDate={selectedDate}
                 onDateChange={setSelectedDate}
+                viewYear={calendarView.year}
+                viewMonth={calendarView.month}
+                onViewChange={handleCalendarViewChange}
+                activity={dayActivity}
                 loading={loading}
                 entries={dailyEntries}
                 colorMap={colorMap}
