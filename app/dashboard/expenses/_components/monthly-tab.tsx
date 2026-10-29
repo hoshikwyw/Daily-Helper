@@ -1,6 +1,7 @@
 import { Card, CardHeader, CardContent, Button } from "@kwyw/kayv-glass-ui";
 import { MONTHS, getTotals, type ColorMap, type MonthActivity } from "@/lib/expenses";
 import { plural } from "@/lib/text";
+import type { BudgetProgress } from "@/lib/budgets";
 import { EmptyState } from "@/components/ui/empty-state";
 import { BalanceSummary } from "@/components/ui/balance-summary";
 import { CategorySplit } from "@/components/ui/category-split";
@@ -18,7 +19,10 @@ type MonthlyTabProps = {
   activity: MonthActivity[];
   loading: boolean;
   colorMap: ColorMap;
+  /** This month's spending against its limits, keyed by category. */
+  budgets: Record<string, BudgetProgress>;
   onDelete: (id: string) => void;
+  onSetBudgets: () => void;
   onExport: () => void;
 };
 
@@ -31,7 +35,9 @@ export function MonthlyTab({
   activity,
   loading,
   colorMap,
+  budgets,
   onDelete,
+  onSetBudgets,
   onExport,
 }: MonthlyTabProps) {
   const totals = getTotals(entries);
@@ -65,17 +71,34 @@ export function MonthlyTab({
             </p>
             {isThisMonth && <p className="text-xs text-slate-400">This month</p>}
           </div>
-          <Button variant="ghost" size="sm" onClick={onExport} className="ml-auto">
-            ⬇ Save image
-          </Button>
+          <div className="ml-auto flex items-center gap-1">
+            <Button variant="ghost" size="sm" onClick={onSetBudgets}>
+              ◎ Budgets
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onExport}>
+              ⬇ Save image
+            </Button>
+          </div>
         </div>
 
         <BalanceSummary totals={totals} netLabel="Collected this month" />
 
         <Card variant="elevated">
-          <CardHeader title="By category" />
+          <CardHeader
+            title="By category"
+            description={
+              Object.keys(budgets).length > 0
+                ? "Spending against this month's budgets."
+                : "Set budgets to see how each category is tracking."
+            }
+          />
           <CardContent>
-            <CategorySplit entries={entries} colorMap={colorMap} period="this month" />
+            <CategorySplit
+              entries={entries}
+              colorMap={colorMap}
+              period="this month"
+              budgets={budgets}
+            />
           </CardContent>
         </Card>
 

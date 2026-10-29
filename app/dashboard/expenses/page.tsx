@@ -5,8 +5,11 @@ import { Button, Tabs, TabList, Tab, TabPanels, TabPanel, toast } from "@kwyw/ka
 import { createExpense, deleteExpense, type NewExpense } from "@/lib/api/expenses";
 import { createRecurrence } from "@/lib/api/recurrences";
 import { describeSchedule, scheduleFromDate } from "@/lib/recurrence";
+import { useBudgets } from "@/hooks/use-budgets";
 import { useExpenseCategories } from "@/hooks/use-expense-categories";
 import { useExpenseYear } from "@/hooks/use-expense-year";
+import { budgetMonth, budgetProgress, effectiveBudgets } from "@/lib/budgets";
+import { SetBudgetsModal } from "./_components/set-budgets-modal";
 import { useRecurrenceSync } from "@/components/recurrence-sync";
 import { RecurringRulesModal } from "@/components/ui/recurring-rules-modal";
 import {
@@ -64,7 +67,9 @@ export default function ExpensesPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [showManageCategories, setShowManageCategories] = useState(false);
   const [showRecurring, setShowRecurring] = useState(false);
+  const [showBudgets, setShowBudgets] = useState(false);
   const { sync } = useRecurrenceSync();
+  const { budgets, saveBudget } = useBudgets();
 
   // Each tab can land on a year outside the currently-loaded one — the daily
   // calendar by flipping months, the others via their year pickers. Syncing
@@ -199,10 +204,23 @@ export default function ExpensesPage() {
     [dayActivity, selectedMonthYear]
   );
 
-  const monthlyEntries = useMemo(() => {
-    const prefix = monthPrefix(selectedMonthYear, selectedMonth);
-    return entries.filter((e) => e.date.startsWith(prefix));
-  }, [entries, selectedMonth, selectedMonthYear]);
+  const selectedMonthPrefix = monthPrefix(selectedMonthYear, selectedMonth);
+
+  const monthlyEntries = useMemo(
+    () => entries.filter((e) => e.date.startsWith(selectedMonthPrefix)),
+    [entries, selectedMonthPrefix]
+  );
+
+  // The limits in force for the selected month (set once, carried forward),
+  // and how the month's spending sits against them.
+  const monthLimits = useMemo(
+    () => effectiveBudgets(budgets, selectedMonthPrefix),
+    [budgets, selectedMonthPrefix]
+  );
+  const monthBudgets = useMemo(
+    () => budgetProgress(monthLimits, monthlyEntries),
+    [monthLimits, monthlyEntries]
+  );
 
   const monthlyTotals = useMemo(
     () => getMonthlyTotals(entries, selectedYear),
@@ -284,7 +302,9 @@ export default function ExpensesPage() {
                 activity={monthActivity}
                 loading={loading}
                 colorMap={colorMap}
+                budgets={monthBudgets}
                 onDelete={handleDelete}
+                onSetBudgets={() => setShowBudgets(true)}
                 onExport={() =>
                   handleExportImage(
                     "Monthly",
@@ -321,6 +341,17 @@ export default function ExpensesPage() {
         defaultDate={activeTab === "daily" ? selectedDate : todayISO()}
         categories={allCategories}
         onSubmit={handleCreateEntry}
+      />
+
+      <SetBudgetsModal
+        open={showBudgets}
+        onClose={() => setShowBudgets(false)}
+        monthLabel={`${MONTHS[selectedMonth]} ${selectedMonthYear}`}
+        categories={allCategories.expense}
+        limits={monthLimits}
+        onSave={(category, amount) =>
+          saveBudget(category, budgetMonth(selectedMonthPrefix), amount)
+        }
       />
 
       <RecurringRulesModal

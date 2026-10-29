@@ -1,6 +1,7 @@
 import { CategoryBreakdown } from "@/components/ui/category-breakdown";
 import { FieldLabel } from "@/components/ui/label";
 import { filterByKind, fmt, getCategoryStats, type ColorMap } from "@/lib/expenses";
+import type { BudgetProgress } from "@/lib/budgets";
 import type { EntryKind, Expense } from "@/lib/types";
 import { plural } from "@/lib/text";
 
@@ -11,6 +12,8 @@ type CategorySplitProps = {
   limit?: number;
   /** Describes the period, e.g. "this month" — used in the empty states. */
   period: string;
+  /** Spending limits for the period, keyed by category; expense side only. */
+  budgets?: Record<string, BudgetProgress>;
 };
 
 /**
@@ -21,7 +24,7 @@ type CategorySplitProps = {
  * the screen; and the home page needs it *inside* an existing card. Callers
  * wrap it once if they want a surface.
  */
-export function CategorySplit({ entries, colorMap, limit, period }: CategorySplitProps) {
+export function CategorySplit({ entries, colorMap, limit, period, budgets }: CategorySplitProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
       <CategorySide
@@ -31,6 +34,7 @@ export function CategorySplit({ entries, colorMap, limit, period }: CategorySpli
         limit={limit}
         label="Spent"
         emptyLabel={`Nothing spent ${period}.`}
+        budgets={budgets}
       />
       <CategorySide
         entries={entries}
@@ -51,6 +55,7 @@ type CategorySideProps = {
   limit?: number;
   label: string;
   emptyLabel: string;
+  budgets?: Record<string, BudgetProgress>;
 };
 
 /** One ledger: a headline summary, then the per-category rows. */
@@ -61,6 +66,7 @@ function CategorySide({
   limit,
   label,
   emptyLabel,
+  budgets,
 }: CategorySideProps) {
   const stats = getCategoryStats(filterByKind(entries, kind));
 
@@ -82,6 +88,7 @@ function CategorySide({
         colorMap={colorMap}
         limit={limit}
         emptyLabel={emptyLabel}
+        budgets={budgets}
       />
     </div>
   );

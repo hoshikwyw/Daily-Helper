@@ -8,6 +8,7 @@ import {
   type ColorMap,
 } from "@/lib/expenses";
 import { EmptyState } from "@/components/ui/empty-state";
+import type { BudgetProgress, BudgetStatus } from "@/lib/budgets";
 import type { EntryKind, Expense } from "@/lib/types";
 
 type CategoryBreakdownProps = {
@@ -17,6 +18,24 @@ type CategoryBreakdownProps = {
   /** Caps the list; the rest are folded into a "+N more" line. */
   limit?: number;
   emptyLabel?: string;
+  /**
+   * Spending against limits, keyed by category. A budgeted category's bar
+   * shows spent-of-limit instead of share-of-total, and budgeted categories
+   * with nothing spent are listed too, so the headroom is visible.
+   */
+  budgets?: Record<string, BudgetProgress>;
+};
+
+const BUDGET_BAR: Record<BudgetStatus, "success" | "warning" | "danger"> = {
+  under: "success",
+  near: "warning",
+  over: "danger",
+};
+
+const BUDGET_TEXT: Record<BudgetStatus, string> = {
+  under: "text-slate-500",
+  near: "text-amber-400",
+  over: "text-rose-400",
 };
 
 /**
@@ -32,8 +51,15 @@ export function CategoryBreakdown({
   colorMap,
   limit,
   emptyLabel = "Nothing recorded yet.",
+  budgets = {},
 }: CategoryBreakdownProps) {
-  const slices = getCategoryBreakdown(filterByKind(entries, kind));
+  const spent = getCategoryBreakdown(filterByKind(entries, kind));
+  // Budgeted categories with nothing spent still earn a row, after the real
+  // spending, so a limit is never invisible just because it was respected.
+  const idle = Object.keys(budgets)
+    .filter((category) => !spent.some((s) => s.category === category))
+    .map((category) => ({ category, amount: 0, pct: 0, count: 0, average: 0, largest: 0 }));
+  const slices = [...spent, ...idle];
 
   if (slices.length === 0) {
     return <EmptyState padding="lg">{emptyLabel}</EmptyState>;
@@ -44,33 +70,50 @@ export function CategoryBreakdown({
 
   return (
     <div className="space-y-4">
-      {shown.map(({ category, amount, pct, count, average }) => (
-        <div key={category} className="space-y-1.5">
-          <div className="flex items-center justify-between gap-2 text-sm">
-            <span className="text-slate-200 flex items-center gap-2 min-w-0">
-              <span
-                className="w-2 h-2 rounded-full shrink-0"
-                style={{ backgroundColor: categoryColor(colorMap, kind, category) }}
+      {shown.map(({ category, amount, pct, count, average }) => {
+        const budget = budgets[category];
+        return (
+          <div key={category} className="space-y-1.5">
+            <div className="flex items-center justify-between gap-2 text-sm">
+              <span className="text-slate-200 flex items-center gap-2 min-w-0">
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: categoryColor(colorMap, kind, category) }}
+                />
+                <span className="truncate">{category}</span>
+              </span>
+              <span className="text-slate-400 shrink-0 tabular-nums">
+                {fmt(amount)}{" "}
+                <span className="text-xs text-slate-500">
+                  {budget ? `of ${fmt(budget.limit)}` : `(${pct}%)`}
+                </span>
+              </span>
+            </div>
+
+            {budget ? (
+              <Progress
+                value={Math.min(budget.pct, 100)}
+                variant={BUDGET_BAR[budget.status]}
+                size="sm"
               />
-              <span className="truncate">{category}</span>
-            </span>
-            <span className="text-slate-400 shrink-0">
-              {fmt(amount)} <span className="text-xs text-slate-500">({pct}%)</span>
-            </span>
+            ) : (
+              <Progress value={pct} variant={kind === "income" ? "success" : "primary"} size="sm" />
+            )}
+
+            <p className="text-xs text-slate-500 flex justify-between gap-2">
+              <span>
+                {count > 0 ? plural(count, "entry", "entries") : "Nothing spent yet"}
+                {count > 1 && ` · avg ${fmt(average)}`}
+              </span>
+              {budget && (
+                <span className={`shrink-0 ${BUDGET_TEXT[budget.status]}`}>
+                  {budget.left >= 0 ? `${fmt(budget.left)} left` : `${fmt(-budget.left)} over`}
+                </span>
+              )}
+            </p>
           </div>
-
-          <Progress
-            value={pct}
-            variant={kind === "income" ? "success" : "primary"}
-            size="sm"
-          />
-
-          <p className="text-xs text-slate-500">
-            {plural(count, "entry", "entries")}
-            {count > 1 && ` · avg ${fmt(average)}`}
-          </p>
-        </div>
-      ))}
+        );
+      })}
 
       {hidden > 0 && (
         <p className="text-xs text-slate-400">
