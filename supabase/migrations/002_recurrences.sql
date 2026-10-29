@@ -61,12 +61,14 @@ alter table tasks
 
 -- 3. One row per rule per date. This is what makes the sync safe to run twice,
 --    or from two devices at once: the second insert hits the index and is
---    ignored (`on conflict do nothing`).
+--    ignored (`on conflict do nothing`). Not a partial index on purpose:
+--    PostgREST's `on_conflict` cannot target one, and nulls are distinct in a
+--    unique index anyway, so hand-entered rows (null rule) never collide.
 create unique index if not exists expenses_recurrence_date_key
-  on expenses (recurrence_id, date) where recurrence_id is not null;
+  on expenses (recurrence_id, date);
 
 create unique index if not exists tasks_recurrence_due_key
-  on tasks (recurrence_id, due_date) where recurrence_id is not null;
+  on tasks (recurrence_id, due_date);
 
 -- 4. Housekeeping, matching the other tables.
 drop trigger if exists recurrences_updated_at on recurrences;

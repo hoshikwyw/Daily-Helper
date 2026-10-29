@@ -9,6 +9,7 @@ import { listExpensesInRange } from "@/lib/api/expenses";
 import { formatDayLabel, formatMonthName, monthRange, todayISO } from "@/lib/date";
 import { useExpenseCategories } from "@/hooks/use-expense-categories";
 import { useSettings } from "@/hooks/use-settings";
+import { useRecurrenceSync } from "@/components/recurrence-sync";
 import { PageContainer } from "@/components/ui/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { TodaySummaryCards } from "./_components/today-summary-cards";
@@ -29,6 +30,7 @@ function getGreeting() {
 export default function TodayPage() {
   const { settings } = useSettings();
   const { colorMap } = useExpenseCategories();
+  const { version: syncVersion } = useRecurrenceSync();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [journal, setJournal] = useState<JournalEntry | null>(null);
@@ -59,12 +61,14 @@ export default function TodayPage() {
   }
 
   useEffect(() => {
-    // Fetch once on mount. State is only set after the awaited query resolves,
-    // so this doesn't cause the cascading renders the rule guards against.
+    // Fetch on mount, and again when the recurrence sync has created rows
+    // (today's recurring tasks or this month's recurring entries). State is
+    // only set after the awaited query resolves, so this doesn't cause the
+    // cascading renders the rule guards against.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [syncVersion]);
 
   async function handleQuickAdd(title: string): Promise<boolean> {
     const created = await createTask({ title, due_date: today });

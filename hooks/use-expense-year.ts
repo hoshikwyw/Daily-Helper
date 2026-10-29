@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listExpensesForYear } from "@/lib/api/expenses";
 import { fromISODate } from "@/lib/date";
+import { useRecurrenceSync } from "@/components/recurrence-sync";
 import type { Expense } from "@/lib/types";
 
 /**
@@ -50,9 +51,18 @@ export function useExpenseYear(year: number) {
     }
   }, []);
 
+  // The recurrence sync may create entries after a year was fetched. When it
+  // has, every cached year is suspect, so the cache is dropped before the
+  // reload; an ordinary year change keeps the cache and just loads.
+  const { version: syncVersion } = useRecurrenceSync();
+  const seenSyncVersion = useRef(syncVersion);
   useEffect(() => {
+    if (syncVersion !== seenSyncVersion.current) {
+      seenSyncVersion.current = syncVersion;
+      cache.current.clear();
+    }
     load(year);
-  }, [year, load]);
+  }, [year, load, syncVersion]);
 
   /** Shows a just-created entry without waiting for a refetch. */
   const addEntry = useCallback(

@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { AuthGuard } from "@/components/auth-guard";
+import { RecurrenceSyncProvider } from "@/components/recurrence-sync";
 import { PageLoader } from "@/components/ui/page-loader";
 
 const DashboardShell = dynamic(
@@ -12,7 +13,10 @@ const DashboardShell = dynamic(
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthGuard>
-      <DashboardShell>{children}</DashboardShell>
+      {/* Creates any recurring entries and tasks that fell due; needs a session. */}
+      <RecurrenceSyncProvider>
+        <DashboardShell>{children}</DashboardShell>
+      </RecurrenceSyncProvider>
     </AuthGuard>
   );
 }

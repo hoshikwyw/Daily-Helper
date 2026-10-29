@@ -15,6 +15,7 @@ import {
 } from "@/lib/tasks";
 import { PageContainer } from "@/components/ui/page-container";
 import { PageHeader } from "@/components/ui/page-header";
+import { useRecurrenceSync } from "@/components/recurrence-sync";
 import { TaskList } from "./_components/task-list";
 import { CreateTaskModal } from "./_components/create-task-modal";
 import { TaskDetailDrawer } from "./_components/task-detail-drawer";
@@ -26,6 +27,7 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TaskTab>("all");
   const [showCreate, setShowCreate] = useState(false);
+  const { version: syncVersion } = useRecurrenceSync();
 
   // Detail drawer. `editStatus` lives here rather than in the drawer so the
   // pending edit isn't lost while the drawer animates in and out.
@@ -40,11 +42,12 @@ export default function TasksPage() {
   }
 
   useEffect(() => {
-    // Fetch once on mount. State is only set after the awaited query resolves,
-    // so this doesn't cause the cascading renders the rule guards against.
+    // Fetch on mount, and again when the recurrence sync has created tasks.
+    // State is only set after the awaited query resolves, so this doesn't
+    // cause the cascading renders the rule guards against.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
-  }, []);
+  }, [syncVersion]);
 
   function openDetail(task: Task) {
     setSelected(task);

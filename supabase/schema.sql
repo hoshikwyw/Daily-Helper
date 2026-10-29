@@ -65,7 +65,7 @@ create table if not exists tasks (
 
 -- One task per rule per due date, so the recurrence sync can never double up.
 create unique index if not exists tasks_recurrence_due_key
-  on tasks (recurrence_id, due_date) where recurrence_id is not null;
+  on tasks (recurrence_id, due_date);
 
 create table if not exists journal_entries (
   id uuid primary key default uuid_generate_v4(),
@@ -102,7 +102,7 @@ create index if not exists expenses_user_date_idx on expenses (user_id, date);
 
 -- One entry per rule per date, so the recurrence sync can never double up.
 create unique index if not exists expenses_recurrence_date_key
-  on expenses (recurrence_id, date) where recurrence_id is not null;
+  on expenses (recurrence_id, date);
 
 -- A category belongs to one side of the ledger, so "Other" can exist as both
 -- an expense and an income category.
