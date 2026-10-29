@@ -5,9 +5,9 @@ import { ConfettiButton, toast } from "@kwyw/kayv-glass-ui";
 import { createTask, listTasksDueOrActive, setTaskStatus } from "@/lib/api/tasks";
 import { listActiveProjects } from "@/lib/api/projects";
 import { getJournalEntry, setJournalMood } from "@/lib/api/journal";
-import { listExpenseCategories, listExpensesInRange } from "@/lib/api/expenses";
-import { buildColorMap, mergeCategories } from "@/lib/expenses";
+import { listExpensesInRange } from "@/lib/api/expenses";
 import { formatDayLabel, formatMonthName, monthRange, todayISO } from "@/lib/date";
+import { useExpenseCategories } from "@/hooks/use-expense-categories";
 import { useSettings } from "@/hooks/use-settings";
 import { PageContainer } from "@/components/ui/page-container";
 import { PageHeader } from "@/components/ui/page-header";
@@ -17,7 +17,7 @@ import { TodayMoodCard } from "./_components/today-mood-card";
 import { TodayJournalCard } from "./_components/today-journal-card";
 import { TodayProjectsCard } from "./_components/today-projects-card";
 import { TodayMoneyCard } from "./_components/today-money-card";
-import type { CustomCategory, Expense, JournalEntry, Mood, Project, Task } from "@/lib/types";
+import type { Expense, JournalEntry, Mood, Project, Task } from "@/lib/types";
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -28,11 +28,11 @@ function getGreeting() {
 
 export default function TodayPage() {
   const { settings } = useSettings();
+  const { colorMap } = useExpenseCategories();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [journal, setJournal] = useState<JournalEntry | null>(null);
   const [monthEntries, setMonthEntries] = useState<Expense[]>([]);
-  const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMood, setSelectedMood] = useState<string>("");
 
@@ -40,24 +40,17 @@ export default function TodayPage() {
   const now = useMemo(() => new Date(), []);
   const { from: monthFrom, to: monthTo } = useMemo(() => monthRange(now), [now]);
 
-  const colorMap = useMemo(
-    () => buildColorMap(mergeCategories(customCategories)),
-    [customCategories]
-  );
-
   async function loadData() {
-    const [taskRows, projectRows, entry, money, categories] = await Promise.all([
+    const [taskRows, projectRows, entry, money] = await Promise.all([
       listTasksDueOrActive(today),
       listActiveProjects(),
       getJournalEntry(today),
       listExpensesInRange(monthFrom, monthTo),
-      listExpenseCategories(),
     ]);
 
     setTasks(taskRows);
     setProjects(projectRows);
     setMonthEntries(money);
-    setCustomCategories(categories);
     if (entry) {
       setJournal(entry);
       setSelectedMood(entry.mood ?? "");

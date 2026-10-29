@@ -2,14 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Button, Tabs, TabList, Tab, TabPanels, TabPanel, toast } from "@kwyw/kayv-glass-ui";
-import {
-  createExpense,
-  createExpenseCategory,
-  deleteExpense,
-  deleteExpenseCategory,
-  listExpenseCategories,
-  type NewExpense,
-} from "@/lib/api/expenses";
+import { createExpense, deleteExpense, type NewExpense } from "@/lib/api/expenses";
+import { useExpenseCategories } from "@/hooks/use-expense-categories";
 import { useExpenseYear } from "@/hooks/use-expense-year";
 import {
   formatLongDate,
@@ -21,7 +15,6 @@ import {
 } from "@/lib/date";
 import {
   MONTHS,
-  buildColorMap,
   buildImageCategories,
   fmt,
   fmtSigned,
@@ -30,7 +23,6 @@ import {
   getMonthActivity,
   getMonthlyTotals,
   getTotals,
-  mergeCategories,
 } from "@/lib/expenses";
 import { exportExpenseImage } from "@/lib/expenseImage";
 import { PageContainer } from "@/components/ui/page-container";
@@ -40,7 +32,7 @@ import { MonthlyTab } from "./_components/monthly-tab";
 import { YearlyTab } from "./_components/yearly-tab";
 import { AddEntryModal } from "./_components/add-entry-modal";
 import { ManageCategoriesModal } from "./_components/manage-categories-modal";
-import type { CustomCategory, EntryKind, Expense } from "@/lib/types";
+import type { EntryKind, Expense } from "@/lib/types";
 
 export default function ExpensesPage() {
   const today = new Date();
@@ -60,20 +52,11 @@ export default function ExpensesPage() {
   const [selectedMonthYear, setSelectedMonthYear] = useState(today.getFullYear());
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
 
-  const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
+  const { customCategories, allCategories, colorMap, addCategory, removeCategory } =
+    useExpenseCategories();
 
   const [showCreate, setShowCreate] = useState(false);
   const [showManageCategories, setShowManageCategories] = useState(false);
-
-  // Built-in plus custom categories, split per ledger, and a color lookup.
-  const allCategories = useMemo(() => mergeCategories(customCategories), [customCategories]);
-
-  const colorMap = useMemo(() => buildColorMap(allCategories), [allCategories]);
-
-  // Categories do not depend on the year, so once per visit is enough.
-  useEffect(() => {
-    listExpenseCategories().then(setCustomCategories);
-  }, []);
 
   // Each tab can land on a year outside the currently-loaded one — the daily
   // calendar by flipping months, the others via their year pickers. Syncing
@@ -126,16 +109,13 @@ export default function ExpensesPage() {
       toast({ title: "Category already exists", variant: "danger" });
       return false;
     }
-    const created = await createExpenseCategory(kind, name, color);
-    if (!created) return false;
-    setCustomCategories((prev) => [...prev, created]);
+    if (!(await addCategory(kind, name, color))) return false;
     toast({ title: "Category added", variant: "success" });
     return true;
   }
 
   async function handleDeleteCategory(id: string) {
-    if (!(await deleteExpenseCategory(id))) return;
-    setCustomCategories((prev) => prev.filter((c) => c.id !== id));
+    if (!(await removeCategory(id))) return;
     toast({ title: "Category removed", variant: "warning" });
   }
 
