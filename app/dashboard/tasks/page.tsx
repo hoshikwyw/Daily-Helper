@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Tabs, TabList, Tab, TabPanels, TabPanel, toast } from "@kwyw/kayv-glass-ui";
+import { Badge, Button, Tabs, TabList, Tab, TabPanels, TabPanel, toast } from "@kwyw/kayv-glass-ui";
 import { createTask, deleteTask, listTasks, setTaskStatus, type NewTask } from "@/lib/api/tasks";
 import { listProjectOptions } from "@/lib/api/projects";
-import { TASK_STATUS_LABELS } from "@/lib/constants";
+import { createRecurrence } from "@/lib/api/recurrences";
+import { describeSchedule, scheduleFromDate } from "@/lib/recurrence";
+import { todayISO } from "@/lib/date";
+import { TASK_PRIORITY_VARIANTS, TASK_STATUS_LABELS } from "@/lib/constants";
 import {
   TASK_TABS,
   countByTab,
@@ -16,10 +19,11 @@ import {
 import { PageContainer } from "@/components/ui/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { useRecurrenceSync } from "@/components/recurrence-sync";
+import { RecurringRulesModal } from "@/components/ui/recurring-rules-modal";
 import { TaskList } from "./_components/task-list";
 import { CreateTaskModal } from "./_components/create-task-modal";
 import { TaskDetailDrawer } from "./_components/task-detail-drawer";
-import type { Project, Task, TaskStatus } from "@/lib/types";
+import type { Project, RecurrenceCadence, Task, TaskStatus } from "@/lib/types";
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -27,7 +31,8 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TaskTab>("all");
   const [showCreate, setShowCreate] = useState(false);
-  const { version: syncVersion } = useRecurrenceSync();
+  const [showRecurring, setShowRecurring] = useState(false);
+  const { version: syncVersion, sync } = useRecurrenceSync();
 
   // Detail drawer. `editStatus` lives here rather than in the drawer so the
   // pending edit isn't lost while the drawer animates in and out.
@@ -54,7 +59,26 @@ export default function TasksPage() {
     setEditStatus(task.status);
   }
 
-  async function handleCreate(values: NewTask): Promise<boolean> {
+  async function handleCreate(values: NewTask, repeat: RecurrenceCadence | null): Promise<boolean> {
+    if (repeat) {
+      // The rule is the record; the sync creates today's task itself (and
+      // any missed ones, when the date is in the past) and reloads the list.
+      const start = values.due_date ?? todayISO();
+      const rule = await createRecurrence({
+        target: "task",
+        ...scheduleFromDate(repeat, start),
+        next_due: start,
+        title: values.title,
+        description: values.description ?? null,
+        priority: values.priority ?? "medium",
+        project_id: values.project_id ?? null,
+      });
+      if (!rule) return false;
+      await sync();
+      toast({ title: "Repeat set up", description: describeSchedule(rule), variant: "success" });
+      return true;
+    }
+
     const created = await createTask(values);
     if (!created) return false;
     setTasks((prev) => [created, ...prev]);
@@ -103,9 +127,14 @@ export default function TasksPage() {
         title="Tasks"
         subtitle={`${counts.all} total · ${counts.done} done`}
         actions={
-          <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>
-            + New Task
-          </Button>
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setShowRecurring(true)}>
+              ⟳ Recurring
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>
+              + New Task
+            </Button>
+          </>
         }
       />
 
@@ -141,6 +170,27 @@ export default function TasksPage() {
         onClose={() => setShowCreate(false)}
         projects={projects}
         onSubmit={handleCreate}
+      />
+
+      <RecurringRulesModal
+        open={showRecurring}
+        onClose={() => setShowRecurring(false)}
+        target="task"
+        title="Recurring tasks"
+        emptyHint="No repeating tasks yet. Pick a Repeat option when creating one."
+        renderSummary={(rule) => (
+          <span className="flex items-center gap-2">
+            <span className="truncate">{rule.title}</span>
+            {rule.priority && (
+              <Badge variant={TASK_PRIORITY_VARIANTS[rule.priority]} size="sm">
+                {rule.priority}
+              </Badge>
+            )}
+            {rule.project_id && (
+              <span className="text-xs text-slate-400 shrink-0">{projectName(rule.project_id)}</span>
+            )}
+          </span>
+        )}
       />
 
       <TaskDetailDrawer

@@ -10,16 +10,21 @@ import {
   Input,
 } from "@kwyw/kayv-glass-ui";
 import { NativeSelect } from "@/components/ui/native-select";
+import { RepeatPicker } from "@/components/ui/repeat-picker";
 import { TASK_PRIORITY_OPTIONS } from "@/lib/constants";
+import { todayISO } from "@/lib/date";
 import type { NewTask } from "@/lib/api/tasks";
-import type { Project, TaskPriority } from "@/lib/types";
+import type { Project, RecurrenceCadence, TaskPriority } from "@/lib/types";
 
 type CreateTaskModalProps = {
   open: boolean;
   onClose: () => void;
   projects: Project[];
-  /** Persists the task; returns true on success. */
-  onSubmit: (values: NewTask) => Promise<boolean>;
+  /**
+   * Persists the task, or sets up a repeating rule when `repeat` is given;
+   * returns true on success. A repeating task always has a due date.
+   */
+  onSubmit: (values: NewTask, repeat: RecurrenceCadence | null) => Promise<boolean>;
 };
 
 export function CreateTaskModal({ open, onClose, projects, onSubmit }: CreateTaskModalProps) {
@@ -28,20 +33,31 @@ export function CreateTaskModal({ open, onClose, projects, onSubmit }: CreateTas
   const [priority, setPriority] = useState<TaskPriority>("medium");
   const [projectId, setProjectId] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [repeat, setRepeat] = useState<RecurrenceCadence | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // A schedule needs a date to anchor on, so choosing a repeat without a due
+  // date fills in today rather than silently picking one.
+  function handleRepeatChange(next: RecurrenceCadence | null) {
+    setRepeat(next);
+    if (next && !dueDate) setDueDate(todayISO());
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) return;
     setSaving(true);
-    const ok = await onSubmit({
-      title: title.trim(),
-      description: description.trim() || null,
-      priority,
-      status: "todo",
-      project_id: projectId || null,
-      due_date: dueDate || null,
-    });
+    const ok = await onSubmit(
+      {
+        title: title.trim(),
+        description: description.trim() || null,
+        priority,
+        status: "todo",
+        project_id: projectId || null,
+        due_date: dueDate || null,
+      },
+      repeat
+    );
     setSaving(false);
     if (!ok) return;
 
@@ -50,6 +66,7 @@ export function CreateTaskModal({ open, onClose, projects, onSubmit }: CreateTas
     setPriority("medium");
     setProjectId("");
     setDueDate("");
+    setRepeat(null);
     onClose();
   }
 
@@ -95,6 +112,11 @@ export function CreateTaskModal({ open, onClose, projects, onSubmit }: CreateTas
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
             />
+            <RepeatPicker
+              value={repeat}
+              onChange={handleRepeatChange}
+              date={dueDate || todayISO()}
+            />
           </div>
         </ModalBody>
         <ModalFooter>
@@ -102,7 +124,7 @@ export function CreateTaskModal({ open, onClose, projects, onSubmit }: CreateTas
             Cancel
           </Button>
           <Button variant="primary" type="submit" disabled={saving}>
-            {saving ? "Creating…" : "Create Task"}
+            {saving ? "Saving…" : repeat ? "Set up repeat" : "Create Task"}
           </Button>
         </ModalFooter>
       </form>

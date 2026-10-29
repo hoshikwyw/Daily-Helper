@@ -51,8 +51,17 @@ export function TaskRow({ task, projectName, onOpen, onStatusChange }: TaskRowPr
 
         <button onClick={() => onOpen(task)} className="flex-1 min-w-0 text-left">
           <p
-            className={`text-sm font-medium break-words ${done ? "text-slate-400 line-through" : "text-slate-200"}`}
+            className={`text-sm font-medium wrap-break-word ${done ? "text-slate-400 line-through" : "text-slate-200"}`}
           >
+            {task.recurrence_id && (
+              <span
+                title="Created by a repeating rule"
+                aria-label="Repeating"
+                className="mr-1.5 text-slate-400 no-underline"
+              >
+                ⟳
+              </span>
+            )}
             {task.title}
           </p>
           {projectName && <p className="text-xs text-slate-400 mt-0.5">{projectName}</p>}
