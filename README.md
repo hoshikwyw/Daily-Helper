@@ -10,11 +10,25 @@ Runs as a web app and, via Capacitor, as native Android and iOS apps from the sa
 
 | Module | Description |
 |---|---|
-| **Today** | Daily overview — tasks due today, active projects, mood check-in, journal snapshot, and this month's money stats by category |
-| **Tasks** | Create, filter, and manage tasks with priority levels and project links |
+| **Today** | Daily overview — tasks due today, active projects, mood check-in, journal snapshot, this month's money stats by category, and upcoming recurring entries |
+| **Tasks** | Create, filter, and manage tasks with priority levels, project links, and repeating tasks |
 | **Projects** | Track projects with status, tech stack, color labels, and linked tasks |
 | **Journal** | Daily journal entries with mood tracking, highlights, and a date picker |
-| **Money** | Income **and** expense tracker in MMK (K) with daily/monthly/yearly views, what's-left totals, per-category stats for both ledgers, custom categories, and PNG export |
+| **Money** | Income **and** expense tracker in MMK (K) with daily/monthly/yearly views, a calendar of logged days, what's-left totals, per-category stats for both ledgers, custom categories, repeating entries, and PNG export |
+
+### Recurring entries and tasks
+
+Any money entry or task can repeat daily, weekly, monthly, or yearly: pick a
+**Repeat** option in the form. The rule is stored once in the `recurrences`
+table, and real rows are created by a sync that runs when the dashboard opens
+and whenever the app comes back on a later day (browser tab or native resume).
+Rows are created only when due, missed occurrences are backfilled up to a year,
+and a unique index on (rule, date) makes the sync safe to run from several
+devices. The **⟳ Recurring** button on the Money and Tasks pages lists, pauses,
+and deletes rules; deleting a rule keeps what it already created. The
+scheduling maths lives in `lib/recurrence.ts` and is covered by tests.
+
+Existing projects need `supabase/migrations/002_recurrences.sql` applied once.
 
 ---
 

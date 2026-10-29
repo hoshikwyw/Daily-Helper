@@ -185,3 +185,17 @@ export function describeSchedule(schedule: Schedule): string {
     }
   }
 }
+
+/**
+ * The next few things a set of rules will create, soonest first: active rules
+ * only, ordered by `next_due`. For the "Upcoming" line on the Today page.
+ */
+export function upcomingRules<T extends { active: boolean; next_due: string }>(
+  rules: T[],
+  limit = 3
+): T[] {
+  return rules
+    .filter((rule) => rule.active)
+    .sort((a, b) => (a.next_due < b.next_due ? -1 : a.next_due > b.next_due ? 1 : 0))
+    .slice(0, limit);
+}

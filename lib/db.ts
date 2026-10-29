@@ -48,7 +48,7 @@ export function reportSchemaError(error: PostgrestError | null, migrationFile: s
   if (!isSchemaError(error)) return reportError(error);
   toast({
     title: "Database needs updating",
-    description: `Run supabase/migrations/${migrationFile} in the Supabase SQL editor, then reload the page. (${error.message})`,
+    description: `Apply the files in supabase/migrations in order, up to ${migrationFile}, in the Supabase SQL editor, then reload the page. (${error.message})`,
     variant: "danger",
   });
   return true;

@@ -6,6 +6,8 @@ import { createTask, listTasksDueOrActive, setTaskStatus } from "@/lib/api/tasks
 import { listActiveProjects } from "@/lib/api/projects";
 import { getJournalEntry, setJournalMood } from "@/lib/api/journal";
 import { listExpensesInRange } from "@/lib/api/expenses";
+import { listRecurrences } from "@/lib/api/recurrences";
+import { upcomingRules } from "@/lib/recurrence";
 import { formatDayLabel, formatMonthName, monthRange, todayISO } from "@/lib/date";
 import { useExpenseCategories } from "@/hooks/use-expense-categories";
 import { useSettings } from "@/hooks/use-settings";
@@ -18,7 +20,7 @@ import { TodayMoodCard } from "./_components/today-mood-card";
 import { TodayJournalCard } from "./_components/today-journal-card";
 import { TodayProjectsCard } from "./_components/today-projects-card";
 import { TodayMoneyCard } from "./_components/today-money-card";
-import type { Expense, JournalEntry, Mood, Project, Task } from "@/lib/types";
+import type { Expense, JournalEntry, Mood, Project, Recurrence, Task } from "@/lib/types";
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -35,6 +37,7 @@ export default function TodayPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [journal, setJournal] = useState<JournalEntry | null>(null);
   const [monthEntries, setMonthEntries] = useState<Expense[]>([]);
+  const [upcoming, setUpcoming] = useState<Recurrence[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMood, setSelectedMood] = useState<string>("");
 
@@ -43,16 +46,18 @@ export default function TodayPage() {
   const { from: monthFrom, to: monthTo } = useMemo(() => monthRange(now), [now]);
 
   async function loadData() {
-    const [taskRows, projectRows, entry, money] = await Promise.all([
+    const [taskRows, projectRows, entry, money, moneyRules] = await Promise.all([
       listTasksDueOrActive(today),
       listActiveProjects(),
       getJournalEntry(today),
       listExpensesInRange(monthFrom, monthTo),
+      listRecurrences("expense"),
     ]);
 
     setTasks(taskRows);
     setProjects(projectRows);
     setMonthEntries(money);
+    setUpcoming(upcomingRules(moneyRules));
     if (entry) {
       setJournal(entry);
       setSelectedMood(entry.mood ?? "");
@@ -142,6 +147,7 @@ export default function TodayPage() {
 
       <TodayMoneyCard
         entries={monthEntries}
+        upcoming={upcoming}
         colorMap={colorMap}
         loading={loading}
         monthLabel={formatMonthName(now)}

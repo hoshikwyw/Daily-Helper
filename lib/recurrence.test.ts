@@ -8,6 +8,7 @@ import {
   occurrencesDue,
   ordinal,
   scheduleFromDate,
+  upcomingRules,
   type Schedule,
 } from "@/lib/recurrence";
 import { addDays } from "@/lib/date";
@@ -242,5 +243,27 @@ describe("describeSchedule", () => {
     expect(describeSchedule({ ...scheduleFromDate("weekly", "2026-11-02"), every: 2 })).toBe(
       "Every 2 weeks on Monday"
     );
+  });
+});
+
+describe("upcomingRules", () => {
+  const rules = [
+    { id: "salary", active: true, next_due: "2026-12-05" },
+    { id: "rent", active: true, next_due: "2026-12-01" },
+    { id: "gym", active: false, next_due: "2026-11-30" },
+    { id: "phone", active: true, next_due: "2026-12-10" },
+    { id: "insurance", active: true, next_due: "2027-01-01" },
+  ];
+
+  it("lists active rules soonest first, up to the limit", () => {
+    expect(upcomingRules(rules).map((r) => r.id)).toEqual(["rent", "salary", "phone"]);
+  });
+
+  it("skips paused rules even when they are soonest", () => {
+    expect(upcomingRules(rules, 10).map((r) => r.id)).not.toContain("gym");
+  });
+
+  it("is empty when nothing is active", () => {
+    expect(upcomingRules(rules.map((r) => ({ ...r, active: false })))).toEqual([]);
   });
 });

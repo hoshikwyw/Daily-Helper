@@ -1,7 +1,6 @@
-import { toast } from "@kwyw/kayv-glass-ui";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
-import { getUserId, reportError } from "@/lib/db";
+import { getUserId, reportError, reportSchemaError } from "@/lib/db";
 import { normalizeKind } from "@/lib/expenses";
 import type { CustomCategory, EntryKind, Expense } from "@/lib/types";
 
@@ -9,35 +8,14 @@ import type { CustomCategory, EntryKind, Expense } from "@/lib/types";
 // `expenses` is money out or money in depending on its `kind`. Pure
 // formatting/grouping helpers for the same feature live in `lib/expenses.ts`.
 
-// Writes fail with a 400 until 001_add_income.sql has been applied, but the
-// code varies by which layer rejects it:
-//
-//   PGRST204  PostgREST's schema cache has no `kind` column. This is the usual
-//             one — it also fires briefly after the migration until the cache
-//             reloads, which the migration's NOTIFY handles.
-//   42703     Postgres itself reports the column as undefined.
-//   23514     A CHECK rejected the row — before the migration, the old
-//             `category` constraint only allowed the nine built-in names, so
-//             custom and income categories bounce here.
-//
-// All three mean the same fix, so map them to one actionable message and keep
-// the underlying text so anything unexpected is still legible.
-const MIGRATION_ERROR_CODES = new Set(["PGRST204", "42703", "23514"]);
-
-const MIGRATION_HINT =
-  "Run supabase/migrations/001_add_income.sql in the Supabase SQL editor, then reload the page.";
+// A write fails with a 400 until the migrations have been applied: the `kind`
+// column came with 001_add_income.sql and `recurrence_id` with 002. The shared
+// helper recognises the PostgREST and Postgres codes for "schema is behind"
+// and names the latest file, since migrations are applied in order anyway.
+const MIGRATION_FILE = "002_recurrences.sql";
 
 function reportWriteError(error: PostgrestError | null): boolean {
-  if (!error) return false;
-  if (MIGRATION_ERROR_CODES.has(error.code)) {
-    toast({
-      title: "Database needs updating",
-      description: `${MIGRATION_HINT} (${error.message})`,
-      variant: "danger",
-    });
-    return true;
-  }
-  return reportError(error);
+  return reportSchemaError(error, MIGRATION_FILE);
 }
 
 /**
