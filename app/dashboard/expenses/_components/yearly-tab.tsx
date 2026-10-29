@@ -71,19 +71,8 @@ export function YearlyTab({
         </Button>
       </div>
 
-      <BalanceSummary totals={totals} netLabel={`Collected in ${selectedYear}`} />
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-        {stats.map(({ label, value }) => (
-          <Card key={label} variant="elevated">
-            <CardContent>
-              <p className="text-slate-400 text-xs">{label}</p>
-              <p className="text-base sm:text-lg font-semibold text-white mt-0.5 truncate">{value}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
+      {/* The calendar leads, as on the Daily and Monthly tabs. It spans the
+          full width here because twelve months need the room. */}
       <Card variant="elevated">
         <CardHeader
           title="Days logged"
@@ -99,6 +88,19 @@ export function YearlyTab({
           />
         </CardContent>
       </Card>
+
+      <BalanceSummary totals={totals} netLabel={`Collected in ${selectedYear}`} />
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+        {stats.map(({ label, value }) => (
+          <Card key={label} variant="elevated">
+            <CardContent>
+              <p className="text-slate-400 text-xs">{label}</p>
+              <p className="text-base sm:text-lg font-semibold text-white mt-0.5 truncate">{value}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
       <Card variant="elevated">
         <CardHeader

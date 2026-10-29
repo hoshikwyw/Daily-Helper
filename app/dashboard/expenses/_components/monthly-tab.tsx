@@ -63,10 +63,10 @@ export function MonthlyTab({
         </Button>
       </div>
 
-      {/* The month's totals are the headline here, so on a phone they come
-          before the calendar; on a wide screen the calendar takes the rail. */}
+      {/* Same placement as the Daily tab: the calendar leads on a phone and
+          takes the left rail on a wide screen. */}
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)] gap-4 lg:gap-6 lg:items-start">
-        <Card variant="elevated" className="order-2 lg:order-1">
+        <Card variant="elevated">
           <CardHeader title="Days logged" description="Tap a day to open it." />
           <CardContent>
             <MoneyCalendar
@@ -80,7 +80,7 @@ export function MonthlyTab({
           </CardContent>
         </Card>
 
-        <div className="space-y-4 min-w-0 order-1 lg:order-2">
+        <div className="space-y-4 min-w-0">
           <BalanceSummary totals={totals} netLabel="Collected this month" />
 
           <Card variant="elevated">
