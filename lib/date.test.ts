@@ -4,6 +4,7 @@ import {
   daysBetween,
   daysInMonth,
   formatDate,
+  formatMonthDay,
   fromISODate,
   monthGrid,
   monthPrefix,
@@ -191,5 +192,13 @@ describe("formatDate", () => {
     // for anyone west of Greenwich; the helper must parse as local midnight.
     expect(formatDate("2026-12-01")).toContain("1");
     expect(formatDate("2026-12-01")).not.toContain("30");
+  });
+});
+
+describe("formatMonthDay", () => {
+  it("shows the month and day without a year", () => {
+    const text = formatMonthDay("2026-11-02");
+    expect(text).toContain("2");
+    expect(text).not.toContain("2026");
   });
 });

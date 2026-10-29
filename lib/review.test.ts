@@ -66,13 +66,18 @@ describe("reviewTasks", () => {
   ];
 
   it("counts tasks finished in the week and the week before", () => {
-    const review = reviewTasks(tasks, WEEK);
+    const review = reviewTasks(tasks, WEEK, "2026-11-10");
     expect(review.done.map((t) => t.id)).toEqual(["a", "b"]);
     expect(review.previousDoneCount).toBe(1);
   });
 
-  it("lists open tasks due by the end of the week, oldest first", () => {
-    expect(reviewTasks(tasks, WEEK).overdue.map((t) => t.id)).toEqual(["f", "d"]);
+  it("lists open tasks due by the end of a past week, oldest first", () => {
+    expect(reviewTasks(tasks, WEEK, "2026-11-10").overdue.map((t) => t.id)).toEqual(["f", "d"]);
+  });
+
+  it("does not call a task late before its day, in the week in progress", () => {
+    // Viewing the current week on Wednesday the 4th: "d" is due Friday the 6th.
+    expect(reviewTasks(tasks, WEEK, "2026-11-04").overdue.map((t) => t.id)).toEqual(["f"]);
   });
 });
 
@@ -120,6 +125,20 @@ describe("reviewHabits", () => {
   it("reports the streak as of today, not the week shown", () => {
     const [row] = reviewHabits(habits, checks, WEEK, "2026-11-10");
     expect(row.streak).toBe(2);
+  });
+
+  it("keeps an archived habit's row for a week it was still done", () => {
+    const reading = { id: "r", name: "Read", position: 1, archived: true } as Habit;
+    const withArchived = [...habits, reading];
+    const rows = reviewHabits(
+      withArchived,
+      [...checks, { habit_id: "r", date: "2026-11-04" } as HabitCheck],
+      WEEK,
+      "2026-11-20"
+    );
+    expect(rows.map((r) => r.habit.id)).toEqual(["w", "r"]);
+    // ...but not for a week it was not.
+    expect(reviewHabits(withArchived, checks, WEEK, "2026-11-20").map((r) => r.habit.id)).toEqual(["w"]);
   });
 });
 
@@ -176,14 +195,16 @@ describe("delta and summarizeWeek", () => {
   });
 
   it("joins the parts that have something to say", () => {
-    const tasks = reviewTasks([task("a", "done", "2026-11-03T10:00:00")], WEEK);
+    const tasks = reviewTasks([task("a", "done", "2026-11-03T10:00:00")], WEEK, "2026-11-10");
     const mood = reviewMood([entry("2026-11-02", "good")], WEEK);
     const money = reviewMoney([expense("expense", 240_000, "Food & Drink", "2026-11-03")], WEEK);
     expect(summarizeWeek(tasks, mood, money)).toBe("1 task done · mood mostly good · spent K 240,000");
   });
 
   it("nudges instead when the week is empty", () => {
-    expect(summarizeWeek(reviewTasks([], WEEK), reviewMood([], WEEK), reviewMoney([], WEEK))).toBe(
+    expect(
+      summarizeWeek(reviewTasks([], WEEK, "2026-11-10"), reviewMood([], WEEK), reviewMoney([], WEEK))
+    ).toBe(
       "Nothing logged this week."
     );
   });

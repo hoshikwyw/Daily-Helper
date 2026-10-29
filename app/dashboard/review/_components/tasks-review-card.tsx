@@ -1,6 +1,6 @@
 import { Card, CardHeader, CardContent } from "@kwyw/kayv-glass-ui";
-import { formatDate, toISODate } from "@/lib/date";
-import { delta, type TaskReview } from "@/lib/review";
+import { formatDate } from "@/lib/date";
+import { completionDay, delta, type TaskReview } from "@/lib/review";
 import { plural } from "@/lib/text";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FieldLabel } from "@/components/ui/label";
@@ -26,7 +26,7 @@ export function TasksReviewCard({ review }: { review: TaskReview }) {
                   <span className="text-emerald-400 shrink-0">✓</span>
                   <span className="text-slate-200 flex-1 min-w-0 truncate">{task.title}</span>
                   <span className="text-xs text-slate-500 shrink-0">
-                    {formatDate(toISODate(new Date(task.completed_at ?? "")))}
+                    {formatDate(completionDay(task) ?? task.due_date ?? "")}
                   </span>
                 </li>
               ))}

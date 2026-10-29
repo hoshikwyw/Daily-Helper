@@ -16,8 +16,13 @@ export function HabitsReviewCard({ rows }: { rows: HabitWeek[] }) {
                 <span className="text-lg leading-none shrink-0" aria-hidden="true">
                   {habit.emoji}
                 </span>
-                <span className="text-sm text-slate-200 w-24 sm:w-32 truncate shrink-0">
+                <span
+                  className={`text-sm w-24 sm:w-32 truncate shrink-0 ${
+                    habit.archived ? "text-slate-500" : "text-slate-200"
+                  }`}
+                >
                   {habit.name}
+                  {habit.archived && <span className="text-xs"> (archived)</span>}
                 </span>
                 <div className="flex items-center gap-1 flex-1" aria-label={`${doneCount} of 7 days`}>
                   {days.map((done, i) => (

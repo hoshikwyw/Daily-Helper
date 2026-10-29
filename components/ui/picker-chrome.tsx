@@ -10,16 +10,38 @@ type PickerHeaderProps = {
   onNext: () => void;
   /** What one arrow step is, for the arrow labels: "month" or "year". */
   unit: string;
+  /** Greys out an arrow that has nowhere to go, e.g. forward past the current week. */
+  prevDisabled?: boolean;
+  nextDisabled?: boolean;
 };
 
-export function PickerHeader({ title, onPrev, onNext, unit }: PickerHeaderProps) {
+export function PickerHeader({
+  title,
+  onPrev,
+  onNext,
+  unit,
+  prevDisabled = false,
+  nextDisabled = false,
+}: PickerHeaderProps) {
   return (
     <div className="flex items-center gap-1">
-      <button type="button" onClick={onPrev} aria-label={`Previous ${unit}`} className={NAV_BUTTON}>
+      <button
+        type="button"
+        onClick={onPrev}
+        disabled={prevDisabled}
+        aria-label={`Previous ${unit}`}
+        className={`${NAV_BUTTON} disabled:opacity-30 disabled:pointer-events-none`}
+      >
         ‹
       </button>
       <p className="flex-1 text-center text-sm font-semibold text-slate-100">{title}</p>
-      <button type="button" onClick={onNext} aria-label={`Next ${unit}`} className={NAV_BUTTON}>
+      <button
+        type="button"
+        onClick={onNext}
+        disabled={nextDisabled}
+        aria-label={`Next ${unit}`}
+        className={`${NAV_BUTTON} disabled:opacity-30 disabled:pointer-events-none`}
+      >
         ›
       </button>
     </div>

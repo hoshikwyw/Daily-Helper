@@ -54,9 +54,9 @@ export function inWeek(date: string | null | undefined, week: WeekRange): boolea
   return !!date && date >= week.from && date <= week.to;
 }
 
-/** Local calendar day of a timestamp such as `completed_at`. */
-function dayOf(timestamp: string): string {
-  return toISODate(new Date(timestamp));
+/** Local calendar day a task was finished, from its `completed_at` timestamp. */
+export function completionDay(task: Task): string | null {
+  return task.completed_at ? toISODate(new Date(task.completed_at)) : null;
 }
 
 // ── Tasks ───────────────────────────────────────────────────────────────────
@@ -65,18 +65,24 @@ export type TaskReview = {
   /** Finished during the week, earliest first. */
   done: Task[];
   previousDoneCount: number;
-  /** Still open with a due date on or before the week's end. */
+  /**
+   * Still open and past due: due on or before the week's end, but never
+   * later than yesterday, so a task due later in the current week is not
+   * called late before its day has come.
+   */
   overdue: Task[];
 };
 
-export function reviewTasks(tasks: Task[], week: WeekRange): TaskReview {
+export function reviewTasks(tasks: Task[], week: WeekRange, today: string): TaskReview {
   const previous = previousWeek(week);
   const finishedIn = (range: WeekRange) =>
     tasks
-      .filter((t) => t.status === "done" && t.completed_at && inWeek(dayOf(t.completed_at), range))
+      .filter((t) => t.status === "done" && inWeek(completionDay(t), range))
       .sort((a, b) => (a.completed_at! < b.completed_at! ? -1 : 1));
+  const yesterday = addDays(today, -1);
+  const cutoff = week.to < yesterday ? week.to : yesterday;
   const overdue = tasks
-    .filter((t) => t.status !== "done" && t.due_date && t.due_date <= week.to)
+    .filter((t) => t.status !== "done" && t.due_date && t.due_date <= cutoff)
     .sort((a, b) => (a.due_date! < b.due_date! ? -1 : 1));
   return { done: finishedIn(week), previousDoneCount: finishedIn(previous).length, overdue };
 }
@@ -124,6 +130,11 @@ export type HabitWeek = {
   streak: number;
 };
 
+/**
+ * One row per active habit, plus any archived habit that was still being
+ * done that week: archiving keeps the history, so a past week must not lose
+ * the rows it had at the time. Archived rows come after the active ones.
+ */
 export function reviewHabits(
   habits: Habit[],
   checks: HabitCheck[],
@@ -132,7 +143,7 @@ export function reviewHabits(
 ): HabitWeek[] {
   const dates = checksByHabit(checks);
   const days = weekDays(week);
-  return activeHabits(habits).map((habit) => {
+  const row = (habit: Habit): HabitWeek => {
     const own = new Set(dates[habit.id] ?? []);
     const done = days.map((d) => own.has(d));
     return {
@@ -141,7 +152,13 @@ export function reviewHabits(
       doneCount: done.filter(Boolean).length,
       streak: computeStreak(own, today).current,
     };
-  });
+  };
+  const active = activeHabits(habits).map(row);
+  const archived = habits
+    .filter((h) => h.archived)
+    .map(row)
+    .filter((r) => r.doneCount > 0);
+  return [...active, ...archived];
 }
 
 // ── Money ───────────────────────────────────────────────────────────────────

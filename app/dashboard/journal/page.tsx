@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "@kwyw/kayv-glass-ui";
 import {
   deleteJournalEntry,
@@ -18,12 +19,24 @@ import {
 import { fromISODate, toISODate, todayISO } from "@/lib/date";
 import { PageContainer } from "@/components/ui/page-container";
 import { PageHeader } from "@/components/ui/page-header";
+import { PageLoader } from "@/components/ui/page-loader";
 import { JournalSidebar } from "./_components/journal-sidebar";
 import { JournalEditorCard } from "./_components/journal-editor-card";
 import type { JournalEntry } from "@/lib/types";
 
-export default function JournalPage() {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+/**
+ * The day to open: a valid `?date=YYYY-MM-DD` link (from the weekly review),
+ * otherwise today. Validated by round trip so "2026-13-45" cannot become an
+ * Invalid Date that reaches the query or the editor.
+ */
+function startDate(linked: string | null): Date {
+  if (linked && toISODate(fromISODate(linked)) === linked) return fromISODate(linked);
+  return new Date();
+}
+
+function JournalEditor() {
+  const linked = useSearchParams().get("date");
+  const [selectedDate, setSelectedDate] = useState<Date>(() => startDate(linked));
   const [entry, setEntry] = useState<JournalEntry | null>(null);
   // The editor's fields travel together, so one draft rather than three hooks.
   const [draft, setDraft] = useState<JournalDraft>(emptyJournalDraft);
@@ -44,19 +57,16 @@ export default function JournalPage() {
     setRecentEntries(await listRecentJournalEntries());
   }
 
+  // Runs on mount and again when the link changes, including a soft
+  // navigation back to the plain Journal entry, which returns to today.
   useEffect(() => {
-    // A `?date=YYYY-MM-DD` link (from the weekly review) opens that day
-    // instead of today. Read from the window: this page is a static export
-    // with no server to parse the query for it.
-    const linked = new URLSearchParams(window.location.search).get("date");
-    const start = linked && /^\d{4}-\d{2}-\d{2}$/.test(linked) ? fromISODate(linked) : selectedDate;
-    /* eslint-disable react-hooks/set-state-in-effect -- one-time seed from the URL, then the fetch */
-    if (start !== selectedDate) setSelectedDate(start);
+    const start = startDate(linked);
+    /* eslint-disable react-hooks/set-state-in-effect -- seed from the URL, then fetch */
+    setSelectedDate(start);
     loadEntry(start);
     /* eslint-enable react-hooks/set-state-in-effect */
     loadRecent();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [linked]);
 
   function handleDateChange(date: Date) {
     setSelectedDate(date);
@@ -127,5 +137,15 @@ export default function JournalPage() {
         />
       </div>
     </PageContainer>
+  );
+}
+
+// useSearchParams needs a Suspense boundary in the static export, the same
+// way the project detail page reads its `?id=`.
+export default function JournalPage() {
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <JournalEditor />
+    </Suspense>
   );
 }

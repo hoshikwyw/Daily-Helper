@@ -146,3 +146,8 @@ export function daysBetween(from: string, to: string): number {
   // Round, not floor: a DST change makes one day 23 or 25 hours long.
   return Math.round(ms / 86_400_000);
 }
+
+/** "Nov 2" — month and day only, for the start of a range whose end carries the year. */
+export function formatMonthDay(value: Date | string): string {
+  return asDate(value).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}

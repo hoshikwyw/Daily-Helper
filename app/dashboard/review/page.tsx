@@ -5,7 +5,7 @@ import { listTasks } from "@/lib/api/tasks";
 import { listJournalEntriesInRange } from "@/lib/api/journal";
 import { listExpensesInRange } from "@/lib/api/expenses";
 import { listHabitChecks, listHabits } from "@/lib/api/habits";
-import { addDays, formatDate, formatLongDate, todayISO } from "@/lib/date";
+import { addDays, formatLongDate, formatMonthDay, todayISO } from "@/lib/date";
 import { STREAK_WINDOW_DAYS } from "@/lib/habits";
 import {
   gatherHighlights,
@@ -31,9 +31,9 @@ import { MoneyReviewCard } from "./_components/money-review-card";
 import { HighlightsReviewCard } from "./_components/highlights-review-card";
 import type { Expense, Habit, HabitCheck, JournalEntry, Task } from "@/lib/types";
 
-/** "Nov 2 – Nov 8, 2026". */
+/** "Nov 2 – November 8, 2026", in the viewer's locale. */
 function weekLabel(week: WeekRange): string {
-  return `${formatDate(week.from).replace(/, \d{4}$/, "")} – ${formatLongDate(week.to)}`;
+  return `${formatMonthDay(week.from)} – ${formatLongDate(week.to)}`;
 }
 
 export default function ReviewPage() {
@@ -41,41 +41,68 @@ export default function ReviewPage() {
   const [week, setWeek] = useState<WeekRange>(() => lastCompletedWeek(today));
   const { colorMap } = useExpenseCategories();
 
+  // Loaded once: none of these depend on the week being viewed.
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [habits, setHabits] = useState<Habit[]>([]);
+  const [recentChecks, setRecentChecks] = useState<HabitCheck[]>([]);
+  const [baseLoaded, setBaseLoaded] = useState(false);
+
+  // Loaded per week: the week and the one before, for the comparisons.
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [money, setMoney] = useState<Expense[]>([]);
-  const [habits, setHabits] = useState<Habit[]>([]);
-  const [checks, setChecks] = useState<HabitCheck[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [weekChecks, setWeekChecks] = useState<HabitCheck[]>([]);
+  const [weekLoaded, setWeekLoaded] = useState(false);
 
-  // Comparisons need the week before as well, so the range loads two weeks.
+  const windowStart = addDays(today, -STREAK_WINDOW_DAYS);
   const rangeFrom = previousWeek(week).from;
 
   useEffect(() => {
     let cancelled = false;
+    Promise.all([listTasks(), listHabits(), listHabitChecks(windowStart, today)]).then(
+      ([taskRows, habitRows, checkRows]) => {
+        if (cancelled) return;
+        setTasks(taskRows);
+        setHabits(habitRows);
+        setRecentChecks(checkRows);
+        setBaseLoaded(true);
+      }
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [windowStart, today]);
+
+  useEffect(() => {
+    let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading(true);
+    setWeekLoaded(false);
+    // Habit checks for a week older than the streak window are not in the
+    // once-loaded set, so fetch that week's own rows when needed.
+    const needOlderChecks = rangeFrom < windowStart;
     Promise.all([
-      listTasks(),
       listJournalEntriesInRange(rangeFrom, week.to),
       listExpensesInRange(rangeFrom, week.to),
-      listHabits(),
-      listHabitChecks(addDays(today, -STREAK_WINDOW_DAYS), today),
-    ]).then(([taskRows, entryRows, moneyRows, habitRows, checkRows]) => {
+      needOlderChecks ? listHabitChecks(rangeFrom, week.to) : Promise.resolve([]),
+    ]).then(([entryRows, moneyRows, olderChecks]) => {
       if (cancelled) return;
-      setTasks(taskRows);
       setEntries(entryRows);
       setMoney(moneyRows);
-      setHabits(habitRows);
-      setChecks(checkRows);
-      setLoading(false);
+      setWeekChecks(olderChecks);
+      setWeekLoaded(true);
     });
     return () => {
       cancelled = true;
     };
-  }, [rangeFrom, week.to, today]);
+  }, [rangeFrom, week.to, windowStart]);
 
-  const taskReview = useMemo(() => reviewTasks(tasks, week), [tasks, week]);
+  const checks = useMemo(() => {
+    if (weekChecks.length === 0) return recentChecks;
+    const seen = new Set(recentChecks.map((c) => c.id));
+    return [...recentChecks, ...weekChecks.filter((c) => !seen.has(c.id))];
+  }, [recentChecks, weekChecks]);
+
+  const loading = !baseLoaded || !weekLoaded;
+  const taskReview = useMemo(() => reviewTasks(tasks, week, today), [tasks, week, today]);
   const moodReview = useMemo(() => reviewMood(entries, week), [entries, week]);
   const habitRows = useMemo(() => reviewHabits(habits, checks, week, today), [habits, checks, week, today]);
   const moneyReview = useMemo(() => reviewMoney(money, week), [money, week]);
@@ -98,7 +125,8 @@ export default function ReviewPage() {
         <PickerHeader
           title={weekLabel(week)}
           onPrev={() => setWeek(previousWeek(week))}
-          onNext={() => canGoForward && setWeek(nextWeek(week))}
+          onNext={() => setWeek(nextWeek(week))}
+          nextDisabled={!canGoForward}
           unit="week"
         />
         {!showingLatest && (
