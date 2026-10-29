@@ -11,8 +11,12 @@ type MoneyCalendarProps = {
   viewYear: number;
   viewMonth: number;
   onViewChange: (year: number, month: number) => void;
-  /** `YYYY-MM-DD` of the day whose entries are shown. */
-  selectedDate: string;
+  /**
+   * `YYYY-MM-DD` of the highlighted day. Omit when the calendar is only an
+   * overview with no current day, as on the Monthly tab; "Back to today"
+   * then just returns the view to this month.
+   */
+  selectedDate?: string;
   onSelect: (date: string) => void;
   /** Which days have entries, from `getDayActivity`. */
   activity: Record<string, DayActivity>;
@@ -55,7 +59,7 @@ export function MoneyCalendar({
   function jumpToToday() {
     const now = new Date();
     onViewChange(now.getFullYear(), now.getMonth());
-    onSelect(today);
+    if (selectedDate !== undefined) onSelect(today);
   }
 
   return (
@@ -117,7 +121,7 @@ export function MoneyCalendar({
                 isSelected
                   ? "bg-kv-500 text-white font-semibold"
                   : day
-                    ? "text-slate-100 bg-white/[0.06] hover:bg-white/10"
+                    ? "text-slate-100 bg-white/6 hover:bg-white/10"
                     : "text-slate-500 hover:bg-white/5 hover:text-slate-300"
               } ${isToday && !isSelected ? "ring-1 ring-kv-400/70" : ""}`}
             >

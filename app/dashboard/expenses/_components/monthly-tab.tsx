@@ -1,9 +1,10 @@
 import { Card, CardHeader, CardContent, Button, Select } from "@kwyw/kayv-glass-ui";
-import { MONTHS, getTotals, type ColorMap } from "@/lib/expenses";
+import { MONTHS, getTotals, type ColorMap, type DayActivity } from "@/lib/expenses";
 import { EmptyState } from "@/components/ui/empty-state";
 import { BalanceSummary } from "@/components/ui/balance-summary";
 import { CategorySplit } from "@/components/ui/category-split";
 import { ExpenseRow } from "./expense-row";
+import { MoneyCalendar } from "./money-calendar";
 import type { Expense } from "@/lib/types";
 
 type MonthlyTabProps = {
@@ -13,8 +14,13 @@ type MonthlyTabProps = {
   onMonthYearChange: (value: number) => void;
   yearList: number[];
   entries: Expense[];
+  /** Which days have entries, from `getDayActivity`, for the whole loaded year. */
+  activity: Record<string, DayActivity>;
+  loading: boolean;
   colorMap: ColorMap;
   onDelete: (id: string) => void;
+  /** Tapping a day on the calendar opens that day on the Daily tab. */
+  onDayPick: (date: string) => void;
   onExport: () => void;
 };
 
@@ -25,11 +31,19 @@ export function MonthlyTab({
   onMonthYearChange,
   yearList,
   entries,
+  activity,
+  loading,
   colorMap,
   onDelete,
+  onDayPick,
   onExport,
 }: MonthlyTabProps) {
   const totals = getTotals(entries);
+
+  function handleViewChange(year: number, month: number) {
+    if (year !== selectedMonthYear) onMonthYearChange(year);
+    if (month !== selectedMonth) onMonthChange(month);
+  }
 
   return (
     <div className="space-y-4 mt-4">
@@ -49,37 +63,57 @@ export function MonthlyTab({
         </Button>
       </div>
 
-      <BalanceSummary totals={totals} netLabel="Collected this month" />
+      {/* The month's totals are the headline here, so on a phone they come
+          before the calendar; on a wide screen the calendar takes the rail. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)] gap-4 lg:gap-6 lg:items-start">
+        <Card variant="elevated" className="order-2 lg:order-1">
+          <CardHeader title="Days logged" description="Tap a day to open it." />
+          <CardContent>
+            <MoneyCalendar
+              viewYear={selectedMonthYear}
+              viewMonth={selectedMonth}
+              onViewChange={handleViewChange}
+              onSelect={onDayPick}
+              activity={activity}
+              loading={loading}
+            />
+          </CardContent>
+        </Card>
 
-      <Card variant="elevated">
-        <CardHeader title="By category" />
-        <CardContent>
-          <CategorySplit entries={entries} colorMap={colorMap} period="this month" />
-        </CardContent>
-      </Card>
+        <div className="space-y-4 min-w-0 order-1 lg:order-2">
+          <BalanceSummary totals={totals} netLabel="Collected this month" />
 
-      <Card variant="elevated">
-        <CardHeader
-          title="All Entries"
-          description={`${entries.length} ${entries.length === 1 ? "entry" : "entries"}`}
-        />
-        <CardContent>
-          {entries.length === 0 ? (
-            <EmptyState padding="lg">No entries this month.</EmptyState>
-          ) : (
-            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-              {entries.map((entry) => (
-                <ExpenseRow
-                  key={entry.id}
-                  expense={entry}
-                  colorMap={colorMap}
-                  onDelete={onDelete}
-                />
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          <Card variant="elevated">
+            <CardHeader title="By category" />
+            <CardContent>
+              <CategorySplit entries={entries} colorMap={colorMap} period="this month" />
+            </CardContent>
+          </Card>
+
+          <Card variant="elevated">
+            <CardHeader
+              title="All Entries"
+              description={`${entries.length} ${entries.length === 1 ? "entry" : "entries"}`}
+            />
+            <CardContent>
+              {entries.length === 0 ? (
+                <EmptyState padding="lg">No entries this month.</EmptyState>
+              ) : (
+                <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                  {entries.map((entry) => (
+                    <ExpenseRow
+                      key={entry.id}
+                      expense={entry}
+                      colorMap={colorMap}
+                      onDelete={onDelete}
+                    />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

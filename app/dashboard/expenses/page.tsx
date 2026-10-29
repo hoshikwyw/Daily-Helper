@@ -110,6 +110,15 @@ export default function ExpensesPage() {
     setSelectedDate((prev) => sameDayInMonth(prev, year, month));
   }
 
+  // From the Monthly tab's calendar: open that day on the Daily tab, with the
+  // daily calendar already showing its month.
+  function handleJumpToDay(date: string) {
+    const [year, month] = date.split("-").map(Number);
+    setSelectedDate(date);
+    setCalendarView({ year, month: month - 1 });
+    setActiveTab("daily");
+  }
+
   async function handleCreateEntry(values: NewExpense): Promise<boolean> {
     const created = await createExpense(values);
     if (!created) return false;
@@ -265,8 +274,11 @@ export default function ExpensesPage() {
                 onMonthYearChange={setSelectedMonthYear}
                 yearList={yearList}
                 entries={monthlyEntries}
+                activity={dayActivity}
+                loading={loading}
                 colorMap={colorMap}
                 onDelete={handleDelete}
+                onDayPick={handleJumpToDay}
                 onExport={() =>
                   handleExportImage(
                     "Monthly",
