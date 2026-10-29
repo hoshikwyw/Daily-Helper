@@ -1,5 +1,5 @@
 import { Card, CardHeader, CardContent } from "@kwyw/kayv-glass-ui";
-import { KIND_SIGNS, KIND_TEXT_COLORS, fmt, getTotals, type ColorMap } from "@/lib/expenses";
+import { KIND_TEXT_COLORS, fmtEntry, getTotals, type ColorMap } from "@/lib/expenses";
 import { formatDate } from "@/lib/date";
 import { SkeletonList } from "@/components/ui/skeleton";
 import { BalanceSummary } from "@/components/ui/balance-summary";
@@ -64,8 +64,7 @@ export function TodayMoneyCard({
                           {formatDate(rule.next_due)}
                         </span>
                         <span className={`font-semibold shrink-0 ${KIND_TEXT_COLORS[kind]}`}>
-                          {KIND_SIGNS[kind]}
-                          {fmt(rule.amount ?? 0)}
+                          {fmtEntry({ kind, amount: rule.amount ?? 0 })}
                         </span>
                       </div>
                     );

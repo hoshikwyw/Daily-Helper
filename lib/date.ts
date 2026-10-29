@@ -16,9 +16,9 @@ export function todayISO(): string {
   return toISODate(new Date());
 }
 
-/** Human-readable date, e.g. "Jul 14, 2026". */
+/** Human-readable date, e.g. "Jul 14, 2026". Local-time, like every format here. */
 export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
+  return fromISODate(iso).toLocaleDateString(undefined, {
     year: "numeric",
     month: "short",
     day: "numeric",

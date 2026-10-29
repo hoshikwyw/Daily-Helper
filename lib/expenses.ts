@@ -112,7 +112,7 @@ export function fmtCompactSigned(amount: number): string {
 }
 
 /** Formats an entry the way it should read in a list: `−K 500` for a spend. */
-export function fmtEntry(entry: Expense): string {
+export function fmtEntry(entry: Pick<Expense, "kind" | "amount">): string {
   return `${KIND_SIGNS[normalizeKind(entry.kind)]}${fmt(entry.amount)}`;
 }
 

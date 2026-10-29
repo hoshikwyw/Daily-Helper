@@ -57,6 +57,9 @@ export function RecurrenceSyncProvider({ children }: { children: React.ReactNode
     inFlight.current = (async () => {
       try {
         const created = await materializeRecurrences(today);
+        // A failed run (offline, say) is not "done for today": leave the date
+        // unset so the next tab return or resume tries again.
+        if (created === null) return;
         lastRunDate.current = today;
         if (created > 0) setVersion((v) => v + 1);
       } finally {
@@ -77,11 +80,20 @@ export function RecurrenceSyncProvider({ children }: { children: React.ReactNode
     };
     document.addEventListener("visibilitychange", onReturn);
 
+    // The native listener is registered after an awaited import. If the effect
+    // is cleaned up before that resolves (Strict Mode's mount/unmount/mount,
+    // or a real unmount), the listener must be dropped on arrival rather than
+    // leaking and firing a second sync on every resume.
+    let cancelled = false;
     let removeNative: (() => void) | undefined;
     if (Capacitor.isNativePlatform()) {
       (async () => {
         const { App } = await import("@capacitor/app");
         const listener = await App.addListener("resume", onReturn);
+        if (cancelled) {
+          listener.remove();
+          return;
+        }
         removeNative = () => {
           listener.remove();
         };
@@ -89,6 +101,7 @@ export function RecurrenceSyncProvider({ children }: { children: React.ReactNode
     }
 
     return () => {
+      cancelled = true;
       document.removeEventListener("visibilitychange", onReturn);
       removeNative?.();
     };

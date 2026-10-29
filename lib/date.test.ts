@@ -3,6 +3,7 @@ import {
   addDays,
   daysBetween,
   daysInMonth,
+  formatDate,
   fromISODate,
   monthGrid,
   monthPrefix,
@@ -181,5 +182,14 @@ describe("addDays and daysBetween", () => {
 
   it("round-trips: addDays by the gap lands on the target", () => {
     expect(addDays("2026-02-10", daysBetween("2026-02-10", "2027-02-10"))).toBe("2027-02-10");
+  });
+});
+
+describe("formatDate", () => {
+  it("formats the calendar day itself, never the day before it", () => {
+    // `new Date("2026-12-01")` is UTC midnight, which is still 30 November
+    // for anyone west of Greenwich; the helper must parse as local midnight.
+    expect(formatDate("2026-12-01")).toContain("1");
+    expect(formatDate("2026-12-01")).not.toContain("30");
   });
 });

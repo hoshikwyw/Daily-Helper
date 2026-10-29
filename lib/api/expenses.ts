@@ -8,14 +8,15 @@ import type { CustomCategory, EntryKind, Expense } from "@/lib/types";
 // `expenses` is money out or money in depending on its `kind`. Pure
 // formatting/grouping helpers for the same feature live in `lib/expenses.ts`.
 
-// A write fails with a 400 until the migrations have been applied: the `kind`
-// column came with 001_add_income.sql and `recurrence_id` with 002. The shared
-// helper recognises the PostgREST and Postgres codes for "schema is behind"
-// and names the latest file, since migrations are applied in order anyway.
-const MIGRATION_FILE = "002_recurrences.sql";
+// A write fails with a 400 until the migrations have been applied. The shared
+// helper recognises the "column or table missing" codes. 23514 is added here
+// because the pre-001 `expenses_category_check` only allowed the nine built-in
+// names: a custom or income category bouncing off a CHECK means the income
+// migration is missing, not that the row is bad.
+const OLD_CONSTRAINT_CODES = ["23514"];
 
 function reportWriteError(error: PostgrestError | null): boolean {
-  return reportSchemaError(error, MIGRATION_FILE);
+  return reportSchemaError(error, OLD_CONSTRAINT_CODES);
 }
 
 /**

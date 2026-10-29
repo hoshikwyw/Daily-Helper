@@ -55,7 +55,12 @@ export function AddEntryModal({
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);
-    if (open) setDate(defaultDate);
+    if (open) {
+      setDate(defaultDate);
+      // A repeat chosen then cancelled must not lie in wait for the next
+      // one-off entry and turn it into a rule.
+      setRepeat(null);
+    }
   }
 
   const income = kind === "income";

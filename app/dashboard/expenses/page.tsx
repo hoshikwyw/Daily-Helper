@@ -18,11 +18,11 @@ import {
   todayISO,
 } from "@/lib/date";
 import {
-  KIND_SIGNS,
   KIND_TEXT_COLORS,
   MONTHS,
   buildImageCategories,
   fmt,
+  fmtEntry,
   fmtSigned,
   getAccentHex,
   getDayActivity,
@@ -335,8 +335,7 @@ export default function ExpensesPage() {
             <span className="flex items-center gap-2">
               <span className="truncate">{rule.description || rule.category}</span>
               <span className={`shrink-0 font-semibold ${KIND_TEXT_COLORS[kind]}`}>
-                {KIND_SIGNS[kind]}
-                {fmt(rule.amount ?? 0)}
+                {fmtEntry({ kind, amount: rule.amount ?? 0 })}
               </span>
             </span>
           );

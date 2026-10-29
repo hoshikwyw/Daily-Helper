@@ -2,8 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { Modal, ModalHeader, ModalBody, ModalFooter, Button, toast } from "@kwyw/kayv-glass-ui";
-import { deleteRecurrence, listRecurrences, setRecurrenceActive } from "@/lib/api/recurrences";
-import { describeSchedule } from "@/lib/recurrence";
+import {
+  deleteRecurrence,
+  listRecurrences,
+  pauseRecurrence,
+  resumeRecurrence,
+} from "@/lib/api/recurrences";
+import { describeSchedule, occurrenceOnOrAfter } from "@/lib/recurrence";
 import { formatLongDate, todayISO } from "@/lib/date";
 import { useRecurrenceSync } from "@/components/recurrence-sync";
 import { SkeletonList } from "@/components/ui/skeleton";
@@ -21,11 +26,15 @@ type RecurringRulesModalProps = {
   emptyHint: string;
 };
 
-/** "Next 1 Dec 2026", "Paused", or "Ended". */
-function statusLabel(rule: Recurrence): string {
+/** A rule with nothing left to create: its end date leaves no occurrence from today on. */
+function hasEnded(rule: Recurrence, today: string): boolean {
+  return rule.end_date !== null && occurrenceOnOrAfter(rule, today) === null;
+}
+
+/** "Next December 1, 2026", "Paused", or "Ended". */
+function statusLabel(rule: Recurrence, today: string): string {
   if (rule.active) return `Next ${formatLongDate(rule.next_due)}`;
-  if (rule.end_date && rule.end_date < todayISO()) return "Ended";
-  return "Paused";
+  return hasEnded(rule, today) ? "Ended" : "Paused";
 }
 
 /**
@@ -60,12 +69,25 @@ export function RecurringRulesModal({
   }, [open, target]);
 
   async function handleToggle(rule: Recurrence) {
-    const active = !rule.active;
-    if (!(await setRecurrenceActive(rule.id, active))) return;
-    setRules((prev) => prev.map((r) => (r.id === rule.id ? { ...r, active } : r)));
-    toast({ title: active ? "Resumed" : "Paused", variant: active ? "success" : "warning" });
-    // A resumed rule may already be due.
-    if (active) sync();
+    if (rule.active) {
+      if (!(await pauseRecurrence(rule.id))) return;
+      setRules((prev) => prev.map((r) => (r.id === rule.id ? { ...r, active: false } : r)));
+      toast({ title: "Paused", variant: "warning" });
+      return;
+    }
+
+    const today = todayISO();
+    if (hasEnded(rule, today)) {
+      toast({ title: "This repeat has ended", description: "Its end date has passed.", variant: "warning" });
+      return;
+    }
+    // Resuming skips what was missed while paused and continues from today.
+    const resumed = await resumeRecurrence(rule, today);
+    if (!resumed) return;
+    setRules((prev) => prev.map((r) => (r.id === rule.id ? resumed : r)));
+    toast({ title: "Resumed", description: "Continues from today.", variant: "success" });
+    // The resumed rule may be due today.
+    sync();
   }
 
   async function handleDelete(rule: Recurrence) {
@@ -98,7 +120,7 @@ export function RecurringRulesModal({
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-slate-200 truncate">{renderSummary(rule)}</div>
                   <p className="text-xs text-slate-400 truncate">
-                    {describeSchedule(rule)} · {statusLabel(rule)}
+                    {describeSchedule(rule)} · {statusLabel(rule, todayISO())}
                   </p>
                 </div>
                 <Button variant="ghost" size="sm" onClick={() => handleToggle(rule)}>
