@@ -5,6 +5,7 @@ import {
   countActiveDays,
   filterByKind,
   fmt,
+  fmtCompactSigned,
   fmtEntry,
   fmtSigned,
   getCategoryBreakdown,
@@ -61,6 +62,33 @@ describe("amount formatting", () => {
     expect(fmtSigned(1200)).toBe("+K 1,200");
     expect(fmtSigned(-1200)).toBe("−K 1,200");
     expect(fmtSigned(0)).toBe("K 0");
+  });
+
+  describe("fmtCompactSigned", () => {
+    it("leaves small amounts whole", () => {
+      expect(fmtCompactSigned(850)).toBe("+850");
+      expect(fmtCompactSigned(-850)).toBe("−850");
+      expect(fmtCompactSigned(0)).toBe("0");
+    });
+
+    it("keeps one decimal below ten of a unit and none above", () => {
+      expect(fmtCompactSigned(1200)).toBe("+1.2k");
+      expect(fmtCompactSigned(-45_000)).toBe("−45k");
+      expect(fmtCompactSigned(500_000)).toBe("+500k");
+      expect(fmtCompactSigned(-1_250_000)).toBe("−1.3M");
+      expect(fmtCompactSigned(2_000_000_000)).toBe("+2B");
+    });
+
+    it("drops a trailing .0", () => {
+      expect(fmtCompactSigned(1000)).toBe("+1k");
+      expect(fmtCompactSigned(3_000_000)).toBe("+3M");
+    });
+
+    it("rolls into the next unit instead of showing 1000k", () => {
+      expect(fmtCompactSigned(999_600)).toBe("+1M");
+      expect(fmtCompactSigned(9_960)).toBe("+10k");
+      expect(fmtCompactSigned(999.7)).toBe("+1k");
+    });
   });
 
   it("takes an entry's sign from its kind", () => {

@@ -85,6 +85,32 @@ export function fmtSigned(amount: number): string {
   return `${amount > 0 ? "+" : "−"}${fmt(amount)}`;
 }
 
+/**
+ * A signed amount squeezed into a few characters for tight spaces such as a
+ * calendar cell: `+500k`, `−1.2M`, `−850`, `0`. Below ten of a unit one
+ * decimal is kept; above, whole numbers. Values that round up to the next
+ * unit roll over (`999,600` reads `1M`, not `1000k`).
+ */
+export function fmtCompactSigned(amount: number): string {
+  const abs = Math.abs(amount);
+  const sign = amount < 0 ? "−" : amount > 0 ? "+" : "";
+  if (abs < 999.5) return `${sign}${Math.round(abs)}`;
+
+  const units: [number, string][] = [
+    [1e9, "B"],
+    [1e6, "M"],
+    [1e3, "k"],
+  ];
+  for (const [size, suffix] of units) {
+    // The 0.9995 margin rolls e.g. 999,600 into the next unit before rounding.
+    if (abs < size * 0.9995) continue;
+    const scaled = abs / size;
+    const text = scaled >= 9.95 ? String(Math.round(scaled)) : (Math.round(scaled * 10) / 10).toString();
+    return `${sign}${text}${suffix}`;
+  }
+  return `${sign}${Math.round(abs)}`;
+}
+
 /** Formats an entry the way it should read in a list: `−K 500` for a spend. */
 export function fmtEntry(entry: Expense): string {
   return `${KIND_SIGNS[normalizeKind(entry.kind)]}${fmt(entry.amount)}`;

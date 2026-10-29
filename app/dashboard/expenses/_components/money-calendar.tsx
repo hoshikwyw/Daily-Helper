@@ -1,5 +1,5 @@
 import { monthGrid, monthPrefix, todayISO } from "@/lib/date";
-import { MONTHS, countActiveDays, type DayActivity } from "@/lib/expenses";
+import { MONTHS, countActiveDays, fmtCompactSigned, type DayActivity } from "@/lib/expenses";
 
 const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
@@ -117,7 +117,7 @@ export function MoneyCalendar({
               onClick={() => onSelect(iso)}
               aria-label={label}
               aria-pressed={isSelected}
-              className={`relative h-10 sm:h-11 rounded-lg flex flex-col items-center justify-center text-sm transition-colors ${
+              className={`relative h-10 sm:h-11 lg:h-14 rounded-lg flex flex-col items-center justify-center text-sm transition-colors ${
                 isSelected
                   ? "bg-kv-500 text-white font-semibold"
                   : day
@@ -126,6 +126,23 @@ export function MoneyCalendar({
               } ${isToday && !isSelected ? "ring-1 ring-kv-400/70" : ""}`}
             >
               <span className="leading-none">{Number(iso.slice(-2))}</span>
+              {/* The day's net, wide screens only: a phone cell is too narrow
+                  for figures, so there the dots carry the story alone. */}
+              <span
+                className={`hidden lg:block h-3 mt-0.5 text-[10px] leading-3 tabular-nums ${
+                  isSelected
+                    ? "text-white/90"
+                    : !day
+                      ? ""
+                      : day.net > 0
+                        ? "text-emerald-400"
+                        : day.net < 0
+                          ? "text-rose-400"
+                          : "text-slate-400"
+                }`}
+              >
+                {day ? fmtCompactSigned(day.net) : ""}
+              </span>
               {/* Fixed-height slot so rows don't shift between filled and empty days. */}
               <span className="flex items-center gap-0.5 h-1.5 mt-1">
                 {day?.income && (
