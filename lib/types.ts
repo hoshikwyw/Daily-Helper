@@ -96,8 +96,10 @@ export type Recurrence = {
   cadence: RecurrenceCadence;
   /** Step between occurrences: 1 = every period, 2 = every second period. */
   every: number;
-  /** 0 = Sunday … 6 = Saturday; weekly rules. */
+  /** 0 = Sunday … 6 = Saturday; weekly rules on one day. */
   weekday: number | null;
+  /** Several days a week (same numbering); replaces `weekday` when set. */
+  weekdays: number[] | null;
   /** 1-31, clamped to short months; monthly and yearly rules. */
   day_of_month: number | null;
   /** 1-12; yearly rules. */
@@ -234,6 +236,7 @@ type RecurrenceInsert = {
   cadence: RecurrenceCadence;
   every?: number;
   weekday?: number | null;
+  weekdays?: number[] | null;
   day_of_month?: number | null;
   month?: number | null;
   start_date: string;

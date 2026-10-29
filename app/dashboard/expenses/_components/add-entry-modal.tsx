@@ -8,13 +8,21 @@ import {
   ModalFooter,
   Button,
   Input,
+  toast,
 } from "@kwyw/kayv-glass-ui";
 import { todayISO } from "@/lib/date";
+import {
+  NO_REPEAT,
+  buildSchedule,
+  isRepeatComplete,
+  type RepeatChoice,
+  type Schedule,
+} from "@/lib/recurrence";
 import { RepeatPicker } from "@/components/ui/repeat-picker";
 import { CategoryPicker } from "./category-picker";
 import { KindToggle } from "./kind-toggle";
 import type { NewExpense } from "@/lib/api/expenses";
-import type { EntryKind, RecurrenceCadence } from "@/lib/types";
+import type { EntryKind } from "@/lib/types";
 
 type AddEntryModalProps = {
   open: boolean;
@@ -30,7 +38,7 @@ type AddEntryModalProps = {
    * Persists the entry, or sets up a repeating rule when `repeat` is given;
    * returns true on success.
    */
-  onSubmit: (values: NewExpense, repeat: RecurrenceCadence | null) => Promise<boolean>;
+  onSubmit: (values: NewExpense, repeat: Schedule | null) => Promise<boolean>;
 };
 
 export function AddEntryModal({
@@ -45,7 +53,7 @@ export function AddEntryModal({
   const [category, setCategory] = useState(categories.expense[0]?.name ?? "");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(defaultDate);
-  const [repeat, setRepeat] = useState<RecurrenceCadence | null>(null);
+  const [repeat, setRepeat] = useState<RepeatChoice>(NO_REPEAT);
   const [saving, setSaving] = useState(false);
 
   // The modal stays mounted between uses, so the date is re-seeded on the
@@ -59,7 +67,7 @@ export function AddEntryModal({
       setDate(defaultDate);
       // A repeat chosen then cancelled must not lie in wait for the next
       // one-off entry and turn it into a rule.
-      setRepeat(null);
+      setRepeat(NO_REPEAT);
     }
   }
 
@@ -76,6 +84,10 @@ export function AddEntryModal({
     e.preventDefault();
     const value = parseFloat(amount);
     if (!amount || isNaN(value) || value <= 0) return;
+    if (!isRepeatComplete(repeat)) {
+      toast({ title: "Pick at least one day to repeat on", variant: "danger" });
+      return;
+    }
     setSaving(true);
     const ok = await onSubmit(
       {
@@ -85,7 +97,7 @@ export function AddEntryModal({
         description: description.trim() || null,
         date,
       },
-      repeat
+      buildSchedule(repeat, date)
     );
     setSaving(false);
     if (ok) {
@@ -94,7 +106,7 @@ export function AddEntryModal({
       // picking the chip again.
       setAmount("");
       setDescription("");
-      setRepeat(null);
+      setRepeat(NO_REPEAT);
       onClose();
     }
   }
@@ -145,7 +157,7 @@ export function AddEntryModal({
           <Button variant="primary" type="submit" disabled={saving}>
             {saving
               ? "Saving…"
-              : repeat
+              : repeat.mode !== "never"
                 ? "Set up repeat"
                 : income
                   ? "Add Income"

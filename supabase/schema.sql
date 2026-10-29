@@ -24,6 +24,8 @@ create table if not exists recurrences (
   cadence text not null check (cadence in ('daily', 'weekly', 'monthly', 'yearly')),
   every integer not null default 1 check (every between 1 and 365),
   weekday smallint check (weekday between 0 and 6),
+  -- Several days a week; replaces `weekday` on a weekly rule when set.
+  weekdays smallint[] check (weekdays is null or (array_length(weekdays, 1) between 1 and 7)),
   day_of_month smallint check (day_of_month between 1 and 31),
   month smallint check (month between 1 and 12),
   start_date date not null,

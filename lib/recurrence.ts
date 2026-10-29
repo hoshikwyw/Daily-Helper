@@ -10,7 +10,7 @@ import type { Recurrence, RecurrenceCadence } from "@/lib/types";
 /** The fields that decide when a rule fires. */
 export type Schedule = Pick<
   Recurrence,
-  "cadence" | "every" | "weekday" | "day_of_month" | "month" | "start_date" | "end_date"
+  "cadence" | "every" | "weekday" | "weekdays" | "day_of_month" | "month" | "start_date" | "end_date"
 >;
 
 export const CADENCES: { value: RecurrenceCadence; label: string }[] = [
@@ -19,6 +19,19 @@ export const CADENCES: { value: RecurrenceCadence; label: string }[] = [
   { value: "monthly", label: "Monthly" },
   { value: "yearly", label: "Yearly" },
 ];
+
+/** Monday to Friday, in the 0 = Sunday numbering. */
+export const WEEKDAYS_MON_FRI = [1, 2, 3, 4, 5];
+
+export const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/** The days a weekly rule fires on, sorted and unique; the start weekday when none is set. */
+export function weeklyDays(schedule: Schedule): number[] {
+  if (schedule.weekdays && schedule.weekdays.length > 0) {
+    return [...new Set(schedule.weekdays)].sort((a, b) => a - b);
+  }
+  return [schedule.weekday ?? fromISODate(schedule.start_date).getDay()];
+}
 
 /**
  * How far back the sync will create missed occurrences. Long enough to cover
@@ -46,7 +59,7 @@ export function occurrenceOnOrAfter(schedule: Schedule, date: string): string | 
   const from = date > schedule.start_date ? date : schedule.start_date;
   const every = Math.max(1, schedule.every);
   const start = fromISODate(schedule.start_date);
-  let result: string;
+  let result: string | null = null;
 
   switch (schedule.cadence) {
     case "daily": {
@@ -55,13 +68,21 @@ export function occurrenceOnOrAfter(schedule: Schedule, date: string): string | 
       break;
     }
     case "weekly": {
-      // Anchor on the first date from the start with the right weekday, then
-      // step whole weeks from there.
-      const weekday = schedule.weekday ?? start.getDay();
-      const anchor = addDays(schedule.start_date, (weekday - start.getDay() + 7) % 7);
-      const gap = Math.max(0, daysBetween(anchor, from));
-      const steps = Math.ceil(gap / (7 * every));
-      result = addDays(anchor, steps * 7 * every);
+      // Weeks are counted from the Monday of the start week; with a step of
+      // N only every Nth week fires. Within a firing week, any of the chosen
+      // days counts, so walk day by day from `from` until one matches. The
+      // bound guarantees a hit: a full step of weeks plus one more week.
+      const days = weeklyDays(schedule);
+      const anchorMonday = addDays(schedule.start_date, -((start.getDay() + 6) % 7));
+      let cursor = from;
+      for (let i = 0; i < 7 * every + 7; i++) {
+        const weeksFromAnchor = Math.floor(daysBetween(anchorMonday, cursor) / 7);
+        if (days.includes(fromISODate(cursor).getDay()) && weeksFromAnchor % every === 0) {
+          result = cursor;
+          break;
+        }
+        cursor = addDays(cursor, 1);
+      }
       break;
     }
     case "monthly": {
@@ -92,6 +113,7 @@ export function occurrenceOnOrAfter(schedule: Schedule, date: string): string | 
     }
   }
 
+  if (result === null) return null;
   if (schedule.end_date && result > schedule.end_date) return null;
   return result;
 }
@@ -143,11 +165,62 @@ export function scheduleFromDate(cadence: RecurrenceCadence, date: string): Sche
     cadence,
     every: 1,
     weekday: cadence === "weekly" ? d.getDay() : null,
+    weekdays: null,
     day_of_month: cadence === "monthly" || cadence === "yearly" ? d.getDate() : null,
     month: cadence === "yearly" ? d.getMonth() + 1 : null,
     start_date: date,
     end_date: null,
   };
+}
+
+/** A weekly schedule on a chosen set of days, from `date` onwards. */
+export function scheduleOnWeekdays(days: number[], date: string): Schedule {
+  return {
+    ...scheduleFromDate("weekly", date),
+    weekday: null,
+    weekdays: [...new Set(days)].sort((a, b) => a - b),
+  };
+}
+
+// ── What a form's "Repeat" chips produce ────────────────────────────────────
+
+export type RepeatMode = "never" | "daily" | "weekdays" | "weekly" | "monthly" | "yearly" | "custom";
+
+/** The user's pick; `days` only matters for "custom". */
+export type RepeatChoice = { mode: RepeatMode; days: number[] };
+
+export const NO_REPEAT: RepeatChoice = { mode: "never", days: [] };
+
+export const REPEAT_MODES: { value: RepeatMode; label: string }[] = [
+  { value: "never", label: "Never" },
+  { value: "daily", label: "Daily" },
+  { value: "weekdays", label: "Weekdays" },
+  { value: "weekly", label: "Weekly" },
+  { value: "monthly", label: "Monthly" },
+  { value: "yearly", label: "Yearly" },
+  { value: "custom", label: "Custom days" },
+];
+
+/** False only for "custom" with no day picked, which cannot become a rule. */
+export function isRepeatComplete(choice: RepeatChoice): boolean {
+  return choice.mode !== "custom" || choice.days.length > 0;
+}
+
+/**
+ * The schedule for a choice anchored on `date`, or null for "never" and for
+ * an incomplete custom pick. "Weekdays" is a weekly rule on Monday to Friday.
+ */
+export function buildSchedule(choice: RepeatChoice, date: string): Schedule | null {
+  switch (choice.mode) {
+    case "never":
+      return null;
+    case "weekdays":
+      return scheduleOnWeekdays(WEEKDAYS_MON_FRI, date);
+    case "custom":
+      return choice.days.length > 0 ? scheduleOnWeekdays(choice.days, date) : null;
+    default:
+      return scheduleFromDate(choice.mode, date);
+  }
 }
 
 /** 1 → "1st", 22 → "22nd", 13 → "13th". */
@@ -174,8 +247,13 @@ export function describeSchedule(schedule: Schedule): string {
   switch (schedule.cadence) {
     case "daily":
       return lead;
-    case "weekly":
-      return `${lead} on ${WEEKDAY_NAMES[schedule.weekday ?? start.getDay()]}`;
+    case "weekly": {
+      const days = weeklyDays(schedule);
+      if (days.length === 1) return `${lead} on ${WEEKDAY_NAMES[days[0]]}`;
+      if (every === 1 && days.length === 7) return "Every day";
+      if (every === 1 && days.join() === WEEKDAYS_MON_FRI.join()) return "Weekdays";
+      return `${lead} on ${days.map((d) => WEEKDAY_SHORT[d]).join(", ")}`;
+    }
     case "monthly":
       return `${lead} on the ${ordinal(schedule.day_of_month ?? start.getDate())}`;
     case "yearly": {

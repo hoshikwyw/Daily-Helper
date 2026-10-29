@@ -5,8 +5,7 @@ import { Badge, Button, Tabs, TabList, Tab, TabPanels, TabPanel, toast } from "@
 import { createTask, deleteTask, listTasks, setTaskStatus, type NewTask } from "@/lib/api/tasks";
 import { listProjectOptions } from "@/lib/api/projects";
 import { createRecurrence } from "@/lib/api/recurrences";
-import { describeSchedule, scheduleFromDate } from "@/lib/recurrence";
-import { todayISO } from "@/lib/date";
+import { describeSchedule, type Schedule } from "@/lib/recurrence";
 import { TASK_PRIORITY_VARIANTS, TASK_STATUS_LABELS } from "@/lib/constants";
 import {
   TASK_TABS,
@@ -23,7 +22,7 @@ import { RecurringRulesModal } from "@/components/ui/recurring-rules-modal";
 import { TaskList } from "./_components/task-list";
 import { CreateTaskModal } from "./_components/create-task-modal";
 import { TaskDetailDrawer } from "./_components/task-detail-drawer";
-import type { Project, RecurrenceCadence, Task, TaskStatus } from "@/lib/types";
+import type { Project, Task, TaskStatus } from "@/lib/types";
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -59,15 +58,14 @@ export default function TasksPage() {
     setEditStatus(task.status);
   }
 
-  async function handleCreate(values: NewTask, repeat: RecurrenceCadence | null): Promise<boolean> {
+  async function handleCreate(values: NewTask, repeat: Schedule | null): Promise<boolean> {
     if (repeat) {
       // The rule is the record; the sync creates today's task itself (and
       // any missed ones, when the date is in the past) and reloads the list.
-      const start = values.due_date ?? todayISO();
       const rule = await createRecurrence({
         target: "task",
-        ...scheduleFromDate(repeat, start),
-        next_due: start,
+        ...repeat,
+        next_due: repeat.start_date,
         title: values.title,
         description: values.description ?? null,
         priority: values.priority ?? "medium",

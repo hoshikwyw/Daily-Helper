@@ -1,14 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
-  MAX_BACKFILL_DAYS,
   advanceNextDue,
+  buildSchedule,
   describeSchedule,
+  isRepeatComplete,
+  MAX_BACKFILL_DAYS,
   nextOccurrence,
+  NO_REPEAT,
   occurrenceOnOrAfter,
   occurrencesDue,
   ordinal,
   scheduleFromDate,
+  scheduleOnWeekdays,
   upcomingRules,
+  WEEKDAYS_MON_FRI,
   type Schedule,
 } from "@/lib/recurrence";
 import { addDays } from "@/lib/date";
@@ -18,6 +23,7 @@ function schedule(overrides: Partial<Schedule> & Pick<Schedule, "cadence" | "sta
   return {
     every: 1,
     weekday: null,
+    weekdays: null,
     day_of_month: null,
     month: null,
     end_date: null,
@@ -265,5 +271,78 @@ describe("upcomingRules", () => {
 
   it("is empty when nothing is active", () => {
     expect(upcomingRules(rules.map((r) => ({ ...r, active: false })))).toEqual([]);
+  });
+});
+
+describe("weekly rules on several days", () => {
+  // 2026-11-04 is a Wednesday.
+  const monWedFri = scheduleOnWeekdays([5, 1, 3, 3], "2026-11-04");
+
+  it("normalises the day list", () => {
+    expect(monWedFri.weekdays).toEqual([1, 3, 5]);
+    expect(monWedFri.weekday).toBeNull();
+  });
+
+  it("fires on each chosen day in turn", () => {
+    expect(occurrenceOnOrAfter(monWedFri, "2026-11-04")).toBe("2026-11-04");
+    expect(nextOccurrence(monWedFri, "2026-11-04")).toBe("2026-11-06");
+    expect(nextOccurrence(monWedFri, "2026-11-06")).toBe("2026-11-09");
+    expect(nextOccurrence(monWedFri, "2026-11-09")).toBe("2026-11-11");
+  });
+
+  it("skips the weekend for a weekdays rule started on a Saturday", () => {
+    const weekdays = scheduleOnWeekdays(WEEKDAYS_MON_FRI, "2026-11-07");
+    expect(occurrenceOnOrAfter(weekdays, "2026-11-07")).toBe("2026-11-09");
+    expect(occurrencesDue({ ...weekdays, next_due: "2026-11-07", active: true }, "2026-11-13")).toEqual([
+      "2026-11-09",
+      "2026-11-10",
+      "2026-11-11",
+      "2026-11-12",
+      "2026-11-13",
+    ]);
+  });
+
+  it("honours a step of weeks with several days", () => {
+    // Every second week on Mon and Wed, counted from the week of 2 Nov.
+    const fortnightly = { ...scheduleOnWeekdays([1, 3], "2026-11-02"), every: 2 };
+    expect(occurrenceOnOrAfter(fortnightly, "2026-11-05")).toBe("2026-11-16");
+    expect(nextOccurrence(fortnightly, "2026-11-16")).toBe("2026-11-18");
+    expect(nextOccurrence(fortnightly, "2026-11-18")).toBe("2026-11-30");
+  });
+
+  it("describes the common sets in words", () => {
+    expect(describeSchedule(scheduleOnWeekdays(WEEKDAYS_MON_FRI, "2026-11-04"))).toBe("Weekdays");
+    expect(describeSchedule(monWedFri)).toBe("Weekly on Mon, Wed, Fri");
+    expect(describeSchedule(scheduleOnWeekdays([0, 1, 2, 3, 4, 5, 6], "2026-11-04"))).toBe("Every day");
+    expect(describeSchedule(scheduleOnWeekdays([2], "2026-11-04"))).toBe("Weekly on Tuesday");
+    expect(describeSchedule({ ...scheduleOnWeekdays([1, 3], "2026-11-02"), every: 2 })).toBe(
+      "Every 2 weeks on Mon, Wed"
+    );
+  });
+});
+
+describe("buildSchedule", () => {
+  it("is null for never and for an empty custom pick", () => {
+    expect(buildSchedule(NO_REPEAT, "2026-11-04")).toBeNull();
+    expect(buildSchedule({ mode: "custom", days: [] }, "2026-11-04")).toBeNull();
+    expect(isRepeatComplete({ mode: "custom", days: [] })).toBe(false);
+    expect(isRepeatComplete(NO_REPEAT)).toBe(true);
+  });
+
+  it("maps weekdays and custom picks to weekly schedules", () => {
+    expect(buildSchedule({ mode: "weekdays", days: [] }, "2026-11-04")).toMatchObject({
+      cadence: "weekly",
+      weekdays: WEEKDAYS_MON_FRI,
+    });
+    expect(buildSchedule({ mode: "custom", days: [6, 0] }, "2026-11-04")).toMatchObject({
+      cadence: "weekly",
+      weekdays: [0, 6],
+    });
+  });
+
+  it("maps the plain cadences through scheduleFromDate", () => {
+    expect(buildSchedule({ mode: "monthly", days: [] }, "2026-11-04")).toEqual(
+      scheduleFromDate("monthly", "2026-11-04")
+    );
   });
 });

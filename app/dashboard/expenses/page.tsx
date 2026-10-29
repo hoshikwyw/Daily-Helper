@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button, Tabs, TabList, Tab, TabPanels, TabPanel, toast } from "@kwyw/kayv-glass-ui";
 import { createExpense, deleteExpense, type NewExpense } from "@/lib/api/expenses";
 import { createRecurrence } from "@/lib/api/recurrences";
-import { describeSchedule, scheduleFromDate } from "@/lib/recurrence";
+import { describeSchedule, type Schedule } from "@/lib/recurrence";
 import { useBudgets } from "@/hooks/use-budgets";
 import { useExpenseCategories } from "@/hooks/use-expense-categories";
 import { useExpenseYear } from "@/hooks/use-expense-year";
@@ -41,7 +41,7 @@ import { MonthlyTab } from "./_components/monthly-tab";
 import { YearlyTab } from "./_components/yearly-tab";
 import { AddEntryModal } from "./_components/add-entry-modal";
 import { ManageCategoriesModal } from "./_components/manage-categories-modal";
-import type { EntryKind, Expense, RecurrenceCadence } from "@/lib/types";
+import type { EntryKind, Expense } from "@/lib/types";
 
 export default function ExpensesPage() {
   const today = new Date();
@@ -96,17 +96,14 @@ export default function ExpensesPage() {
     setSelectedDate((prev) => sameDayInMonth(prev, year, month));
   }
 
-  async function handleCreateEntry(
-    values: NewExpense,
-    repeat: RecurrenceCadence | null
-  ): Promise<boolean> {
+  async function handleCreateEntry(values: NewExpense, repeat: Schedule | null): Promise<boolean> {
     if (repeat) {
       // The rule is the record; the sync creates the entry itself (and any
       // missed ones, when the date is in the past) and refetches the year.
       const rule = await createRecurrence({
         target: "expense",
-        ...scheduleFromDate(repeat, values.date),
-        next_due: values.date,
+        ...repeat,
+        next_due: repeat.start_date,
         kind: values.kind,
         amount: values.amount,
         category: values.category,
