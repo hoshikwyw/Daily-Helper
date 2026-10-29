@@ -5,6 +5,7 @@ import {
   daysInMonth,
   formatDate,
   formatMonthDay,
+  mondayOf,
   fromISODate,
   monthGrid,
   monthPrefix,
@@ -200,5 +201,14 @@ describe("formatMonthDay", () => {
     const text = formatMonthDay("2026-11-02");
     expect(text).toContain("2");
     expect(text).not.toContain("2026");
+  });
+});
+
+describe("mondayOf", () => {
+  it("returns the same day for a Monday and the previous Monday otherwise", () => {
+    expect(mondayOf("2026-11-02")).toBe("2026-11-02");
+    expect(mondayOf("2026-11-04")).toBe("2026-11-02");
+    expect(mondayOf("2026-11-08")).toBe("2026-11-02");
+    expect(mondayOf("2026-11-01")).toBe("2026-10-26");
   });
 });

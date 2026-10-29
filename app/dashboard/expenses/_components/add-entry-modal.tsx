@@ -10,6 +10,7 @@ import {
   Input,
   toast,
 } from "@kwyw/kayv-glass-ui";
+import { ModalForm } from "@/components/ui/modal-form";
 import { todayISO } from "@/lib/date";
 import {
   NO_REPEAT,
@@ -114,7 +115,7 @@ export function AddEntryModal({
   return (
     <Modal open={open} onClose={onClose} size="sm">
       <ModalHeader>{income ? "Add Income" : "Add Expense"}</ModalHeader>
-      <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
+      <ModalForm onSubmit={handleSubmit}>
         <ModalBody>
           <div className="space-y-4">
             {/* Ledger switch — money out or money in */}
@@ -164,7 +165,7 @@ export function AddEntryModal({
                   : "Add Expense"}
           </Button>
         </ModalFooter>
-      </form>
+      </ModalForm>
     </Modal>
   );
 }

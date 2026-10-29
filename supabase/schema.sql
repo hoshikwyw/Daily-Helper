@@ -25,7 +25,14 @@ create table if not exists recurrences (
   every integer not null default 1 check (every between 1 and 365),
   weekday smallint check (weekday between 0 and 6),
   -- Several days a week; replaces `weekday` on a weekly rule when set.
-  weekdays smallint[] check (weekdays is null or (array_length(weekdays, 1) between 1 and 7)),
+  weekdays smallint[] check (
+    weekdays is null
+    or (
+      cardinality(weekdays) between 1 and 7
+      and array_position(weekdays, null) is null
+      and weekdays <@ array[0, 1, 2, 3, 4, 5, 6]::smallint[]
+    )
+  ),
   day_of_month smallint check (day_of_month between 1 and 31),
   month smallint check (month between 1 and 12),
   start_date date not null,

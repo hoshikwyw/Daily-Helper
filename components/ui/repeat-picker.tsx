@@ -34,8 +34,10 @@ const CHIP_OFF = "border-white/10 bg-white/5 text-slate-400 hover:bg-white/10";
 export function RepeatPicker({ value, onChange, date, label = "Repeat" }: RepeatPickerProps) {
   function pickMode(mode: RepeatMode) {
     if (mode === "custom") {
-      // Start the custom pick from the form's own day so it is never empty.
-      const days = value.days.length > 0 ? value.days : [fromISODate(date).getDay()];
+      // Start the custom pick from the form's own day so it is never empty;
+      // with no date yet there is nothing to seed from, and the hint asks.
+      const seed = date ? [fromISODate(date).getDay()] : [];
+      const days = value.days.length > 0 ? value.days : seed;
       onChange({ mode, days });
       return;
     }

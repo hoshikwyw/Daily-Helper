@@ -151,3 +151,9 @@ export function daysBetween(from: string, to: string): number {
 export function formatMonthDay(value: Date | string): string {
   return asDate(value).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
+
+/** The Monday on or before `iso` — the start of its week, Monday-first like the calendars. */
+export function mondayOf(iso: string): string {
+  const day = fromISODate(iso).getDay();
+  return addDays(iso, -((day + 6) % 7));
+}

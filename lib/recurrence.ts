@@ -1,4 +1,4 @@
-import { addDays, daysBetween, daysInMonth, fromISODate, toISODate } from "@/lib/date";
+import { addDays, daysBetween, daysInMonth, fromISODate, mondayOf, toISODate } from "@/lib/date";
 import { MONTHS } from "@/lib/expenses";
 import type { Recurrence, RecurrenceCadence } from "@/lib/types";
 
@@ -13,23 +13,21 @@ export type Schedule = Pick<
   "cadence" | "every" | "weekday" | "weekdays" | "day_of_month" | "month" | "start_date" | "end_date"
 >;
 
-export const CADENCES: { value: RecurrenceCadence; label: string }[] = [
-  { value: "daily", label: "Daily" },
-  { value: "weekly", label: "Weekly" },
-  { value: "monthly", label: "Monthly" },
-  { value: "yearly", label: "Yearly" },
-];
-
 /** Monday to Friday, in the 0 = Sunday numbering. */
 export const WEEKDAYS_MON_FRI = [1, 2, 3, 4, 5];
 
 export const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-/** The days a weekly rule fires on, sorted and unique; the start weekday when none is set. */
+/** Sorted, unique, and only real weekdays 0-6; anything else (NaN, 7, null) is dropped. */
+export function normaliseDays(days: readonly (number | null)[]): number[] {
+  const valid = days.filter((d): d is number => Number.isInteger(d) && d! >= 0 && d! <= 6);
+  return [...new Set(valid)].sort((a, b) => a - b);
+}
+
+/** The days a weekly rule fires on; the start weekday when none is set. */
 export function weeklyDays(schedule: Schedule): number[] {
-  if (schedule.weekdays && schedule.weekdays.length > 0) {
-    return [...new Set(schedule.weekdays)].sort((a, b) => a - b);
-  }
+  const days = schedule.weekdays ? normaliseDays(schedule.weekdays) : [];
+  if (days.length > 0) return days;
   return [schedule.weekday ?? fromISODate(schedule.start_date).getDay()];
 }
 
@@ -68,13 +66,18 @@ export function occurrenceOnOrAfter(schedule: Schedule, date: string): string | 
       break;
     }
     case "weekly": {
-      // Weeks are counted from the Monday of the start week; with a step of
-      // N only every Nth week fires. Within a firing week, any of the chosen
-      // days counts, so walk day by day from `from` until one matches. The
+      // The first firing week is the one holding the first chosen day on or
+      // after the start; with a step of N, every Nth week from there fires.
+      // Anchoring on that first occurrence (not the start date) keeps the
+      // phase of a single-day rule that starts mid-week, e.g. "Mondays,
+      // fortnightly" created on a Wednesday fires the coming Monday first.
+      // Within a firing week any chosen day counts, so walk day by day; the
       // bound guarantees a hit: a full step of weeks plus one more week.
       const days = weeklyDays(schedule);
-      const anchorMonday = addDays(schedule.start_date, -((start.getDay() + 6) % 7));
-      let cursor = from;
+      let anchor = schedule.start_date;
+      while (!days.includes(fromISODate(anchor).getDay())) anchor = addDays(anchor, 1);
+      const anchorMonday = mondayOf(anchor);
+      let cursor = from > anchor ? from : anchor;
       for (let i = 0; i < 7 * every + 7; i++) {
         const weeksFromAnchor = Math.floor(daysBetween(anchorMonday, cursor) / 7);
         if (days.includes(fromISODate(cursor).getDay()) && weeksFromAnchor % every === 0) {
@@ -121,6 +124,16 @@ export function occurrenceOnOrAfter(schedule: Schedule, date: string): string | 
 /** The first occurrence strictly after `date`, or null when the rule has ended. */
 export function nextOccurrence(schedule: Schedule, date: string): string | null {
   return occurrenceOnOrAfter(schedule, addDays(date, 1));
+}
+
+/**
+ * The first date a new rule fires: what its `next_due` should be stored as.
+ * Not simply the start date — a weekdays rule started on a Saturday first
+ * fires on Monday. Falls back to the start date for a rule that can never
+ * fire, so the sync retires it instead of a bad row being written.
+ */
+export function firstOccurrence(schedule: Schedule): string {
+  return occurrenceOnOrAfter(schedule, schedule.start_date) ?? schedule.start_date;
 }
 
 /**
@@ -178,7 +191,7 @@ export function scheduleOnWeekdays(days: number[], date: string): Schedule {
   return {
     ...scheduleFromDate("weekly", date),
     weekday: null,
-    weekdays: [...new Set(days)].sort((a, b) => a - b),
+    weekdays: normaliseDays(days),
   };
 }
 
@@ -201,9 +214,9 @@ export const REPEAT_MODES: { value: RepeatMode; label: string }[] = [
   { value: "custom", label: "Custom days" },
 ];
 
-/** False only for "custom" with no day picked, which cannot become a rule. */
+/** False only for "custom" with no real day picked, which cannot become a rule. */
 export function isRepeatComplete(choice: RepeatChoice): boolean {
-  return choice.mode !== "custom" || choice.days.length > 0;
+  return choice.mode !== "custom" || normaliseDays(choice.days).length > 0;
 }
 
 /**
@@ -217,7 +230,7 @@ export function buildSchedule(choice: RepeatChoice, date: string): Schedule | nu
     case "weekdays":
       return scheduleOnWeekdays(WEEKDAYS_MON_FRI, date);
     case "custom":
-      return choice.days.length > 0 ? scheduleOnWeekdays(choice.days, date) : null;
+      return normaliseDays(choice.days).length > 0 ? scheduleOnWeekdays(choice.days, date) : null;
     default:
       return scheduleFromDate(choice.mode, date);
   }

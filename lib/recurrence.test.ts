@@ -3,9 +3,11 @@ import {
   advanceNextDue,
   buildSchedule,
   describeSchedule,
+  firstOccurrence,
   isRepeatComplete,
   MAX_BACKFILL_DAYS,
   nextOccurrence,
+  normaliseDays,
   NO_REPEAT,
   occurrenceOnOrAfter,
   occurrencesDue,
@@ -344,5 +346,29 @@ describe("buildSchedule", () => {
     expect(buildSchedule({ mode: "monthly", days: [] }, "2026-11-04")).toEqual(
       scheduleFromDate("monthly", "2026-11-04")
     );
+  });
+});
+
+describe("phase of stepped weekly rules", () => {
+  it("anchors a single-day fortnightly rule on its first matching day, not the start week", () => {
+    // Created on Wednesday 4 Nov for Mondays, every 2 weeks: the coming Monday
+    // the 9th is the first firing, then the 23rd — not the 16th.
+    const mondays = schedule({ cadence: "weekly", start_date: "2026-11-04", weekday: 1, every: 2 });
+    expect(occurrenceOnOrAfter(mondays, "2026-11-04")).toBe("2026-11-09");
+    expect(nextOccurrence(mondays, "2026-11-09")).toBe("2026-11-23");
+    expect(nextOccurrence(mondays, "2026-11-23")).toBe("2026-12-07");
+  });
+});
+
+describe("normaliseDays and firstOccurrence", () => {
+  it("drops anything that is not a weekday number", () => {
+    expect(normaliseDays([NaN, 7, -1, null, 3, 3, 1])).toEqual([1, 3]);
+    expect(isRepeatComplete({ mode: "custom", days: [NaN] })).toBe(false);
+  });
+
+  it("gives the first real firing date for a new rule", () => {
+    // Weekdays rule started on Saturday 7 Nov first fires Monday the 9th.
+    expect(firstOccurrence(scheduleOnWeekdays(WEEKDAYS_MON_FRI, "2026-11-07"))).toBe("2026-11-09");
+    expect(firstOccurrence(scheduleFromDate("monthly", "2026-11-01"))).toBe("2026-11-01");
   });
 });

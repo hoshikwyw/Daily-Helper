@@ -51,7 +51,8 @@ Existing projects need `supabase/migrations/003_budgets.sql` applied once.
 
 ### Recurring entries and tasks
 
-Any money entry or task can repeat daily, weekly, monthly, or yearly: pick a
+Any money entry or task can repeat daily, on weekdays, weekly, monthly, yearly,
+or on a custom set of days: pick a
 **Repeat** option in the form. The rule is stored once in the `recurrences`
 table, and real rows are created by a sync that runs when the dashboard opens
 and whenever the app comes back on a later day (browser tab or native resume).
@@ -61,7 +62,8 @@ devices. The **⟳ Recurring** button on the Money and Tasks pages lists, pauses
 and deletes rules; deleting a rule keeps what it already created. The
 scheduling maths lives in `lib/recurrence.ts` and is covered by tests.
 
-Existing projects need `supabase/migrations/002_recurrences.sql` applied once.
+Existing projects need `supabase/migrations/002_recurrences.sql` and
+`005_recurrence_weekdays.sql` applied once.
 
 ---
 

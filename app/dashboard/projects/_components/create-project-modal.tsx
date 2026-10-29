@@ -9,6 +9,7 @@ import {
   Button,
   Input,
 } from "@kwyw/kayv-glass-ui";
+import { ModalForm } from "@/components/ui/modal-form";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { PROJECT_COLORS } from "@/lib/constants";
 import { parseTechStack } from "@/lib/projects";
@@ -56,7 +57,7 @@ export function CreateProjectModal({ open, onClose, onSubmit }: CreateProjectMod
   return (
     <Modal open={open} onClose={onClose} size="md">
       <ModalHeader>New Project</ModalHeader>
-      <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
+      <ModalForm onSubmit={handleSubmit}>
         <ModalBody>
           <div className="space-y-4">
             <Input
@@ -100,7 +101,7 @@ export function CreateProjectModal({ open, onClose, onSubmit }: CreateProjectMod
             {saving ? "Creating…" : "Create Project"}
           </Button>
         </ModalFooter>
-      </form>
+      </ModalForm>
     </Modal>
   );
 }

@@ -1,5 +1,5 @@
 import { MOODS } from "@/lib/constants";
-import { addDays, fromISODate, toISODate } from "@/lib/date";
+import { addDays, mondayOf, toISODate } from "@/lib/date";
 import {
   filterByKind,
   fmt,
@@ -25,10 +25,7 @@ export type WeekRange = {
 
 /** The Monday-to-Sunday week containing `date`. */
 export function weekOf(date: string): WeekRange {
-  const day = fromISODate(date).getDay();
-  // getDay is 0 for Sunday; shift so Monday is 0.
-  const sinceMonday = (day + 6) % 7;
-  const from = addDays(date, -sinceMonday);
+  const from = mondayOf(date);
   return { from, to: addDays(from, 6) };
 }
 

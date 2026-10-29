@@ -5,7 +5,7 @@ import { Badge, Button, Tabs, TabList, Tab, TabPanels, TabPanel, toast } from "@
 import { createTask, deleteTask, listTasks, setTaskStatus, type NewTask } from "@/lib/api/tasks";
 import { listProjectOptions } from "@/lib/api/projects";
 import { createRecurrence } from "@/lib/api/recurrences";
-import { describeSchedule, type Schedule } from "@/lib/recurrence";
+import { describeSchedule, firstOccurrence, type Schedule } from "@/lib/recurrence";
 import { TASK_PRIORITY_VARIANTS, TASK_STATUS_LABELS } from "@/lib/constants";
 import {
   TASK_TABS,
@@ -65,7 +65,7 @@ export default function TasksPage() {
       const rule = await createRecurrence({
         target: "task",
         ...repeat,
-        next_due: repeat.start_date,
+        next_due: firstOccurrence(repeat),
         title: values.title,
         description: values.description ?? null,
         priority: values.priority ?? "medium",

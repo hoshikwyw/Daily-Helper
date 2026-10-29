@@ -10,6 +10,7 @@ import {
   Input,
   toast,
 } from "@kwyw/kayv-glass-ui";
+import { ModalForm } from "@/components/ui/modal-form";
 import { NativeSelect } from "@/components/ui/native-select";
 import { RepeatPicker } from "@/components/ui/repeat-picker";
 import { TASK_PRIORITY_OPTIONS } from "@/lib/constants";
@@ -85,7 +86,7 @@ export function CreateTaskModal({ open, onClose, projects, onSubmit }: CreateTas
   return (
     <Modal open={open} onClose={onClose} size="md">
       <ModalHeader>New Task</ModalHeader>
-      <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
+      <ModalForm onSubmit={handleSubmit}>
         <ModalBody>
           <div className="space-y-4">
             <Input
@@ -139,7 +140,7 @@ export function CreateTaskModal({ open, onClose, projects, onSubmit }: CreateTas
             {saving ? "Saving…" : repeat.mode !== "never" ? "Set up repeat" : "Create Task"}
           </Button>
         </ModalFooter>
-      </form>
+      </ModalForm>
     </Modal>
   );
 }

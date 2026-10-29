@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button, Tabs, TabList, Tab, TabPanels, TabPanel, toast } from "@kwyw/kayv-glass-ui";
 import { createExpense, deleteExpense, type NewExpense } from "@/lib/api/expenses";
 import { createRecurrence } from "@/lib/api/recurrences";
-import { describeSchedule, type Schedule } from "@/lib/recurrence";
+import { describeSchedule, firstOccurrence, type Schedule } from "@/lib/recurrence";
 import { useBudgets } from "@/hooks/use-budgets";
 import { useExpenseCategories } from "@/hooks/use-expense-categories";
 import { useExpenseYear } from "@/hooks/use-expense-year";
@@ -103,7 +103,7 @@ export default function ExpensesPage() {
       const rule = await createRecurrence({
         target: "expense",
         ...repeat,
-        next_due: repeat.start_date,
+        next_due: firstOccurrence(repeat),
         kind: values.kind,
         amount: values.amount,
         category: values.category,
