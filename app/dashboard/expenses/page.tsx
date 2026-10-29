@@ -119,6 +119,13 @@ export default function ExpensesPage() {
     setActiveTab("daily");
   }
 
+  // From the Yearly overview: open that month of the viewed year on Monthly.
+  function handleJumpToMonth(month: number) {
+    setSelectedMonth(month);
+    setSelectedMonthYear(selectedYear);
+    setActiveTab("monthly");
+  }
+
   async function handleCreateEntry(values: NewExpense): Promise<boolean> {
     const created = await createExpense(values);
     if (!created) return false;
@@ -306,7 +313,11 @@ export default function ExpensesPage() {
                 yearList={yearList}
                 entries={entries}
                 monthlyTotals={monthlyTotals}
+                activity={dayActivity}
+                loading={loading}
                 colorMap={colorMap}
+                onDayPick={handleJumpToDay}
+                onMonthPick={handleJumpToMonth}
                 onExport={() =>
                   handleExportImage("Yearly", String(selectedYear), undefined, entries)
                 }
