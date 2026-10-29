@@ -119,6 +119,21 @@ export type Recurrence = {
   updated_at: string;
 };
 
+/**
+ * A monthly spending limit for one expense category, effective from `month`
+ * (always the first of the month) until a later row replaces it. An amount of
+ * 0 switches the budget off from that month on.
+ */
+export type Budget = {
+  id: string;
+  user_id: string;
+  category: string;
+  month: string;
+  amount: number;
+  created_at: string;
+  updated_at: string;
+};
+
 // Insert shapes mirror the SQL schema: `user_id` and genuinely-required columns
 // are mandatory; anything nullable or carrying a DB default is optional. Update
 // shapes are `Partial<Insert>` — every writable column, all optional.
@@ -168,6 +183,13 @@ type CategoryInsert = {
   kind?: EntryKind;
   name: string;
   color?: string;
+};
+
+type BudgetInsert = {
+  user_id: string;
+  category: string;
+  month: string;
+  amount: number;
 };
 
 type RecurrenceInsert = {
@@ -228,6 +250,12 @@ export interface Database {
         Row: Recurrence;
         Insert: RecurrenceInsert;
         Update: Partial<RecurrenceInsert>;
+        Relationships: [];
+      };
+      budgets: {
+        Row: Budget;
+        Insert: BudgetInsert;
+        Update: Partial<BudgetInsert>;
         Relationships: [];
       };
     };

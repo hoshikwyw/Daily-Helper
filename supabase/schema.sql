@@ -116,6 +116,21 @@ create table if not exists expense_categories (
   unique (user_id, kind, name)
 );
 
+-- Monthly spending limits per expense category. A month with no row inherits
+-- the most recent earlier one; an amount of 0 switches the budget off from
+-- that month on. `month` is always the first of the month. See
+-- migrations/003_budgets.sql.
+create table if not exists budgets (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  category text not null,
+  month date not null,
+  amount decimal(10,2) not null check (amount >= 0),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, category, month)
+);
+
 -- Auto-update updated_at
 create or replace function update_updated_at()
 returns trigger as $$
@@ -145,6 +160,10 @@ drop trigger if exists recurrences_updated_at on recurrences;
 create trigger recurrences_updated_at before update on recurrences
   for each row execute function update_updated_at();
 
+drop trigger if exists budgets_updated_at on budgets;
+create trigger budgets_updated_at before update on budgets
+  for each row execute function update_updated_at();
+
 -- Row Level Security
 alter table projects enable row level security;
 alter table tasks enable row level security;
@@ -152,6 +171,7 @@ alter table journal_entries enable row level security;
 alter table expenses enable row level security;
 alter table expense_categories enable row level security;
 alter table recurrences enable row level security;
+alter table budgets enable row level security;
 
 create policy "Own data only" on projects for all using (auth.uid() = user_id);
 create policy "Own data only" on tasks for all using (auth.uid() = user_id);
@@ -159,3 +179,4 @@ create policy "Own data only" on journal_entries for all using (auth.uid() = use
 create policy "Own data only" on expenses for all using (auth.uid() = user_id);
 create policy "Own data only" on expense_categories for all using (auth.uid() = user_id);
 create policy "Own data only" on recurrences for all using (auth.uid() = user_id);
+create policy "Own data only" on budgets for all using (auth.uid() = user_id);
