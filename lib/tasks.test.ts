@@ -5,6 +5,8 @@ import {
   emptyLabelForTab,
   filterByTab,
   projectNameById,
+  taskDraft,
+  taskPatch,
 } from "@/lib/tasks";
 import { progressPercent, progressVariant } from "@/lib/progress";
 import type { Project, Task, TaskStatus } from "@/lib/types";
@@ -100,5 +102,42 @@ describe("progress", () => {
     expect(progressVariant(99)).toBe("primary");
     expect(progressVariant(100)).toBe("success");
     expect(progressVariant(0)).toBe("primary");
+  });
+});
+
+describe("editing a task", () => {
+  const original = {
+    id: "t1",
+    title: "Write report",
+    description: null,
+    priority: "medium",
+    project_id: null,
+    due_date: "2026-11-10",
+    status: "todo",
+  } as Task;
+
+  it("turns a task into form values with no nulls", () => {
+    expect(taskDraft(original)).toEqual({
+      title: "Write report",
+      description: "",
+      priority: "medium",
+      project_id: "",
+      due_date: "2026-11-10",
+      status: "todo",
+    });
+  });
+
+  it("patches only what changed, mapping blanks back to null", () => {
+    const draft = { ...taskDraft(original), description: "  with charts ", due_date: "", status: "done" as const };
+    expect(taskPatch(original, draft)).toEqual({
+      description: "with charts",
+      due_date: null,
+      status: "done",
+    });
+  });
+
+  it("is empty when nothing changed, and ignores a blanked title", () => {
+    expect(taskPatch(original, taskDraft(original))).toEqual({});
+    expect(taskPatch(original, { ...taskDraft(original), title: "   " })).toEqual({});
   });
 });

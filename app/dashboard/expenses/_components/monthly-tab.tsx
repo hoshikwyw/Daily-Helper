@@ -40,6 +40,8 @@ type MonthlyTabProps = {
   category: string | null;
   onCategoryChange: (category: string | null) => void;
   onDelete: (id: string) => void;
+  /** Opens an entry for editing. */
+  onEdit: (entry: Expense) => void;
   onSetBudgets: () => void;
   onExport: () => void;
 };
@@ -59,6 +61,7 @@ export function MonthlyTab({
   category,
   onCategoryChange,
   onDelete,
+  onEdit,
   onSetBudgets,
   onExport,
 }: MonthlyTabProps) {
@@ -160,6 +163,7 @@ export function MonthlyTab({
                     expense={entry}
                     colorMap={colorMap}
                     onDelete={onDelete}
+                    onEdit={onEdit}
                   />
                 ))}
               </div>

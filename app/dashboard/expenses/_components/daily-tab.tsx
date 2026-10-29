@@ -21,6 +21,8 @@ type DailyTabProps = {
   entries: Expense[];
   colorMap: ColorMap;
   onDelete: (id: string) => void;
+  /** Opens an entry for editing. */
+  onEdit: (entry: Expense) => void;
   /** Opens the add-entry form, pre-dated to the selected day. */
   onAdd: () => void;
   onExport: () => void;
@@ -37,6 +39,7 @@ export function DailyTab({
   entries,
   colorMap,
   onDelete,
+  onEdit,
   onAdd,
   onExport,
 }: DailyTabProps) {
@@ -111,6 +114,7 @@ export function DailyTab({
                     expense={entry}
                     colorMap={colorMap}
                     onDelete={onDelete}
+                    onEdit={onEdit}
                   />
                 ))}
               </div>

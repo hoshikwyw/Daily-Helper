@@ -109,3 +109,23 @@ export async function deleteTask(id: string): Promise<boolean> {
   const { error } = await supabase.from("tasks").delete().eq("id", id);
   return !reportError(error);
 }
+
+/**
+ * Edits a task's fields. A status change carries the same `completed_at`
+ * bookkeeping as `setTaskStatus`, so there is one rule for it. Returns the
+ * saved row so local state can mirror it exactly.
+ */
+export async function updateTask(id: string, patch: Partial<NewTask>): Promise<Task | null> {
+  const withCompletion =
+    patch.status === undefined
+      ? patch
+      : { ...patch, completed_at: patch.status === "done" ? new Date().toISOString() : null };
+  const { data, error } = await supabase
+    .from("tasks")
+    .update(withCompletion)
+    .eq("id", id)
+    .select()
+    .single();
+  if (reportError(error)) return null;
+  return data;
+}

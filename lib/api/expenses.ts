@@ -111,3 +111,15 @@ export async function deleteExpenseCategory(id: string): Promise<boolean> {
   const { error } = await supabase.from("expense_categories").delete().eq("id", id);
   return !reportError(error);
 }
+
+/** Edits an entry in place. Returns the saved row so local state can mirror it exactly. */
+export async function updateExpense(id: string, patch: Partial<NewExpense>): Promise<Expense | null> {
+  const { data, error } = await supabase
+    .from("expenses")
+    .update(patch)
+    .eq("id", id)
+    .select()
+    .single();
+  if (reportWriteError(error)) return null;
+  return data ? normalizeEntry(data) : null;
+}

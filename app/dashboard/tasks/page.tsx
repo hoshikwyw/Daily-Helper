@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { Badge, Button, Tabs, TabList, Tab, TabPanels, TabPanel, toast } from "@kwyw/kayv-glass-ui";
-import { createTask, deleteTask, listTasks, setTaskStatus, type NewTask } from "@/lib/api/tasks";
+import {
+  createTask,
+  deleteTask,
+  listTasks,
+  setTaskStatus,
+  updateTask,
+  type NewTask,
+} from "@/lib/api/tasks";
 import { listProjectOptions } from "@/lib/api/projects";
 import { createRecurrence } from "@/lib/api/recurrences";
 import { describeSchedule, firstOccurrence, type Schedule } from "@/lib/recurrence";
@@ -13,6 +20,9 @@ import {
   emptyLabelForTab,
   filterByTab,
   projectNameById,
+  taskDraft,
+  taskPatch,
+  type TaskDraft,
   type TaskTab,
 } from "@/lib/tasks";
 import { PageContainer } from "@/components/ui/page-container";
@@ -24,6 +34,17 @@ import { CreateTaskModal } from "./_components/create-task-modal";
 import { TaskDetailDrawer } from "./_components/task-detail-drawer";
 import type { Project, Task, TaskStatus } from "@/lib/types";
 
+// What the drawer renders in the instant between a task closing and its draft
+// clearing; never visible for long enough to type into.
+const EMPTY_DRAFT: TaskDraft = {
+  title: "",
+  description: "",
+  priority: "medium",
+  project_id: "",
+  due_date: "",
+  status: "todo",
+};
+
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -33,10 +54,11 @@ export default function TasksPage() {
   const [showRecurring, setShowRecurring] = useState(false);
   const { version: syncVersion, sync } = useRecurrenceSync();
 
-  // Detail drawer. `editStatus` lives here rather than in the drawer so the
-  // pending edit isn't lost while the drawer animates in and out.
+  // Detail drawer. The draft lives here rather than in the drawer so pending
+  // edits aren't lost while the drawer animates in and out.
   const [selected, setSelected] = useState<Task | null>(null);
-  const [editStatus, setEditStatus] = useState<TaskStatus>("todo");
+  const [draft, setDraft] = useState<TaskDraft | null>(null);
+  const [savingTask, setSavingTask] = useState(false);
 
   async function loadData() {
     const [taskRows, projectRows] = await Promise.all([listTasks(), listProjectOptions()]);
@@ -55,7 +77,7 @@ export default function TasksPage() {
 
   function openDetail(task: Task) {
     setSelected(task);
-    setEditStatus(task.status);
+    setDraft(taskDraft(task));
   }
 
   async function handleCreate(values: NewTask, repeat: Schedule | null): Promise<boolean> {
@@ -100,12 +122,20 @@ export default function TasksPage() {
     }
   }
 
-  async function handleStatusUpdate() {
-    if (!selected) return;
-    if (await updateTaskStatus(selected.id, editStatus)) {
+  async function handleSaveTask() {
+    if (!selected || !draft) return;
+    const patch = taskPatch(selected, draft);
+    if (Object.keys(patch).length === 0) {
       setSelected(null);
-      toast({ title: "Status updated", variant: "success" });
+      return;
     }
+    setSavingTask(true);
+    const updated = await updateTask(selected.id, patch);
+    setSavingTask(false);
+    if (!updated) return;
+    setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+    setSelected(null);
+    toast({ title: "Task updated", variant: "success" });
   }
 
   async function handleDelete(id: string) {
@@ -193,11 +223,13 @@ export default function TasksPage() {
 
       <TaskDetailDrawer
         task={selected}
-        projectName={projectName(selected?.project_id ?? null)}
-        status={editStatus}
-        onStatusChange={setEditStatus}
+        projects={projects}
+        draft={draft ?? (selected ? taskDraft(selected) : EMPTY_DRAFT)}
+        onChange={(patch) => setDraft((prev) => (prev ? { ...prev, ...patch } : prev))}
+        dirty={!!selected && !!draft && Object.keys(taskPatch(selected, draft)).length > 0}
+        saving={savingTask}
         onClose={() => setSelected(null)}
-        onSave={handleStatusUpdate}
+        onSave={handleSaveTask}
         onDelete={handleDelete}
       />
     </PageContainer>

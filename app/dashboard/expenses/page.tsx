@@ -6,6 +6,7 @@ import {
   createExpense,
   deleteExpense,
   listExpensesInRange,
+  updateExpense,
   type NewExpense,
 } from "@/lib/api/expenses";
 import { createRecurrence } from "@/lib/api/recurrences";
@@ -55,7 +56,7 @@ export default function ExpensesPage() {
   const [activeTab, setActiveTab] = useState("daily");
 
   const [fetchYear, setFetchYear] = useState(today.getFullYear());
-  const { entries, loading, addEntry, removeEntry } = useExpenseYear(fetchYear);
+  const { entries, loading, addEntry, removeEntry, replaceEntry } = useExpenseYear(fetchYear);
 
   const [selectedDate, setSelectedDate] = useState(toISODate(today));
   // The month the daily calendar is showing. Kept apart from selectedDate so
@@ -72,6 +73,8 @@ export default function ExpensesPage() {
     useExpenseCategories();
 
   const [showCreate, setShowCreate] = useState(false);
+  // The entry open in the form for editing; null means the form creates.
+  const [editingEntry, setEditingEntry] = useState<Expense | null>(null);
   const [showManageCategories, setShowManageCategories] = useState(false);
   const [showRecurring, setShowRecurring] = useState(false);
   const [showBudgets, setShowBudgets] = useState(false);
@@ -139,6 +142,24 @@ export default function ExpensesPage() {
       title: created.kind === "income" ? "Income added" : "Expense added",
       variant: "success",
     });
+    return true;
+  }
+
+  function openEdit(entry: Expense) {
+    setEditingEntry(entry);
+    setShowCreate(true);
+  }
+
+  function closeEntryForm() {
+    setShowCreate(false);
+    setEditingEntry(null);
+  }
+
+  async function handleUpdateEntry(id: string, values: NewExpense): Promise<boolean> {
+    const updated = await updateExpense(id, values);
+    if (!updated) return false;
+    replaceEntry(updated);
+    toast({ title: "Entry updated", variant: "success" });
     return true;
   }
 
@@ -337,6 +358,7 @@ export default function ExpensesPage() {
                 entries={dailyEntries}
                 colorMap={colorMap}
                 onDelete={handleDelete}
+                onEdit={openEdit}
                 onAdd={() => setShowCreate(true)}
                 onExport={() =>
                   handleExportImage(
@@ -365,6 +387,7 @@ export default function ExpensesPage() {
                 category={activeCategory}
                 onCategoryChange={setCategory}
                 onDelete={handleDelete}
+                onEdit={openEdit}
                 onSetBudgets={() => setShowBudgets(true)}
                 onExport={() =>
                   handleExportImage(
@@ -406,7 +429,9 @@ export default function ExpensesPage() {
 
       <AddEntryModal
         open={showCreate}
-        onClose={() => setShowCreate(false)}
+        onClose={closeEntryForm}
+        editing={editingEntry}
+        onUpdate={handleUpdateEntry}
         // The picked day only means something while it is on screen; from the
         // Monthly or Yearly tab the natural default is today.
         defaultDate={activeTab === "daily" ? selectedDate : todayISO()}

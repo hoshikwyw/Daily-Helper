@@ -90,5 +90,24 @@ export function useExpenseYear(year: number) {
     }
   }, []);
 
-  return { entries, loading, addEntry, removeEntry };
+  /**
+   * Mirrors an edited entry. Its date may have moved it to another year, so
+   * it is taken out everywhere first and put back where it now belongs.
+   */
+  const replaceEntry = useCallback(
+    (updated: Expense) => {
+      const updatedYear = fromISODate(updated.date).getFullYear();
+      for (const [cachedYear, rows] of cache.current) {
+        const without = rows.filter((e) => e.id !== updated.id);
+        cache.current.set(cachedYear, cachedYear === updatedYear ? [updated, ...without] : without);
+      }
+      setEntries((prev) => {
+        const without = prev.filter((e) => e.id !== updated.id);
+        return updatedYear === year ? [updated, ...without] : without;
+      });
+    },
+    [year]
+  );
+
+  return { entries, loading, addEntry, removeEntry, replaceEntry };
 }

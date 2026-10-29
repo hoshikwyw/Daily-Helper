@@ -37,3 +37,52 @@ export function projectNameById(projects: Project[], id: string | null): string 
 export function emptyLabelForTab(tab: TaskTab): string {
   return tab === "done" ? "No completed tasks yet." : "No tasks here. Add one!";
 }
+
+// ── Editing ─────────────────────────────────────────────────────────────────
+
+/** The editable fields of a task as form values: strings, never null. */
+export type TaskDraft = {
+  title: string;
+  description: string;
+  priority: Task["priority"];
+  project_id: string;
+  due_date: string;
+  status: TaskStatus;
+};
+
+export function taskDraft(task: Task): TaskDraft {
+  return {
+    title: task.title,
+    description: task.description ?? "",
+    priority: task.priority,
+    project_id: task.project_id ?? "",
+    due_date: task.due_date ?? "",
+    status: task.status,
+  };
+}
+
+/** What an edit writes: every field optional, blanks as null where the row allows it. */
+export type TaskPatch = {
+  title?: string;
+  description?: string | null;
+  priority?: Task["priority"];
+  project_id?: string | null;
+  due_date?: string | null;
+  status?: TaskStatus;
+};
+
+/** The fields the draft changed, in the shape the API takes; empty when nothing did. */
+export function taskPatch(task: Task, draft: TaskDraft): TaskPatch {
+  const patch: TaskPatch = {};
+  const title = draft.title.trim();
+  if (title && title !== task.title) patch.title = title;
+  const description = draft.description.trim() || null;
+  if (description !== task.description) patch.description = description;
+  if (draft.priority !== task.priority) patch.priority = draft.priority;
+  const project_id = draft.project_id || null;
+  if (project_id !== task.project_id) patch.project_id = project_id;
+  const due_date = draft.due_date || null;
+  if (due_date !== task.due_date) patch.due_date = due_date;
+  if (draft.status !== task.status) patch.status = draft.status;
+  return patch;
+}
