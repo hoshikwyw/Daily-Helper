@@ -19,6 +19,7 @@ import { useRecurrenceSync } from "@/components/recurrence-sync";
 import { PageContainer } from "@/components/ui/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { TodaySummaryCards } from "./_components/today-summary-cards";
+import { ReviewNudge } from "./_components/review-nudge";
 import { TodayTasksCard } from "./_components/today-tasks-card";
 import { TodayMoodCard } from "./_components/today-mood-card";
 import { TodayHabitsCard } from "./_components/today-habits-card";
@@ -144,6 +145,8 @@ export default function TodayPage() {
           ) : undefined
         }
       />
+
+      <ReviewNudge date={now} />
 
       <TodaySummaryCards
         done={doneTasks.length}

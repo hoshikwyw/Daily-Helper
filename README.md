@@ -14,7 +14,17 @@ Runs as a web app and, via Capacitor, as native Android and iOS apps from the sa
 | **Tasks** | Create, filter, and manage tasks with priority levels, project links, and repeating tasks |
 | **Projects** | Track projects with status, tech stack, color labels, and linked tasks |
 | **Journal** | Daily journal entries with mood tracking, highlights, and a date picker |
+| **Review** | One page per week — tasks finished against the week before, mood by day, habit dots and streaks, spending and earning with where it went, and the journal highlights, with a Monday nudge on Today |
 | **Money** | Income **and** expense tracker in MMK (K) with daily/monthly/yearly views, a calendar of logged days, what's-left totals, per-category stats for both ledgers, custom categories, monthly budgets per category, repeating entries, and PNG export |
+
+### Weekly review
+
+**Review** in the navigation opens the last completed week, Monday to Sunday,
+with arrows back through earlier weeks. Everything on it is derived from the
+existing tables — no schema change — and the maths lives in `lib/review.ts`
+with tests. Mood tiles and highlight dates deep-link into the Journal
+(`/dashboard/journal?date=YYYY-MM-DD`). On Mondays the Today page shows a
+one-line nudge to open it.
 
 ### Habits
 
