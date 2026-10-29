@@ -22,6 +22,7 @@ import { TodaySummaryCards } from "./_components/today-summary-cards";
 import { TodayTasksCard } from "./_components/today-tasks-card";
 import { TodayMoodCard } from "./_components/today-mood-card";
 import { TodayHabitsCard } from "./_components/today-habits-card";
+import { ManageHabitsModal } from "./_components/manage-habits-modal";
 import { TodayJournalCard } from "./_components/today-journal-card";
 import { TodayProjectsCard } from "./_components/today-projects-card";
 import { TodayMoneyCard } from "./_components/today-money-card";
@@ -46,6 +47,7 @@ export default function TodayPage() {
   const [upcoming, setUpcoming] = useState<Recurrence[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMood, setSelectedMood] = useState<string>("");
+  const [showManageHabits, setShowManageHabits] = useState(false);
 
   const today = todayISO();
   const now = useMemo(() => new Date(), []);
@@ -169,6 +171,7 @@ export default function TodayPage() {
             loaded={habitsState.loaded}
             onToggle={(habitId) => habitsState.toggle(habitId, today)}
             onAdd={(name) => habitsState.addHabit(name)}
+            onManage={() => setShowManageHabits(true)}
           />
           <TodayJournalCard entry={journal} />
         </div>
@@ -184,6 +187,13 @@ export default function TodayPage() {
       />
 
       {projects.length > 0 && <TodayProjectsCard projects={projects} />}
+
+      <ManageHabitsModal
+        open={showManageHabits}
+        onClose={() => setShowManageHabits(false)}
+        habits={habitsState.habits}
+        onPatch={habitsState.patchHabit}
+      />
     </PageContainer>
   );
 }

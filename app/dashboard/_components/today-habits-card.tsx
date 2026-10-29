@@ -12,6 +12,8 @@ type TodayHabitsCardProps = {
   onToggle: (habitId: string) => void;
   /** Adds a habit by name; returns false when the write failed. */
   onAdd: (name: string) => Promise<boolean>;
+  /** Opens the manage modal (emoji, rename, reorder, archive). */
+  onManage: () => void;
 };
 
 /**
@@ -19,7 +21,13 @@ type TodayHabitsCardProps = {
  * today and saves at once, like the mood picker beside it. A quick add field
  * sits underneath so the first habit takes seconds to set up.
  */
-export function TodayHabitsCard({ statuses, loaded, onToggle, onAdd }: TodayHabitsCardProps) {
+export function TodayHabitsCard({
+  statuses,
+  loaded,
+  onToggle,
+  onAdd,
+  onManage,
+}: TodayHabitsCardProps) {
   const [name, setName] = useState("");
   const [adding, setAdding] = useState(false);
   const done = doneTodayCount(statuses);
@@ -100,6 +108,16 @@ export function TodayHabitsCard({ statuses, loaded, onToggle, onAdd }: TodayHabi
             <p className="text-xs text-slate-500">
               {MAX_ACTIVE_HABITS} habits is the limit, so the row stays tappable on a phone.
             </p>
+          )}
+
+          {loaded && statuses.length > 0 && (
+            <button
+              type="button"
+              onClick={onManage}
+              className="text-xs text-kv-400 hover:text-kv-300 transition-colors"
+            >
+              Manage habits →
+            </button>
           )}
         </div>
       </CardContent>

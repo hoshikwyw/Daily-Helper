@@ -10,11 +10,23 @@ Runs as a web app and, via Capacitor, as native Android and iOS apps from the sa
 
 | Module | Description |
 |---|---|
-| **Today** | Daily overview — tasks due today, active projects, mood check-in, journal snapshot, this month's money stats by category, the tightest budget, and upcoming recurring entries |
+| **Today** | Daily overview — tasks due today, active projects, mood check-in, daily habits with streaks, journal snapshot, this month's money stats by category, the tightest budget, and upcoming recurring entries |
 | **Tasks** | Create, filter, and manage tasks with priority levels, project links, and repeating tasks |
 | **Projects** | Track projects with status, tech stack, color labels, and linked tasks |
 | **Journal** | Daily journal entries with mood tracking, highlights, and a date picker |
 | **Money** | Income **and** expense tracker in MMK (K) with daily/monthly/yearly views, a calendar of logged days, what's-left totals, per-category stats for both ledgers, custom categories, monthly budgets per category, repeating entries, and PNG export |
+
+### Habits
+
+The Today page has a row of tappable habit chips — water, exercise, reading,
+whatever you are trying to do daily. Tapping marks today done and saves at
+once; each chip shows its running streak. An unchecked today does not break a
+streak until the day is over. **Manage habits** edits emoji and names, reorders,
+and archives (history is kept and a habit can be restored). Up to eight active
+habits keep the row tappable on a phone. Streak maths lives in `lib/habits.ts`
+and is covered by tests.
+
+Existing projects need `supabase/migrations/004_habits.sql` applied once.
 
 ### Budgets
 
