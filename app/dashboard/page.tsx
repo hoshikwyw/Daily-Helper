@@ -8,8 +8,8 @@ import { getJournalEntry, setJournalMood } from "@/lib/api/journal";
 import { listExpensesInRange } from "@/lib/api/expenses";
 import { listRecurrences } from "@/lib/api/recurrences";
 import { upcomingRules } from "@/lib/recurrence";
-import { formatDayLabel, formatMonthName, monthRange, todayISO } from "@/lib/date";
-import { budgetHeadline, budgetProgress, effectiveBudgets } from "@/lib/budgets";
+import { formatDayLabel, formatMonthName, monthPrefix, monthRange, todayISO } from "@/lib/date";
+import { budgetProgress, effectiveBudgets } from "@/lib/budgets";
 import { useBudgets } from "@/hooks/use-budgets";
 import { useExpenseCategories } from "@/hooks/use-expense-categories";
 import { useSettings } from "@/hooks/use-settings";
@@ -48,11 +48,14 @@ export default function TodayPage() {
   const now = useMemo(() => new Date(), []);
   const { from: monthFrom, to: monthTo } = useMemo(() => monthRange(now), [now]);
 
-  // This month's spending against its limits; `monthFrom` is `YYYY-MM-01`,
-  // so its first seven characters are the month prefix the helpers expect.
+  // This month's spending against its limits.
   const monthBudgets = useMemo(
-    () => budgetProgress(effectiveBudgets(budgets, monthFrom.slice(0, 7)), monthEntries),
-    [budgets, monthFrom, monthEntries]
+    () =>
+      budgetProgress(
+        effectiveBudgets(budgets, monthPrefix(now.getFullYear(), now.getMonth())),
+        monthEntries
+      ),
+    [budgets, now, monthEntries]
   );
 
   async function loadData() {
@@ -159,7 +162,6 @@ export default function TodayPage() {
         entries={monthEntries}
         upcoming={upcoming}
         budgets={monthBudgets}
-        headline={budgetHeadline(monthBudgets)}
         colorMap={colorMap}
         loading={loading}
         monthLabel={formatMonthName(now)}

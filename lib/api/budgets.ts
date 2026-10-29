@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { getUserId, isSchemaError, reportError, reportSchemaError } from "@/lib/db";
+import { budgetMonth } from "@/lib/budgets";
 import type { Budget } from "@/lib/types";
 
 // Data access for the `budgets` table. Which limit applies to a given month
@@ -21,16 +22,18 @@ export async function listBudgets(): Promise<Budget[]> {
 }
 
 /**
- * Sets a category's limit from `month` (`YYYY-MM-01`) onwards, replacing any
- * row already dated that month. An amount of 0 switches the budget off.
+ * Sets a category's limit from the `YYYY-MM` month onwards, replacing any row
+ * already dated that month. An amount of 0 switches the budget off. The row
+ * key (`YYYY-MM-01`) is formed here so callers only ever deal in month prefixes.
  */
 export async function setBudget(
   category: string,
-  month: string,
+  monthPrefix: string,
   amount: number
 ): Promise<Budget | null> {
   const user_id = await getUserId();
   if (!user_id) return null;
+  const month = budgetMonth(monthPrefix);
   const { data, error } = await supabase
     .from("budgets")
     .upsert({ user_id, category, month, amount }, { onConflict: "user_id,category,month" })

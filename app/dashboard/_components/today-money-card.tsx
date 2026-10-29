@@ -1,7 +1,7 @@
 import { Card, CardHeader, CardContent } from "@kwyw/kayv-glass-ui";
 import { KIND_TEXT_COLORS, fmt, fmtEntry, getTotals, type ColorMap } from "@/lib/expenses";
 import { formatDate } from "@/lib/date";
-import type { BudgetProgress } from "@/lib/budgets";
+import { budgetHeadline, type BudgetProgress } from "@/lib/budgets";
 import { SkeletonList } from "@/components/ui/skeleton";
 import { BalanceSummary } from "@/components/ui/balance-summary";
 import { CategorySplit } from "@/components/ui/category-split";
@@ -18,8 +18,6 @@ type TodayMoneyCardProps = {
   upcoming: Recurrence[];
   /** This month's spending against its limits, keyed by category. */
   budgets: Record<string, BudgetProgress>;
-  /** The one budget worth a sentence, from `budgetHeadline`; null without budgets. */
-  headline: BudgetProgress | null;
   colorMap: ColorMap;
   loading: boolean;
   /** Month name for the card heading, e.g. "September". */
@@ -28,7 +26,8 @@ type TodayMoneyCardProps = {
 
 /** "K 12,000 left for Food this month", "Close: …", or "Over on Food by K 3,000". */
 function headlineText(h: BudgetProgress): string {
-  if (h.status === "over") return `Over on ${h.category} by ${fmt(-h.left)}`;
+  // `fmt` drops the sign, so the negative `left` of an overspent budget reads as the overrun.
+  if (h.status === "over") return `Over on ${h.category} by ${fmt(h.left)}`;
   const base = `${fmt(h.left)} left for ${h.category} this month`;
   return h.status === "near" ? `Close: ${base}` : base;
 }
@@ -43,12 +42,12 @@ export function TodayMoneyCard({
   entries,
   upcoming,
   budgets,
-  headline,
   colorMap,
   loading,
   monthLabel,
 }: TodayMoneyCardProps) {
   const totals = getTotals(entries);
+  const headline = budgetHeadline(budgets);
 
   return (
     <Card variant="elevated" className="relative">

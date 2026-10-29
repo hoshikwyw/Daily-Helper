@@ -8,7 +8,7 @@ import { describeSchedule, scheduleFromDate } from "@/lib/recurrence";
 import { useBudgets } from "@/hooks/use-budgets";
 import { useExpenseCategories } from "@/hooks/use-expense-categories";
 import { useExpenseYear } from "@/hooks/use-expense-year";
-import { budgetMonth, budgetProgress, effectiveBudgets } from "@/lib/budgets";
+import { budgetProgress, effectiveBudgets } from "@/lib/budgets";
 import { SetBudgetsModal } from "./_components/set-budgets-modal";
 import { useRecurrenceSync } from "@/components/recurrence-sync";
 import { RecurringRulesModal } from "@/components/ui/recurring-rules-modal";
@@ -153,7 +153,15 @@ export default function ExpensesPage() {
   }
 
   async function handleDeleteCategory(id: string) {
+    const name = customCategories.find((c) => c.id === id)?.name;
     if (!(await removeCategory(id))) return;
+    // A budget is keyed by name, so it would otherwise outlive its category
+    // and keep showing a limit nobody can spend against. End it from this
+    // month on; earlier months keep their history.
+    const thisMonth = monthPrefix(today.getFullYear(), today.getMonth());
+    if (name && effectiveBudgets(budgets, thisMonth)[name]) {
+      await saveBudget(name, thisMonth, 0);
+    }
     toast({ title: "Category removed", variant: "warning" });
   }
 
@@ -349,9 +357,7 @@ export default function ExpensesPage() {
         monthLabel={`${MONTHS[selectedMonth]} ${selectedMonthYear}`}
         categories={allCategories.expense}
         limits={monthLimits}
-        onSave={(category, amount) =>
-          saveBudget(category, budgetMonth(selectedMonthPrefix), amount)
-        }
+        onSave={(category, amount) => saveBudget(category, selectedMonthPrefix, amount)}
       />
 
       <RecurringRulesModal

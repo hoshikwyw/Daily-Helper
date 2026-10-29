@@ -46,11 +46,28 @@ export function SetBudgetsModal({
     return limit ? String(limit) : "";
   }
 
+  // Budgeted categories that no longer exist (deleted after the limit was set)
+  // are listed too, so the limit can still be blanked out.
+  const orphans = Object.keys(limits)
+    .filter((name) => !categories.some((c) => c.name === name))
+    .map((name) => ({ name, color: "#64748b", removed: true }));
+  const rows = [...categories.map((c) => ({ ...c, removed: false })), ...orphans];
+
   async function handleSave() {
-    const changes = Object.entries(drafts)
-      .map(([category, text]) => ({ category, amount: text.trim() === "" ? 0 : Number(text) }))
-      .filter(({ amount }) => !Number.isNaN(amount) && amount >= 0)
-      .filter(({ category, amount }) => amount !== (limits[category] ?? 0));
+    const parsed = Object.entries(drafts).map(([category, text]) => ({
+      category,
+      amount: text.trim() === "" ? 0 : Number(text),
+    }));
+    const invalid = parsed.find(({ amount }) => !Number.isInteger(amount) || amount < 0);
+    if (invalid) {
+      toast({
+        title: `Check the ${invalid.category} limit`,
+        description: "Enter a whole number of K, or leave it blank for no limit.",
+        variant: "danger",
+      });
+      return;
+    }
+    const changes = parsed.filter(({ category, amount }) => amount !== (limits[category] ?? 0));
 
     if (changes.length === 0) {
       onClose();
@@ -75,14 +92,19 @@ export function SetBudgetsModal({
           no limit.
         </p>
         <div className="space-y-3">
-          {categories.map((category) => (
+          {rows.map((category) => (
             <div key={category.name} className="flex items-center gap-3">
               <span
                 className="w-2.5 h-2.5 rounded-full shrink-0"
                 style={{ backgroundColor: category.color }}
               />
               <FormLabel htmlFor={`budget-${category.name}`} mb="1.5">
-                <span className="inline-block w-32 truncate align-middle">{category.name}</span>
+                <span className="inline-block w-32 truncate align-middle">
+                  {category.name}
+                  {category.removed && (
+                    <span className="text-xs text-slate-500"> (removed)</span>
+                  )}
+                </span>
               </FormLabel>
               <div className="relative flex-1 min-w-0">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">

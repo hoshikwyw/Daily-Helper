@@ -107,7 +107,7 @@ export function CategoryBreakdown({
               </span>
               {budget && (
                 <span className={`shrink-0 ${BUDGET_TEXT[budget.status]}`}>
-                  {budget.left >= 0 ? `${fmt(budget.left)} left` : `${fmt(-budget.left)} over`}
+                  {budget.left >= 0 ? `${fmt(budget.left)} left` : `${fmt(budget.left)} over`}
                 </span>
               )}
             </p>

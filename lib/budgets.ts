@@ -48,8 +48,9 @@ export type BudgetProgress = {
   status: BudgetStatus;
 };
 
+/** Landing exactly on the limit is "near", not "over": nothing has been overspent yet. */
 export function budgetStatus(spent: number, limit: number): BudgetStatus {
-  if (spent >= limit) return "over";
+  if (spent > limit) return "over";
   if (spent >= limit * NEAR_THRESHOLD) return "near";
   return "under";
 }
@@ -57,7 +58,8 @@ export function budgetStatus(spent: number, limit: number): BudgetStatus {
 /**
  * Spending against each limit for one month's entries, keyed by category.
  * Every budgeted category is present, even with nothing spent, so a quiet
- * month still shows its headroom.
+ * month still shows its headroom. Limits of zero or less are not budgets and
+ * are skipped, whatever the caller passed.
  */
 export function budgetProgress(
   limits: Record<string, number>,
@@ -69,6 +71,7 @@ export function budgetProgress(
   }
   const progress: Record<string, BudgetProgress> = {};
   for (const [category, limit] of Object.entries(limits)) {
+    if (limit <= 0) continue;
     const spent = spentBy[category] ?? 0;
     progress[category] = {
       category,

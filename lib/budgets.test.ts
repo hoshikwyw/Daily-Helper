@@ -61,8 +61,11 @@ describe("budgetStatus", () => {
     expect(budgetStatus(79, 100)).toBe("under");
     expect(budgetStatus(80, 100)).toBe("near");
     expect(budgetStatus(99, 100)).toBe("near");
-    expect(budgetStatus(100, 100)).toBe("over");
     expect(budgetStatus(150, 100)).toBe("over");
+  });
+
+  it("treats landing exactly on the limit as near, with nothing over", () => {
+    expect(budgetStatus(100, 100)).toBe("near");
   });
 });
 
@@ -103,6 +106,10 @@ describe("budgetProgress", () => {
   it("goes negative and past 100% when over", () => {
     const progress = budgetProgress({ Transport: 20_000 }, [entry("expense", 25_000, "Transport")]);
     expect(progress["Transport"]).toMatchObject({ left: -5_000, pct: 125, status: "over" });
+  });
+
+  it("skips a zero limit rather than dividing by it", () => {
+    expect(budgetProgress({ Transport: 0 }, [entry("expense", 10, "Transport")])).toEqual({});
   });
 });
 
