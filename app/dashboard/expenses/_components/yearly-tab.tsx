@@ -1,7 +1,10 @@
 import { Card, CardHeader, CardContent, Button, Select, Progress } from "@kwyw/kayv-glass-ui";
 import {
+  categoryColor,
   fmt,
   fmtSigned,
+  getCategoryMonthlyTotals,
+  getCategoryOverview,
   getTotals,
   netTextColor,
   type ColorMap,
@@ -9,6 +12,8 @@ import {
 } from "@/lib/expenses";
 import { BalanceSummary } from "@/components/ui/balance-summary";
 import { CategorySplit } from "@/components/ui/category-split";
+import { CategoryFilter } from "@/components/ui/category-filter";
+import { CategoryOverviewCard } from "@/components/ui/category-overview";
 import type { Expense } from "@/lib/types";
 
 type YearlyTabProps = {
@@ -18,6 +23,11 @@ type YearlyTabProps = {
   entries: Expense[];
   monthlyTotals: MonthTotals[];
   colorMap: ColorMap;
+  /** Spending categories to offer as filters. */
+  categoryOptions: { name: string; color: string }[];
+  /** The category in focus, or null for everything. */
+  category: string | null;
+  onCategoryChange: (category: string | null) => void;
   onExport: () => void;
 };
 
@@ -28,6 +38,9 @@ export function YearlyTab({
   entries,
   monthlyTotals,
   colorMap,
+  categoryOptions,
+  category,
+  onCategoryChange,
   onExport,
 }: YearlyTabProps) {
   const totals = getTotals(entries);
@@ -59,62 +72,79 @@ export function YearlyTab({
         </Button>
       </div>
 
-      <BalanceSummary totals={totals} netLabel={`Collected in ${selectedYear}`} />
+      <CategoryFilter options={categoryOptions} value={category} onChange={onCategoryChange} />
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-        {stats.map(({ label, value }) => (
-          <Card key={label} variant="elevated">
+      {category ? (
+        // One category across the year: its total, make-up, share, and the
+        // month-by-month shape, in place of the whole-year figures.
+        <CategoryOverviewCard
+          overview={getCategoryOverview(entries, category)}
+          color={categoryColor(colorMap, "expense", category)}
+          periodLabel={String(selectedYear)}
+          byMonth={getCategoryMonthlyTotals(entries, selectedYear, category)}
+        />
+      ) : (
+        <>
+          <BalanceSummary totals={totals} netLabel={`Collected in ${selectedYear}`} />
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+            {stats.map(({ label, value }) => (
+              <Card key={label} variant="elevated">
+                <CardContent>
+                  <p className="text-slate-400 text-xs">{label}</p>
+                  <p className="text-base sm:text-lg font-semibold text-white mt-0.5 truncate">
+                    {value}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <Card variant="elevated">
+            <CardHeader
+              title="Collected by month"
+              description={
+                bestMonth
+                  ? `Best month: ${bestMonth.month} (${fmtSigned(bestMonth.net)})`
+                  : "Income minus expenses, month by month"
+              }
+            />
             <CardContent>
-              <p className="text-slate-400 text-xs">{label}</p>
-              <p className="text-base sm:text-lg font-semibold text-white mt-0.5 truncate">{value}</p>
+              <div className="space-y-2">
+                {monthlyTotals.map(({ month, income, expense, net, pct }) => {
+                  const idle = income === 0 && expense === 0;
+                  return (
+                    <div key={month} className="flex items-center gap-3">
+                      <span className="text-slate-400 text-xs w-8 shrink-0">{month}</span>
+                      <div className="flex-1">
+                        <Progress
+                          value={pct}
+                          variant={net >= 0 ? "success" : "danger"}
+                          size="sm"
+                        />
+                      </div>
+                      <span
+                        className={`text-xs w-20 sm:w-28 text-right shrink-0 font-medium ${
+                          idle ? "text-slate-500" : netTextColor(net)
+                        }`}
+                      >
+                        {idle ? "—" : fmtSigned(net)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
 
-      <Card variant="elevated">
-        <CardHeader
-          title="Collected by month"
-          description={
-            bestMonth
-              ? `Best month: ${bestMonth.month} (${fmtSigned(bestMonth.net)})`
-              : "Income minus expenses, month by month"
-          }
-        />
-        <CardContent>
-          <div className="space-y-2">
-            {monthlyTotals.map(({ month, income, expense, net, pct }) => {
-              const idle = income === 0 && expense === 0;
-              return (
-                <div key={month} className="flex items-center gap-3">
-                  <span className="text-slate-400 text-xs w-8 shrink-0">{month}</span>
-                  <div className="flex-1">
-                    <Progress
-                      value={pct}
-                      variant={net >= 0 ? "success" : "danger"}
-                      size="sm"
-                    />
-                  </div>
-                  <span
-                    className={`text-xs w-20 sm:w-28 text-right shrink-0 font-medium ${
-                      idle ? "text-slate-500" : netTextColor(net)
-                    }`}
-                  >
-                    {idle ? "—" : fmtSigned(net)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card variant="elevated">
-        <CardHeader title="By category" />
-        <CardContent>
-          <CategorySplit entries={entries} colorMap={colorMap} period="this year" />
-        </CardContent>
-      </Card>
+          <Card variant="elevated">
+            <CardHeader title="By category" />
+            <CardContent>
+              <CategorySplit entries={entries} colorMap={colorMap} period="this year" />
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 }

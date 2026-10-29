@@ -385,3 +385,81 @@ export function netTextColor(net: number): string {
   if (net < 0) return "text-rose-400";
   return "text-slate-400";
 }
+
+// ── One category at a time ──────────────────────────────────────────────────
+
+/** Spending entries in one category. Income is never filtered this way. */
+export function filterByCategory(entries: Expense[], category: string): Expense[] {
+  return entries.filter((e) => normalizeKind(e.kind) === "expense" && e.category === category);
+}
+
+/**
+ * The filter chips to offer: the configured expense categories plus any that
+ * only exist in the data (a custom category deleted after use), so no entry
+ * is unreachable through the filter.
+ */
+export function categoryFilterOptions(
+  configured: { name: string; color: string }[],
+  entries: Expense[]
+): { name: string; color: string }[] {
+  const seen = new Set(configured.map((c) => c.name));
+  const extra: { name: string; color: string }[] = [];
+  for (const entry of filterByKind(entries, "expense")) {
+    if (seen.has(entry.category)) continue;
+    seen.add(entry.category);
+    extra.push({ name: entry.category, color: FALLBACK_CATEGORY_COLOR });
+  }
+  return [...configured, ...extra];
+}
+
+export type CategoryOverview = {
+  category: string;
+  total: number;
+  count: number;
+  average: number;
+  largest: number;
+  /** Share of the period's total spending, 0-100. */
+  share: number;
+};
+
+/** Headline figures for one category over a period, against the period's total spending. */
+export function getCategoryOverview(entries: Expense[], category: string): CategoryOverview {
+  const own = filterByCategory(entries, category);
+  const total = own.reduce((sum, e) => sum + e.amount, 0);
+  const allSpending = filterByKind(entries, "expense").reduce((sum, e) => sum + e.amount, 0);
+  return {
+    category,
+    total,
+    count: own.length,
+    average: own.length > 0 ? Math.round(total / own.length) : 0,
+    largest: own.reduce((max, e) => Math.max(max, e.amount), 0),
+    share: allSpending > 0 ? Math.round((total / allSpending) * 100) : 0,
+  };
+}
+
+export type CategoryMonth = {
+  /** Short month name, e.g. "Jan". */
+  month: string;
+  amount: number;
+  /** Bar width 0-100, scaled to the category's biggest month. */
+  pct: number;
+};
+
+/** One category's spending per month of a year. */
+export function getCategoryMonthlyTotals(
+  entries: Expense[],
+  year: number,
+  category: string
+): CategoryMonth[] {
+  const own = filterByCategory(entries, category);
+  const perMonth = Array.from({ length: 12 }, (_, i) => {
+    const prefix = `${year}-${String(i + 1).padStart(2, "0")}`;
+    return own.filter((e) => e.date.startsWith(prefix)).reduce((sum, e) => sum + e.amount, 0);
+  });
+  const peak = Math.max(...perMonth, 1);
+  return perMonth.map((amount, i) => ({
+    month: MONTHS[i].slice(0, 3),
+    amount,
+    pct: Math.round((amount / peak) * 100),
+  }));
+}

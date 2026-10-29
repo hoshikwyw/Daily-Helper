@@ -192,13 +192,6 @@ export function gatherHighlights(entries: JournalEntry[], week: WeekRange): High
 
 // ── Comparisons and the one-line summary ────────────────────────────────────
 
-export type Delta = { diff: number; direction: "up" | "down" | "same" };
-
-export function delta(current: number, previous: number): Delta {
-  const diff = current - previous;
-  return { diff, direction: diff > 0 ? "up" : diff < 0 ? "down" : "same" };
-}
-
 /**
  * The week in one line, e.g. "6 tasks done · mood mostly good · spent
  * K 240,000". Parts with nothing to say are left out; an empty week reads

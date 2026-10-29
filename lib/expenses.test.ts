@@ -2,13 +2,17 @@ import { describe, expect, it } from "vitest";
 import {
   buildColorMap,
   categoryColor,
+  categoryFilterOptions,
   countActiveDays,
+  filterByCategory,
   filterByKind,
   fmt,
   fmtCompactSigned,
   fmtEntry,
   fmtSigned,
   getCategoryBreakdown,
+  getCategoryMonthlyTotals,
+  getCategoryOverview,
   getCategoryStats,
   getDayActivity,
   getMonthActivity,
@@ -314,5 +318,49 @@ describe("getMonthActivity", () => {
       entry("expense", 2, "Other", "2026-03-05"),
     ]);
     expect(getMonthActivity(activity, 2026)[2]).toMatchObject({ days: 1, count: 2 });
+  });
+});
+
+describe("one category at a time", () => {
+  const entries = [
+    ...SEPTEMBER,
+    entry("expense", 30_000, "Food & Drink", "2026-10-02"),
+    entry("expense", 5_000, "Gym", "2026-09-20"),
+  ];
+
+  it("filters spending in one category and never income", () => {
+    const food = filterByCategory(entries, "Food & Drink");
+    expect(food.map((e) => e.amount)).toEqual([80_000, 20_000, 30_000]);
+    expect(filterByCategory(entries, "Salary")).toEqual([]);
+  });
+
+  it("offers configured categories plus ones that only exist in the data", () => {
+    const options = categoryFilterOptions([{ name: "Food & Drink", color: "#f97316" }], entries);
+    expect(options.map((o) => o.name)).toEqual(["Food & Drink", "Transport", "Gym"]);
+    expect(options[2].color).toBe("#64748b");
+  });
+
+  it("summarises a category against the period's spending", () => {
+    const overview = getCategoryOverview(SEPTEMBER, "Food & Drink");
+    expect(overview).toEqual({
+      category: "Food & Drink",
+      total: 100_000,
+      count: 2,
+      average: 50_000,
+      largest: 80_000,
+      share: 69,
+    });
+  });
+
+  it("is all zeroes for a category with nothing in the period", () => {
+    expect(getCategoryOverview(SEPTEMBER, "Housing")).toMatchObject({ total: 0, count: 0, average: 0, largest: 0, share: 0 });
+  });
+
+  it("gives a category's spending per month, scaled to its biggest month", () => {
+    const months = getCategoryMonthlyTotals(entries, 2026, "Food & Drink");
+    expect(months).toHaveLength(12);
+    expect(months[8]).toEqual({ month: "Sep", amount: 100_000, pct: 100 });
+    expect(months[9]).toEqual({ month: "Oct", amount: 30_000, pct: 30 });
+    expect(months[0]).toEqual({ month: "Jan", amount: 0, pct: 0 });
   });
 });

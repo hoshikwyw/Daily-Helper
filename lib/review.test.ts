@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  delta,
   gatherHighlights,
   inWeek,
   lastCompletedWeek,
@@ -14,6 +13,7 @@ import {
   weekDays,
   weekOf,
 } from "@/lib/review";
+import { delta } from "@/lib/progress";
 import type { EntryKind, Expense, Habit, HabitCheck, JournalEntry, Mood, Task } from "@/lib/types";
 
 // 2026-11-04 is a Wednesday; its week is Mon 2 Nov to Sun 8 Nov.

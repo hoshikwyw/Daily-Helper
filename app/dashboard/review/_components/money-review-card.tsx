@@ -1,9 +1,10 @@
 import { Card, CardHeader, CardContent } from "@kwyw/kayv-glass-ui";
 import { categoryColor, fmt, fmtSigned, type ColorMap } from "@/lib/expenses";
-import { delta, type MoneyReview } from "@/lib/review";
+import type { MoneyReview } from "@/lib/review";
+import { delta } from "@/lib/progress";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FieldLabel } from "@/components/ui/label";
-import { DeltaBadge } from "./delta-badge";
+import { DeltaBadge } from "@/components/ui/delta-badge";
 
 export function MoneyReviewCard({ review, colorMap }: { review: MoneyReview; colorMap: ColorMap }) {
   const { totals, previousTotals, topCategories } = review;

@@ -11,3 +11,11 @@ export function progressPercent(done: number, total: number): number {
 export function progressVariant(percent: number): "success" | "primary" {
   return percent === 100 ? "success" : "primary";
 }
+
+export type Delta = { diff: number; direction: "up" | "down" | "same" };
+
+/** How a figure moved against a previous one, for "▲ 2 vs last week" badges. */
+export function delta(current: number, previous: number): Delta {
+  const diff = current - previous;
+  return { diff, direction: diff > 0 ? "up" : diff < 0 ? "down" : "same" };
+}

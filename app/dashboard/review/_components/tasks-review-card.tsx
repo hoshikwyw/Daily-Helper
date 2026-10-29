@@ -1,10 +1,11 @@
 import { Card, CardHeader, CardContent } from "@kwyw/kayv-glass-ui";
 import { formatDate } from "@/lib/date";
-import { completionDay, delta, type TaskReview } from "@/lib/review";
+import { completionDay, type TaskReview } from "@/lib/review";
+import { delta } from "@/lib/progress";
 import { plural } from "@/lib/text";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FieldLabel } from "@/components/ui/label";
-import { DeltaBadge } from "./delta-badge";
+import { DeltaBadge } from "@/components/ui/delta-badge";
 
 export function TasksReviewCard({ review }: { review: TaskReview }) {
   return (

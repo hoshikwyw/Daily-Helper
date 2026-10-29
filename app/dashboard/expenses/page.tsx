@@ -24,6 +24,8 @@ import {
   KIND_TEXT_COLORS,
   MONTHS,
   buildImageCategories,
+  categoryFilterOptions,
+  filterByCategory,
   fmt,
   fmtEntry,
   fmtSigned,
@@ -68,6 +70,9 @@ export default function ExpensesPage() {
   const [showManageCategories, setShowManageCategories] = useState(false);
   const [showRecurring, setShowRecurring] = useState(false);
   const [showBudgets, setShowBudgets] = useState(false);
+  // One spending category in focus on the Monthly and Yearly tabs; shared so
+  // the choice survives switching between them.
+  const [category, setCategory] = useState<string | null>(null);
   const { sync } = useRecurrenceSync();
   const { budgets, saveBudget } = useBudgets();
 
@@ -211,6 +216,19 @@ export default function ExpensesPage() {
 
   const selectedMonthPrefix = monthPrefix(selectedMonthYear, selectedMonth);
 
+  // The month before, for the category comparison. January's predecessor
+  // lives in another year that is not loaded, so then there is no comparison.
+  const previousMonthEntries = useMemo(() => {
+    if (selectedMonth === 0) return null;
+    const prefix = monthPrefix(selectedMonthYear, selectedMonth - 1);
+    return entries.filter((e) => e.date.startsWith(prefix));
+  }, [entries, selectedMonth, selectedMonthYear]);
+
+  const categoryOptions = useMemo(
+    () => categoryFilterOptions(allCategories.expense, entries),
+    [allCategories, entries]
+  );
+
   const monthlyEntries = useMemo(
     () => entries.filter((e) => e.date.startsWith(selectedMonthPrefix)),
     [entries, selectedMonthPrefix]
@@ -304,18 +322,22 @@ export default function ExpensesPage() {
                 selectedMonthYear={selectedMonthYear}
                 onMonthYearChange={setSelectedMonthYear}
                 entries={monthlyEntries}
+                previousEntries={previousMonthEntries}
                 activity={monthActivity}
                 loading={loading}
                 colorMap={colorMap}
                 budgets={monthBudgets}
+                categoryOptions={categoryOptions}
+                category={category}
+                onCategoryChange={setCategory}
                 onDelete={handleDelete}
                 onSetBudgets={() => setShowBudgets(true)}
                 onExport={() =>
                   handleExportImage(
                     "Monthly",
                     `${MONTHS[selectedMonth]} ${selectedMonthYear}`,
-                    undefined,
-                    monthlyEntries
+                    category ?? undefined,
+                    category ? filterByCategory(monthlyEntries, category) : monthlyEntries
                   )
                 }
               />
@@ -329,8 +351,16 @@ export default function ExpensesPage() {
                 entries={entries}
                 monthlyTotals={monthlyTotals}
                 colorMap={colorMap}
+                categoryOptions={categoryOptions}
+                category={category}
+                onCategoryChange={setCategory}
                 onExport={() =>
-                  handleExportImage("Yearly", String(selectedYear), undefined, entries)
+                  handleExportImage(
+                    "Yearly",
+                    String(selectedYear),
+                    category ?? undefined,
+                    category ? filterByCategory(entries, category) : entries
+                  )
                 }
               />
             </TabPanel>

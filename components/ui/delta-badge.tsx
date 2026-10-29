@@ -1,4 +1,4 @@
-import type { Delta } from "@/lib/review";
+import type { Delta } from "@/lib/progress";
 
 type DeltaBadgeProps = {
   delta: Delta;
