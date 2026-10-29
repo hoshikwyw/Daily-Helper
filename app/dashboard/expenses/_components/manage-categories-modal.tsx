@@ -10,9 +10,9 @@ import {
   Input,
 } from "@kwyw/kayv-glass-ui";
 import { ColorPicker } from "@/components/ui/color-picker";
-import { NativeSelect } from "@/components/ui/native-select";
 import { FieldLabel } from "@/components/ui/label";
-import { DEFAULT_CATEGORIES, ENTRY_KINDS, PRESET_COLORS } from "@/lib/expenses";
+import { DEFAULT_CATEGORIES, PRESET_COLORS } from "@/lib/expenses";
+import { KindToggle } from "./kind-toggle";
 import type { CustomCategory, EntryKind } from "@/lib/types";
 
 type ManageCategoriesModalProps = {
@@ -53,15 +53,7 @@ export function ManageCategoriesModal({
       <ModalBody>
         <div className="space-y-5">
           {/* Categories are per-ledger, so pick which one you're editing */}
-          <NativeSelect
-            label="Ledger"
-            value={kind}
-            onChange={(v) => setKind(v as EntryKind)}
-            options={ENTRY_KINDS.map((k) => ({
-              value: k.value,
-              label: `${k.label} categories`,
-            }))}
-          />
+          <KindToggle label="Ledger" value={kind} onChange={setKind} />
 
           <div>
             <FieldLabel mb="3">Add New Category</FieldLabel>

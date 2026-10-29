@@ -9,9 +9,9 @@ import {
   Button,
   Input,
 } from "@kwyw/kayv-glass-ui";
-import { NativeSelect } from "@/components/ui/native-select";
 import { todayISO } from "@/lib/date";
-import { ENTRY_KINDS } from "@/lib/expenses";
+import { CategoryPicker } from "./category-picker";
+import { KindToggle } from "./kind-toggle";
 import type { NewExpense } from "@/lib/api/expenses";
 import type { EntryKind } from "@/lib/types";
 
@@ -90,30 +90,7 @@ export function AddEntryModal({
         <ModalBody>
           <div className="space-y-4">
             {/* Ledger switch — money out or money in */}
-            <div className="grid grid-cols-2 gap-2">
-              {ENTRY_KINDS.map(({ value, label }) => {
-                const active = kind === value;
-                const activeClass =
-                  value === "income"
-                    ? "border-emerald-500 bg-emerald-500/10 text-emerald-300"
-                    : "border-rose-500 bg-rose-500/10 text-rose-300";
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => handleKindChange(value)}
-                    className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                      active
-                        ? activeClass
-                        : "border-white/10 bg-white/5 text-slate-400 hover:bg-white/10"
-                    }`}
-                  >
-                    {value === "income" ? "↓ " : "↑ "}
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
+            <KindToggle value={kind} onChange={handleKindChange} />
 
             <Input
               label="Amount (K)"
@@ -125,11 +102,10 @@ export function AddEntryModal({
               onChange={(e) => setAmount(e.target.value)}
               required
             />
-            <NativeSelect
-              label="Category"
+            <CategoryPicker
+              categories={categories[kind]}
               value={category}
               onChange={setCategory}
-              options={categories[kind].map((c) => ({ value: c.name, label: c.name }))}
             />
             <Input
               label="Description"
