@@ -49,8 +49,10 @@ export function RecurrenceSyncProvider({ children }: { children: React.ReactNode
   const lastRunDate = useRef<string | null>(null);
   const inFlight = useRef<Promise<void> | null>(null);
 
-  const sync = useCallback((): Promise<void> => {
-    if (inFlight.current) return inFlight.current;
+  const sync = useCallback(async (): Promise<void> => {
+    // A run already going may predate the rule the caller just saved, so wait
+    // for it and then run again rather than piggybacking on it.
+    if (inFlight.current) await inFlight.current;
     const today = todayISO();
     inFlight.current = (async () => {
       try {

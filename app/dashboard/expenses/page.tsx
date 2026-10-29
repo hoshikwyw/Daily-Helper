@@ -3,8 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Tabs, TabList, Tab, TabPanels, TabPanel, toast } from "@kwyw/kayv-glass-ui";
 import { createExpense, deleteExpense, type NewExpense } from "@/lib/api/expenses";
+import { createRecurrence } from "@/lib/api/recurrences";
+import { describeSchedule, scheduleFromDate } from "@/lib/recurrence";
 import { useExpenseCategories } from "@/hooks/use-expense-categories";
 import { useExpenseYear } from "@/hooks/use-expense-year";
+import { useRecurrenceSync } from "@/components/recurrence-sync";
+import { RecurringRulesModal } from "@/components/ui/recurring-rules-modal";
 import {
   formatLongDate,
   formatWeekday,
@@ -14,6 +18,8 @@ import {
   todayISO,
 } from "@/lib/date";
 import {
+  KIND_SIGNS,
+  KIND_TEXT_COLORS,
   MONTHS,
   buildImageCategories,
   fmt,
@@ -32,7 +38,7 @@ import { MonthlyTab } from "./_components/monthly-tab";
 import { YearlyTab } from "./_components/yearly-tab";
 import { AddEntryModal } from "./_components/add-entry-modal";
 import { ManageCategoriesModal } from "./_components/manage-categories-modal";
-import type { EntryKind, Expense } from "@/lib/types";
+import type { EntryKind, Expense, RecurrenceCadence } from "@/lib/types";
 
 export default function ExpensesPage() {
   const today = new Date();
@@ -57,6 +63,8 @@ export default function ExpensesPage() {
 
   const [showCreate, setShowCreate] = useState(false);
   const [showManageCategories, setShowManageCategories] = useState(false);
+  const [showRecurring, setShowRecurring] = useState(false);
+  const { sync } = useRecurrenceSync();
 
   // Each tab can land on a year outside the currently-loaded one — the daily
   // calendar by flipping months, the others via their year pickers. Syncing
@@ -83,7 +91,32 @@ export default function ExpensesPage() {
     setSelectedDate((prev) => sameDayInMonth(prev, year, month));
   }
 
-  async function handleCreateEntry(values: NewExpense): Promise<boolean> {
+  async function handleCreateEntry(
+    values: NewExpense,
+    repeat: RecurrenceCadence | null
+  ): Promise<boolean> {
+    if (repeat) {
+      // The rule is the record; the sync creates the entry itself (and any
+      // missed ones, when the date is in the past) and refetches the year.
+      const rule = await createRecurrence({
+        target: "expense",
+        ...scheduleFromDate(repeat, values.date),
+        next_due: values.date,
+        kind: values.kind,
+        amount: values.amount,
+        category: values.category,
+        description: values.description ?? null,
+      });
+      if (!rule) return false;
+      await sync();
+      toast({
+        title: "Repeat set up",
+        description: describeSchedule(rule),
+        variant: "success",
+      });
+      return true;
+    }
+
     const created = await createExpense(values);
     if (!created) return false;
     addEntry(created);
@@ -195,6 +228,9 @@ export default function ExpensesPage() {
         subtitle="Track income and spending, and see what's left."
         actions={
           <>
+            <Button variant="ghost" size="sm" onClick={() => setShowRecurring(true)}>
+              ⟳ Recurring
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => setShowManageCategories(true)}>
               ⚙ Categories
             </Button>
@@ -285,6 +321,26 @@ export default function ExpensesPage() {
         defaultDate={activeTab === "daily" ? selectedDate : todayISO()}
         categories={allCategories}
         onSubmit={handleCreateEntry}
+      />
+
+      <RecurringRulesModal
+        open={showRecurring}
+        onClose={() => setShowRecurring(false)}
+        target="expense"
+        title="Recurring entries"
+        emptyHint="No repeating entries yet. Pick a Repeat option when adding one."
+        renderSummary={(rule) => {
+          const kind = rule.kind ?? "expense";
+          return (
+            <span className="flex items-center gap-2">
+              <span className="truncate">{rule.description || rule.category}</span>
+              <span className={`shrink-0 font-semibold ${KIND_TEXT_COLORS[kind]}`}>
+                {KIND_SIGNS[kind]}
+                {fmt(rule.amount ?? 0)}
+              </span>
+            </span>
+          );
+        }}
       />
 
       <ManageCategoriesModal

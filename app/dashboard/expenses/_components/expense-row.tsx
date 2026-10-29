@@ -32,6 +32,11 @@ export function ExpenseRow({
           {expense.description || expense.category}
         </p>
         <p className="text-xs text-slate-400 truncate">
+          {expense.recurrence_id && (
+            <span title="Created by a repeating rule" aria-label="Repeating" className="mr-1">
+              ⟳
+            </span>
+          )}
           {expense.category} · {expense.date}
         </p>
       </div>

@@ -10,10 +10,11 @@ import {
   Input,
 } from "@kwyw/kayv-glass-ui";
 import { todayISO } from "@/lib/date";
+import { RepeatPicker } from "@/components/ui/repeat-picker";
 import { CategoryPicker } from "./category-picker";
 import { KindToggle } from "./kind-toggle";
 import type { NewExpense } from "@/lib/api/expenses";
-import type { EntryKind } from "@/lib/types";
+import type { EntryKind, RecurrenceCadence } from "@/lib/types";
 
 type AddEntryModalProps = {
   open: boolean;
@@ -25,8 +26,11 @@ type AddEntryModalProps = {
   defaultDate?: string;
   /** Categories for each ledger; the picker swaps when the kind changes. */
   categories: Record<EntryKind, { name: string; color: string }[]>;
-  /** Persists the entry; returns true on success. */
-  onSubmit: (values: NewExpense) => Promise<boolean>;
+  /**
+   * Persists the entry, or sets up a repeating rule when `repeat` is given;
+   * returns true on success.
+   */
+  onSubmit: (values: NewExpense, repeat: RecurrenceCadence | null) => Promise<boolean>;
 };
 
 export function AddEntryModal({
@@ -41,6 +45,7 @@ export function AddEntryModal({
   const [category, setCategory] = useState(categories.expense[0]?.name ?? "");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(defaultDate);
+  const [repeat, setRepeat] = useState<RecurrenceCadence | null>(null);
   const [saving, setSaving] = useState(false);
 
   // The modal stays mounted between uses, so the date is re-seeded on the
@@ -67,18 +72,24 @@ export function AddEntryModal({
     const value = parseFloat(amount);
     if (!amount || isNaN(value) || value <= 0) return;
     setSaving(true);
-    const ok = await onSubmit({
-      kind,
-      amount: value,
-      category,
-      description: description.trim() || null,
-      date,
-    });
+    const ok = await onSubmit(
+      {
+        kind,
+        amount: value,
+        category,
+        description: description.trim() || null,
+        date,
+      },
+      repeat
+    );
     setSaving(false);
     if (ok) {
       // Keep kind, category and date for quick multi-entry; clear the rest.
+      // Repeat resets too: setting up two rules by accident is worse than
+      // picking the chip again.
       setAmount("");
       setDescription("");
+      setRepeat(null);
       onClose();
     }
   }
@@ -119,6 +130,7 @@ export function AddEntryModal({
               value={date}
               onChange={(e) => setDate(e.target.value)}
             />
+            <RepeatPicker value={repeat} onChange={setRepeat} date={date} />
           </div>
         </ModalBody>
         <ModalFooter>
@@ -126,7 +138,13 @@ export function AddEntryModal({
             Cancel
           </Button>
           <Button variant="primary" type="submit" disabled={saving}>
-            {saving ? "Adding…" : income ? "Add Income" : "Add Expense"}
+            {saving
+              ? "Saving…"
+              : repeat
+                ? "Set up repeat"
+                : income
+                  ? "Add Income"
+                  : "Add Expense"}
           </Button>
         </ModalFooter>
       </form>
