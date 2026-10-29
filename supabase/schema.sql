@@ -1,3 +1,11 @@
+-- Full schema for a NEW Supabase project: paste the whole file into the SQL
+-- editor once. Every statement is safe to re-run.
+--
+-- For an EXISTING project do not use this file to catch up: `create table if
+-- not exists` leaves existing tables as they are, so columns added later
+-- (recurrence_id, weekdays, …) would be missing. Apply the numbered files in
+-- supabase/migrations/ in order instead; each is guarded and re-runnable.
+
 create extension if not exists "uuid-ossp";
 
 create table if not exists projects (
@@ -213,15 +221,24 @@ alter table budgets enable row level security;
 alter table habits enable row level security;
 alter table habit_checks enable row level security;
 
+drop policy if exists "Own data only" on projects;
 create policy "Own data only" on projects for all using (auth.uid() = user_id);
+drop policy if exists "Own data only" on tasks;
 create policy "Own data only" on tasks for all using (auth.uid() = user_id);
+drop policy if exists "Own data only" on journal_entries;
 create policy "Own data only" on journal_entries for all using (auth.uid() = user_id);
+drop policy if exists "Own data only" on expenses;
 create policy "Own data only" on expenses for all using (auth.uid() = user_id);
+drop policy if exists "Own data only" on expense_categories;
 create policy "Own data only" on expense_categories for all using (auth.uid() = user_id);
+drop policy if exists "Own data only" on recurrences;
 create policy "Own data only" on recurrences for all using (auth.uid() = user_id);
+drop policy if exists "Own data only" on budgets;
 create policy "Own data only" on budgets for all using (auth.uid() = user_id);
+drop policy if exists "Own data only" on habits;
 create policy "Own data only" on habits for all using (auth.uid() = user_id);
 -- A check must also point at one of the caller's own habits; see 004_habits.sql.
+drop policy if exists "Own data only" on habit_checks;
 create policy "Own data only" on habit_checks for all
   using (
     auth.uid() = user_id
