@@ -102,7 +102,7 @@ export function AddEntryModal({
   return (
     <Modal open={open} onClose={onClose} size="sm">
       <ModalHeader>{income ? "Add Income" : "Add Expense"}</ModalHeader>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
         <ModalBody>
           <div className="space-y-4">
             {/* Ledger switch — money out or money in */}
