@@ -1,4 +1,4 @@
-import { monthGrid, monthPrefix, todayISO } from "@/lib/date";
+import { daysInMonth, monthGrid, monthPrefix, todayISO } from "@/lib/date";
 import { MONTHS, countActiveDays, fmtCompactSigned, type DayActivity } from "@/lib/expenses";
 
 const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
@@ -48,7 +48,7 @@ export function MoneyCalendar({
   const today = todayISO();
   const prefix = monthPrefix(viewYear, viewMonth);
   const activeDays = countActiveDays(activity, prefix);
-  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const monthLength = daysInMonth(viewYear, viewMonth);
   const showingToday = today.startsWith(prefix);
 
   function shiftMonth(delta: number) {
@@ -88,7 +88,9 @@ export function MoneyCalendar({
 
       <div
         className={`grid grid-cols-7 gap-1 transition-opacity ${loading ? "opacity-50" : ""}`}
-        role="grid"
+        // A group, not an ARIA grid: that role demands row/gridcell children,
+        // and the labelled buttons already read well on their own.
+        role="group"
         aria-label={`${MONTHS[viewMonth]} ${viewYear}`}
       >
         {WEEKDAYS.map((day) => (
@@ -116,7 +118,9 @@ export function MoneyCalendar({
               type="button"
               onClick={() => onSelect(iso)}
               aria-label={label}
-              aria-pressed={isSelected}
+              // Only a toggle where there is a selection; on the Monthly tab
+              // the days are plain buttons that open a day.
+              aria-pressed={selectedDate !== undefined ? isSelected : undefined}
               className={`relative h-10 sm:h-11 lg:h-14 rounded-lg flex flex-col items-center justify-center text-sm transition-colors ${
                 isSelected
                   ? "bg-kv-500 text-white font-semibold"
@@ -169,7 +173,7 @@ export function MoneyCalendar({
           <span className="h-1.5 w-1.5 rounded-full bg-rose-400" /> Expense
         </span>
         <span className="ml-auto">
-          {activeDays} of {daysInMonth} days logged
+          {activeDays} of {monthLength} days logged
         </span>
       </div>
 

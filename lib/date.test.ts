@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  daysInMonth,
   fromISODate,
   monthGrid,
   monthPrefix,
@@ -143,5 +144,21 @@ describe("sameDayInMonth", () => {
 
   it("moves across a year boundary", () => {
     expect(sameDayInMonth("2026-01-15", 2025, 11)).toBe("2025-12-15");
+  });
+});
+
+describe("daysInMonth", () => {
+  it("knows the long, short, and February months", () => {
+    expect(daysInMonth(2026, 0)).toBe(31);
+    expect(daysInMonth(2026, 3)).toBe(30);
+    expect(daysInMonth(2026, 1)).toBe(28);
+    expect(daysInMonth(2028, 1)).toBe(29);
+  });
+
+  it("agrees with monthRange", () => {
+    for (let month = 0; month < 12; month++) {
+      const last = Number(monthRange(new Date(2026, month, 1)).to.slice(-2));
+      expect(daysInMonth(2026, month)).toBe(last);
+    }
   });
 });

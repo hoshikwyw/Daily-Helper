@@ -99,10 +99,10 @@ export function monthGrid(
 ): (string | null)[][] {
   let lead = new Date(year, month, 1).getDay() - firstDayOfWeek;
   if (lead < 0) lead += 7;
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const length = daysInMonth(year, month);
 
   const cells: (string | null)[] = Array(lead).fill(null);
-  for (let day = 1; day <= daysInMonth; day++) {
+  for (let day = 1; day <= length; day++) {
     cells.push(toISODate(new Date(year, month, day)));
   }
   while (cells.length % 7 !== 0) cells.push(null);
@@ -125,6 +125,10 @@ export function monthPrefix(year: number, month: number): string {
  */
 export function sameDayInMonth(iso: string, year: number, month: number): string {
   const day = Number(iso.slice(-2));
-  const lastDay = new Date(year, month + 1, 0).getDate();
-  return toISODate(new Date(year, month, Math.min(day, lastDay)));
+  return toISODate(new Date(year, month, Math.min(day, daysInMonth(year, month))));
+}
+
+/** How many days a month has; `month` is zero-based. Day 0 of the next month is the last of this one. */
+export function daysInMonth(year: number, month: number): number {
+  return new Date(year, month + 1, 0).getDate();
 }

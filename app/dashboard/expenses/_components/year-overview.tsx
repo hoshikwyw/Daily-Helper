@@ -1,4 +1,4 @@
-import { monthGrid, monthPrefix } from "@/lib/date";
+import { daysInMonth, monthGrid, monthPrefix } from "@/lib/date";
 import { MONTHS, countActiveDays, type DayActivity } from "@/lib/expenses";
 
 type YearOverviewProps = {
@@ -34,7 +34,7 @@ export function YearOverview({
   onMonthPick,
   loading = false,
 }: YearOverviewProps) {
-  const daysInYear = new Date(year, 1, 29).getMonth() === 1 ? 366 : 365;
+  const daysInYear = daysInMonth(year, 1) === 29 ? 366 : 365;
   const loggedDays = countActiveDays(activity, String(year));
 
   return (
@@ -43,7 +43,7 @@ export function YearOverview({
         {MONTHS.map((name, month) => {
           const prefix = monthPrefix(year, month);
           const logged = countActiveDays(activity, prefix);
-          const total = new Date(year, month + 1, 0).getDate();
+          const total = daysInMonth(year, month);
 
           return (
             <div key={name}>
@@ -59,7 +59,7 @@ export function YearOverview({
                 </span>
               </button>
 
-              <div className="grid grid-cols-7 gap-[3px]" role="grid" aria-label={`${name} ${year}`}>
+              <div className="grid grid-cols-7 gap-0.75" role="group" aria-label={`${name} ${year}`}>
                 {monthGrid(year, month)
                   .flat()
                   .map((iso, i) => {

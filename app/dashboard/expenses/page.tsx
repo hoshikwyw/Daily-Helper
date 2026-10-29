@@ -14,6 +14,8 @@ import {
 import {
   formatLongDate,
   formatWeekday,
+  fromISODate,
+  monthPrefix,
   sameDayInMonth,
   toISODate,
   todayISO,
@@ -69,30 +71,59 @@ export default function ExpensesPage() {
 
   const colorMap = useMemo(() => buildColorMap(allCategories), [allCategories]);
 
+  // Years already fetched this session. Hopping between tabs that point at
+  // different years then swaps instantly instead of re-downloading a whole
+  // year and flashing skeletons. Empty results are not kept, so a year that
+  // came back empty because of a network error is retried next time.
+  const yearCache = useRef(new Map<number, Expense[]>());
+
   // Flipping the calendar across a year boundary and back fires two fetches
   // in quick succession, and the slower one can land last. Each request takes
   // a ticket; a response whose ticket is no longer current is thrown away so
   // the screen never shows one year's entries under another year's calendar.
   const fetchTicket = useRef(0);
+  const fetchInFlight = useRef(false);
 
   async function loadEntries(year: number) {
     const ticket = ++fetchTicket.current;
+    const cached = yearCache.current.get(year);
+    if (cached) {
+      fetchInFlight.current = false;
+      setEntries(cached);
+      setLoading(false);
+      return;
+    }
+    fetchInFlight.current = true;
     setLoading(true);
-    const rows = await listExpensesForYear(year);
-    if (ticket !== fetchTicket.current) return;
-    setEntries(rows);
-    setLoading(false);
+    try {
+      const rows = await listExpensesForYear(year);
+      if (ticket !== fetchTicket.current) return;
+      if (rows.length > 0) yearCache.current.set(year, rows);
+      setEntries(rows);
+    } finally {
+      if (ticket === fetchTicket.current) {
+        fetchInFlight.current = false;
+        setLoading(false);
+      }
+    }
   }
 
   async function loadCategories() {
     setCustomCategories(await listExpenseCategories());
   }
 
+  // Both loaders set state once their request resolves (or at once, from the
+  // year cache); the rule cannot see past the async boundary.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadEntries(fetchYear);
-    loadCategories();
   }, [fetchYear]);
+
+  // Categories do not depend on the year, so once per visit is enough.
+  useEffect(() => {
+    loadCategories();
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Each tab can land on a year outside the currently-loaded one — the daily
   // calendar by flipping months, the others via their year pickers. Syncing
@@ -122,9 +153,9 @@ export default function ExpensesPage() {
   // From the Monthly tab's calendar: open that day on the Daily tab, with the
   // daily calendar already showing its month.
   function handleJumpToDay(date: string) {
-    const [year, month] = date.split("-").map(Number);
+    const day = fromISODate(date);
     setSelectedDate(date);
-    setCalendarView({ year, month: month - 1 });
+    setCalendarView({ year: day.getFullYear(), month: day.getMonth() });
     setActiveTab("daily");
   }
 
@@ -138,9 +169,18 @@ export default function ExpensesPage() {
   async function handleCreateEntry(values: NewExpense): Promise<boolean> {
     const created = await createExpense(values);
     if (!created) return false;
-    // Only surface it immediately when it belongs to the year on screen.
-    if (created.date.startsWith(String(fetchYear))) {
-      setEntries((prev) => [created, ...prev]);
+    const year = fromISODate(created.date).getFullYear();
+    const cached = yearCache.current.get(year);
+    if (cached) yearCache.current.set(year, [created, ...cached]);
+    if (year === fetchYear) {
+      // A fetch that started before the insert would land without the new row
+      // and wipe it from the list, so in that case fetch again instead.
+      if (fetchInFlight.current) {
+        yearCache.current.delete(year);
+        loadEntries(year);
+      } else {
+        setEntries((prev) => [created, ...prev]);
+      }
     }
     toast({
       title: created.kind === "income" ? "Income added" : "Expense added",
@@ -152,6 +192,9 @@ export default function ExpensesPage() {
   async function handleDelete(id: string) {
     if (!(await deleteExpense(id))) return;
     setEntries((prev) => prev.filter((e) => e.id !== id));
+    for (const [year, rows] of yearCache.current) {
+      yearCache.current.set(year, rows.filter((e) => e.id !== id));
+    }
     toast({ title: "Entry deleted", variant: "warning" });
   }
 
@@ -220,7 +263,7 @@ export default function ExpensesPage() {
   const dayActivity = useMemo(() => getDayActivity(entries), [entries]);
 
   const monthlyEntries = useMemo(() => {
-    const prefix = `${selectedMonthYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
+    const prefix = monthPrefix(selectedMonthYear, selectedMonth);
     return entries.filter((e) => e.date.startsWith(prefix));
   }, [entries, selectedMonth, selectedMonthYear]);
 
