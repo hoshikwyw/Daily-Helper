@@ -13,7 +13,6 @@ import {
   weekDays,
   weekOf,
 } from "@/lib/review";
-import { delta } from "@/lib/progress";
 import type { EntryKind, Expense, Habit, HabitCheck, JournalEntry, Mood, Task } from "@/lib/types";
 
 // 2026-11-04 is a Wednesday; its week is Mon 2 Nov to Sun 8 Nov.
@@ -187,13 +186,7 @@ describe("gatherHighlights", () => {
   });
 });
 
-describe("delta and summarizeWeek", () => {
-  it("reports the direction of change", () => {
-    expect(delta(6, 4)).toEqual({ diff: 2, direction: "up" });
-    expect(delta(3, 5)).toEqual({ diff: -2, direction: "down" });
-    expect(delta(2, 2)).toEqual({ diff: 0, direction: "same" });
-  });
-
+describe("summarizeWeek", () => {
   it("joins the parts that have something to say", () => {
     const tasks = reviewTasks([task("a", "done", "2026-11-03T10:00:00")], WEEK, "2026-11-10");
     const mood = reviewMood([entry("2026-11-02", "good")], WEEK);

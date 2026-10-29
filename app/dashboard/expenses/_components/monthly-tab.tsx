@@ -5,6 +5,7 @@ import {
   filterByCategory,
   getCategoryOverview,
   getTotals,
+  totalSpent,
   type ColorMap,
   type MonthActivity,
 } from "@/lib/expenses";
@@ -112,9 +113,7 @@ export function MonthlyTab({
             overview={getCategoryOverview(entries, category)}
             color={categoryColor(colorMap, "expense", category)}
             periodLabel={monthLabel}
-            previousTotal={
-              previousEntries ? getCategoryOverview(previousEntries, category).total : null
-            }
+            previousTotal={previousEntries ? totalSpent(previousEntries, category) : null}
             previousLabel="last month"
             budget={budgets[category] ?? null}
           />

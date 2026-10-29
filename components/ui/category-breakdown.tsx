@@ -8,7 +8,8 @@ import {
   type ColorMap,
 } from "@/lib/expenses";
 import { EmptyState } from "@/components/ui/empty-state";
-import type { BudgetProgress, BudgetStatus } from "@/lib/budgets";
+import { BudgetBar, BudgetLeft } from "@/components/ui/budget-bar";
+import type { BudgetProgress } from "@/lib/budgets";
 import type { EntryKind, Expense } from "@/lib/types";
 
 type CategoryBreakdownProps = {
@@ -24,18 +25,6 @@ type CategoryBreakdownProps = {
    * with nothing spent are listed too, so the headroom is visible.
    */
   budgets?: Record<string, BudgetProgress>;
-};
-
-const BUDGET_BAR: Record<BudgetStatus, "success" | "warning" | "danger"> = {
-  under: "success",
-  near: "warning",
-  over: "danger",
-};
-
-const BUDGET_TEXT: Record<BudgetStatus, string> = {
-  under: "text-slate-500",
-  near: "text-amber-400",
-  over: "text-rose-400",
 };
 
 /**
@@ -91,11 +80,7 @@ export function CategoryBreakdown({
             </div>
 
             {budget ? (
-              <Progress
-                value={Math.min(budget.pct, 100)}
-                variant={BUDGET_BAR[budget.status]}
-                size="sm"
-              />
+              <BudgetBar budget={budget} />
             ) : (
               <Progress value={pct} variant={kind === "income" ? "success" : "primary"} size="sm" />
             )}
@@ -106,8 +91,8 @@ export function CategoryBreakdown({
                 {count > 1 && ` · avg ${fmt(average)}`}
               </span>
               {budget && (
-                <span className={`shrink-0 ${BUDGET_TEXT[budget.status]}`}>
-                  {budget.left >= 0 ? `${fmt(budget.left)} left` : `${fmt(budget.left)} over`}
+                <span className="shrink-0">
+                  <BudgetLeft budget={budget} />
                 </span>
               )}
             </p>

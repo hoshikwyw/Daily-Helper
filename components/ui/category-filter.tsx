@@ -13,15 +13,15 @@ const CHIP_OFF = "border-white/10 bg-white/5 text-slate-400 hover:bg-white/10";
 /**
  * "All" plus one chip per spending category. A single row that scrolls
  * sideways on a phone rather than wrapping into a tall block above the
- * figures; the selected chip is accent-filled like the other pickers.
+ * figures. Plain toggle buttons rather than radios: tapping the active chip
+ * again clears the filter, which radio semantics would not allow.
  */
 export function CategoryFilter({ options, value, onChange }: CategoryFilterProps) {
   return (
-    <div role="radiogroup" aria-label="Filter by category" className="scroll-x flex gap-2 -mx-1 px-1 pb-1">
+    <div role="group" aria-label="Filter by category" className="scroll-x flex gap-2 -mx-1 px-1 pb-1">
       <button
         type="button"
-        role="radio"
-        aria-checked={value === null}
+        aria-pressed={value === null}
         onClick={() => onChange(null)}
         className={`${CHIP} ${value === null ? CHIP_ON : CHIP_OFF}`}
       >
@@ -33,9 +33,7 @@ export function CategoryFilter({ options, value, onChange }: CategoryFilterProps
           <button
             key={option.name}
             type="button"
-            role="radio"
-            aria-checked={active}
-            // Tapping the active chip again clears the filter.
+            aria-pressed={active}
             onClick={() => onChange(active ? null : option.name)}
             className={`${CHIP} ${active ? CHIP_ON : CHIP_OFF}`}
           >

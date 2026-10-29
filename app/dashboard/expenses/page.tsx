@@ -2,7 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Button, Tabs, TabList, Tab, TabPanels, TabPanel, toast } from "@kwyw/kayv-glass-ui";
-import { createExpense, deleteExpense, type NewExpense } from "@/lib/api/expenses";
+import {
+  createExpense,
+  deleteExpense,
+  listExpensesInRange,
+  type NewExpense,
+} from "@/lib/api/expenses";
 import { createRecurrence } from "@/lib/api/recurrences";
 import { describeSchedule, firstOccurrence, type Schedule } from "@/lib/recurrence";
 import { useBudgets } from "@/hooks/use-budgets";
@@ -73,6 +78,9 @@ export default function ExpensesPage() {
   // One spending category in focus on the Monthly and Yearly tabs; shared so
   // the choice survives switching between them.
   const [category, setCategory] = useState<string | null>(null);
+  // December of the previous year, fetched only when January is in focus
+  // with a category: it is the one comparison month the loaded year lacks.
+  const [december, setDecember] = useState<{ year: number; rows: Expense[] } | null>(null);
   const { sync } = useRecurrenceSync();
   const { budgets, saveBudget } = useBudgets();
 
@@ -171,29 +179,34 @@ export default function ExpensesPage() {
     periodLabel: string,
     title: string,
     subtitle: string | undefined,
-    scoped: Expense[]
+    scoped: Expense[],
+    /** The category in focus, when the export is one category's spending only. */
+    focus: string | null = null
   ) {
     if (scoped.length === 0) {
       toast({ title: "Nothing to export here yet", variant: "warning" });
       return;
     }
     const totals = getTotals(scoped);
+    // A single category is spending only: lead with what was spent and leave
+    // the income/expense split out rather than showing a month "in the red".
+    const slug = (text: string) => text.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
     try {
       await exportExpenseImage(
         {
           periodLabel,
           title,
-          subtitle,
-          total: fmtSigned(totals.net),
-          totalLabel: "MONEY LEFT",
-          income: fmt(totals.income),
+          subtitle: focus ?? subtitle,
+          total: focus ? fmt(totals.expense) : fmtSigned(totals.net),
+          totalLabel: focus ? `SPENT ON ${focus.toUpperCase()}` : "MONEY LEFT",
+          income: focus ? undefined : fmt(totals.income),
           expense: fmt(totals.expense),
           entries: scoped.length,
           categories: buildImageCategories(scoped, colorMap, "expense"),
           accent: getAccentHex(),
           footerNote: `Exported ${todayISO()}`,
         },
-        `kayv-money-${periodLabel.toLowerCase()}-${title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.png`
+        `kayv-money-${periodLabel.toLowerCase()}-${slug(title)}${focus ? `-${slug(focus)}` : ""}.png`
       );
       toast({ title: "Image ready 🎁", variant: "success" });
     } catch {
@@ -216,18 +229,39 @@ export default function ExpensesPage() {
 
   const selectedMonthPrefix = monthPrefix(selectedMonthYear, selectedMonth);
 
-  // The month before, for the category comparison. January's predecessor
-  // lives in another year that is not loaded, so then there is no comparison.
-  const previousMonthEntries = useMemo(() => {
-    if (selectedMonth === 0) return null;
-    const prefix = monthPrefix(selectedMonthYear, selectedMonth - 1);
-    return entries.filter((e) => e.date.startsWith(prefix));
-  }, [entries, selectedMonth, selectedMonthYear]);
-
   const categoryOptions = useMemo(
     () => categoryFilterOptions(allCategories.expense, entries),
     [allCategories, entries]
   );
+
+  // A chosen category whose chip has gone (deleted, or absent from this year)
+  // must not keep filtering invisibly, so the filter applies only while its
+  // chip is on screen.
+  const activeCategory =
+    category && categoryOptions.some((o) => o.name === category) ? category : null;
+
+  useEffect(() => {
+    if (selectedMonth !== 0 || !activeCategory) return;
+    const year = selectedMonthYear - 1;
+    if (december?.year === year) return;
+    let cancelled = false;
+    listExpensesInRange(`${year}-12-01`, `${year}-12-31`).then((rows) => {
+      if (!cancelled) setDecember({ year, rows });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedMonth, selectedMonthYear, activeCategory, december]);
+
+  // The month before, for the category comparison; null while December of
+  // the previous year is still being fetched.
+  const previousMonthEntries = useMemo(() => {
+    if (selectedMonth === 0) {
+      return december?.year === selectedMonthYear - 1 ? december.rows : null;
+    }
+    const prefix = monthPrefix(selectedMonthYear, selectedMonth - 1);
+    return entries.filter((e) => e.date.startsWith(prefix));
+  }, [entries, selectedMonth, selectedMonthYear, december]);
 
   const monthlyEntries = useMemo(
     () => entries.filter((e) => e.date.startsWith(selectedMonthPrefix)),
@@ -328,7 +362,7 @@ export default function ExpensesPage() {
                 colorMap={colorMap}
                 budgets={monthBudgets}
                 categoryOptions={categoryOptions}
-                category={category}
+                category={activeCategory}
                 onCategoryChange={setCategory}
                 onDelete={handleDelete}
                 onSetBudgets={() => setShowBudgets(true)}
@@ -336,8 +370,9 @@ export default function ExpensesPage() {
                   handleExportImage(
                     "Monthly",
                     `${MONTHS[selectedMonth]} ${selectedMonthYear}`,
-                    category ?? undefined,
-                    category ? filterByCategory(monthlyEntries, category) : monthlyEntries
+                    undefined,
+                    activeCategory ? filterByCategory(monthlyEntries, activeCategory) : monthlyEntries,
+                    activeCategory
                   )
                 }
               />
@@ -352,14 +387,15 @@ export default function ExpensesPage() {
                 monthlyTotals={monthlyTotals}
                 colorMap={colorMap}
                 categoryOptions={categoryOptions}
-                category={category}
+                category={activeCategory}
                 onCategoryChange={setCategory}
                 onExport={() =>
                   handleExportImage(
                     "Yearly",
                     String(selectedYear),
-                    category ?? undefined,
-                    category ? filterByCategory(entries, category) : entries
+                    undefined,
+                    activeCategory ? filterByCategory(entries, activeCategory) : entries,
+                    activeCategory
                   )
                 }
               />

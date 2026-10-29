@@ -265,11 +265,19 @@ export type MonthTotals = Totals & {
  * biggest month by absolute net, so a heavy loss reads as prominently as a
  * heavy gain.
  */
+/** The entries of each month of a year, index 0 = January. */
+export function bucketByMonth(entries: Expense[], year: number): Expense[][] {
+  const buckets: Expense[][] = Array.from({ length: 12 }, () => []);
+  const prefix = `${year}-`;
+  for (const entry of entries) {
+    if (!entry.date.startsWith(prefix)) continue;
+    buckets[Number(entry.date.slice(5, 7)) - 1].push(entry);
+  }
+  return buckets;
+}
+
 export function getMonthlyTotals(entries: Expense[], year: number): MonthTotals[] {
-  const perMonth = Array.from({ length: 12 }, (_, i) => {
-    const prefix = `${year}-${String(i + 1).padStart(2, "0")}`;
-    return getTotals(entries.filter((e) => e.date.startsWith(prefix)));
-  });
+  const perMonth = bucketByMonth(entries, year).map(getTotals);
 
   const peak = Math.max(...perMonth.map((t) => Math.abs(t.net)), 1);
 
@@ -424,17 +432,19 @@ export type CategoryOverview = {
 
 /** Headline figures for one category over a period, against the period's total spending. */
 export function getCategoryOverview(entries: Expense[], category: string): CategoryOverview {
-  const own = filterByCategory(entries, category);
-  const total = own.reduce((sum, e) => sum + e.amount, 0);
-  const allSpending = filterByKind(entries, "expense").reduce((sum, e) => sum + e.amount, 0);
-  return {
-    category,
-    total,
-    count: own.length,
-    average: own.length > 0 ? Math.round(total / own.length) : 0,
-    largest: own.reduce((max, e) => Math.max(max, e.amount), 0),
-    share: allSpending > 0 ? Math.round((total / allSpending) * 100) : 0,
-  };
+  // The breakdown already holds every per-category figure, including the
+  // share of the period's spending; a category absent from it spent nothing.
+  const slice = getCategoryBreakdown(filterByKind(entries, "expense")).find(
+    (s) => s.category === category
+  );
+  if (!slice) return { category, total: 0, count: 0, average: 0, largest: 0, share: 0 };
+  const { amount: total, count, average, largest, pct: share } = slice;
+  return { category, total, count, average, largest, share };
+}
+
+/** What was spent in one category; the comparison figure for a previous period. */
+export function totalSpent(entries: Expense[], category: string): number {
+  return filterByCategory(entries, category).reduce((sum, e) => sum + e.amount, 0);
 }
 
 export type CategoryMonth = {
@@ -451,11 +461,9 @@ export function getCategoryMonthlyTotals(
   year: number,
   category: string
 ): CategoryMonth[] {
-  const own = filterByCategory(entries, category);
-  const perMonth = Array.from({ length: 12 }, (_, i) => {
-    const prefix = `${year}-${String(i + 1).padStart(2, "0")}`;
-    return own.filter((e) => e.date.startsWith(prefix)).reduce((sum, e) => sum + e.amount, 0);
-  });
+  const perMonth = bucketByMonth(filterByCategory(entries, category), year).map((month) =>
+    month.reduce((sum, e) => sum + e.amount, 0)
+  );
   const peak = Math.max(...perMonth, 1);
   return perMonth.map((amount, i) => ({
     month: MONTHS[i].slice(0, 3),

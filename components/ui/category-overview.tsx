@@ -3,6 +3,7 @@ import { fmt, type CategoryMonth, type CategoryOverview } from "@/lib/expenses";
 import { delta } from "@/lib/progress";
 import { plural } from "@/lib/text";
 import type { BudgetProgress } from "@/lib/budgets";
+import { BudgetBar, BudgetLeft } from "@/components/ui/budget-bar";
 import { DeltaBadge } from "@/components/ui/delta-badge";
 import { FieldLabel } from "@/components/ui/label";
 
@@ -20,8 +21,6 @@ type CategoryOverviewCardProps = {
   /** Spending per month, for a yearly view. */
   byMonth?: CategoryMonth[];
 };
-
-const BUDGET_BAR = { under: "success", near: "warning", over: "danger" } as const;
 
 /**
  * Everything about one spending category in one period: the total, how it
@@ -55,8 +54,12 @@ export function CategoryOverviewCard({
               </p>
               {previousTotal !== null && (
                 <p className="mt-1">
-                  <DeltaBadge delta={delta(total, previousTotal)} format={fmt} goodWhen="down" />
-                  <span className="sr-only"> against {previousLabel}</span>
+                  <DeltaBadge
+                    delta={delta(total, previousTotal)}
+                    format={fmt}
+                    goodWhen="down"
+                    against={previousLabel}
+                  />
                 </p>
               )}
             </div>
@@ -76,19 +79,9 @@ export function CategoryOverviewCard({
             <div>
               <div className="flex items-baseline justify-between text-xs mb-1.5">
                 <span className="text-slate-400">Budget {fmt(budget.limit)}</span>
-                <span
-                  className={`tabular-nums ${
-                    budget.status === "over"
-                      ? "text-rose-400"
-                      : budget.status === "near"
-                        ? "text-amber-400"
-                        : "text-slate-400"
-                  }`}
-                >
-                  {budget.left >= 0 ? `${fmt(budget.left)} left` : `${fmt(budget.left)} over`}
-                </span>
+                <BudgetLeft budget={budget} />
               </div>
-              <Progress value={Math.min(budget.pct, 100)} variant={BUDGET_BAR[budget.status]} size="sm" />
+              <BudgetBar budget={budget} />
             </div>
           )}
 

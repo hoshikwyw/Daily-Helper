@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  bucketByMonth,
   buildColorMap,
   categoryColor,
   categoryFilterOptions,
@@ -21,6 +22,7 @@ import {
   mergeCategories,
   normalizeKind,
   savingsRate,
+  totalSpent,
 } from "@/lib/expenses";
 import type { EntryKind, Expense } from "@/lib/types";
 
@@ -362,5 +364,19 @@ describe("one category at a time", () => {
     expect(months[8]).toEqual({ month: "Sep", amount: 100_000, pct: 100 });
     expect(months[9]).toEqual({ month: "Oct", amount: 30_000, pct: 30 });
     expect(months[0]).toEqual({ month: "Jan", amount: 0, pct: 0 });
+  });
+});
+
+describe("bucketByMonth and totalSpent", () => {
+  it("drops entries into their month and ignores other years", () => {
+    const buckets = bucketByMonth([...SEPTEMBER, entry("expense", 1, "Other", "2025-09-01")], 2026);
+    expect(buckets).toHaveLength(12);
+    expect(buckets[8]).toHaveLength(5);
+    expect(buckets[0]).toHaveLength(0);
+  });
+
+  it("sums one category's spending only", () => {
+    expect(totalSpent(SEPTEMBER, "Food & Drink")).toBe(100_000);
+    expect(totalSpent(SEPTEMBER, "Salary")).toBe(0);
   });
 });
