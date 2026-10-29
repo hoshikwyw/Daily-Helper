@@ -9,6 +9,8 @@ import { listExpensesInRange } from "@/lib/api/expenses";
 import { listRecurrences } from "@/lib/api/recurrences";
 import { upcomingRules } from "@/lib/recurrence";
 import { formatDayLabel, formatMonthName, monthRange, todayISO } from "@/lib/date";
+import { budgetHeadline, budgetProgress, effectiveBudgets } from "@/lib/budgets";
+import { useBudgets } from "@/hooks/use-budgets";
 import { useExpenseCategories } from "@/hooks/use-expense-categories";
 import { useSettings } from "@/hooks/use-settings";
 import { useRecurrenceSync } from "@/components/recurrence-sync";
@@ -33,6 +35,7 @@ export default function TodayPage() {
   const { settings } = useSettings();
   const { colorMap } = useExpenseCategories();
   const { version: syncVersion } = useRecurrenceSync();
+  const { budgets } = useBudgets();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [journal, setJournal] = useState<JournalEntry | null>(null);
@@ -44,6 +47,13 @@ export default function TodayPage() {
   const today = todayISO();
   const now = useMemo(() => new Date(), []);
   const { from: monthFrom, to: monthTo } = useMemo(() => monthRange(now), [now]);
+
+  // This month's spending against its limits; `monthFrom` is `YYYY-MM-01`,
+  // so its first seven characters are the month prefix the helpers expect.
+  const monthBudgets = useMemo(
+    () => budgetProgress(effectiveBudgets(budgets, monthFrom.slice(0, 7)), monthEntries),
+    [budgets, monthFrom, monthEntries]
+  );
 
   async function loadData() {
     const [taskRows, projectRows, entry, money, moneyRules] = await Promise.all([
@@ -148,6 +158,8 @@ export default function TodayPage() {
       <TodayMoneyCard
         entries={monthEntries}
         upcoming={upcoming}
+        budgets={monthBudgets}
+        headline={budgetHeadline(monthBudgets)}
         colorMap={colorMap}
         loading={loading}
         monthLabel={formatMonthName(now)}

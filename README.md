@@ -10,11 +10,22 @@ Runs as a web app and, via Capacitor, as native Android and iOS apps from the sa
 
 | Module | Description |
 |---|---|
-| **Today** | Daily overview — tasks due today, active projects, mood check-in, journal snapshot, this month's money stats by category, and upcoming recurring entries |
+| **Today** | Daily overview — tasks due today, active projects, mood check-in, journal snapshot, this month's money stats by category, the tightest budget, and upcoming recurring entries |
 | **Tasks** | Create, filter, and manage tasks with priority levels, project links, and repeating tasks |
 | **Projects** | Track projects with status, tech stack, color labels, and linked tasks |
 | **Journal** | Daily journal entries with mood tracking, highlights, and a date picker |
-| **Money** | Income **and** expense tracker in MMK (K) with daily/monthly/yearly views, a calendar of logged days, what's-left totals, per-category stats for both ledgers, custom categories, repeating entries, and PNG export |
+| **Money** | Income **and** expense tracker in MMK (K) with daily/monthly/yearly views, a calendar of logged days, what's-left totals, per-category stats for both ledgers, custom categories, monthly budgets per category, repeating entries, and PNG export |
+
+### Budgets
+
+Each expense category can have a monthly limit: **◎ Budgets** on the Monthly
+tab. A limit applies from that month onward until you change it (set rent once
+and it stays), and a blank field switches it off. The Spent breakdown then shows
+spending against the limit — green under 80%, amber up to 100%, rose over — and
+the Today page leads with the tightest budget. The maths lives in
+`lib/budgets.ts` and is covered by tests.
+
+Existing projects need `supabase/migrations/003_budgets.sql` applied once.
 
 ### Recurring entries and tasks
 

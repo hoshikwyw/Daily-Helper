@@ -1,6 +1,7 @@
 import { Card, CardHeader, CardContent } from "@kwyw/kayv-glass-ui";
-import { KIND_TEXT_COLORS, fmtEntry, getTotals, type ColorMap } from "@/lib/expenses";
+import { KIND_TEXT_COLORS, fmt, fmtEntry, getTotals, type ColorMap } from "@/lib/expenses";
 import { formatDate } from "@/lib/date";
+import type { BudgetProgress } from "@/lib/budgets";
 import { SkeletonList } from "@/components/ui/skeleton";
 import { BalanceSummary } from "@/components/ui/balance-summary";
 import { CategorySplit } from "@/components/ui/category-split";
@@ -15,15 +16,34 @@ type TodayMoneyCardProps = {
   entries: Expense[];
   /** The next few recurring money rules, soonest first; empty when there are none. */
   upcoming: Recurrence[];
+  /** This month's spending against its limits, keyed by category. */
+  budgets: Record<string, BudgetProgress>;
+  /** The one budget worth a sentence, from `budgetHeadline`; null without budgets. */
+  headline: BudgetProgress | null;
   colorMap: ColorMap;
   loading: boolean;
   /** Month name for the card heading, e.g. "September". */
   monthLabel: string;
 };
 
+/** "K 12,000 left for Food this month", "Close: …", or "Over on Food by K 3,000". */
+function headlineText(h: BudgetProgress): string {
+  if (h.status === "over") return `Over on ${h.category} by ${fmt(-h.left)}`;
+  const base = `${fmt(h.left)} left for ${h.category} this month`;
+  return h.status === "near" ? `Close: ${base}` : base;
+}
+
+const HEADLINE_STYLE: Record<BudgetProgress["status"], string> = {
+  under: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+  near: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+  over: "border-rose-500/30 bg-rose-500/10 text-rose-200",
+};
+
 export function TodayMoneyCard({
   entries,
   upcoming,
+  budgets,
+  headline,
   colorMap,
   loading,
   monthLabel,
@@ -42,6 +62,14 @@ export function TodayMoneyCard({
         ) : (
           <div className="space-y-5">
             <BalanceSummary totals={totals} netLabel="Collected this month" />
+
+            {headline && (
+              <p
+                className={`rounded-lg border px-3 py-2 text-sm font-medium ${HEADLINE_STYLE[headline.status]}`}
+              >
+                ◎ {headlineText(headline)}
+              </p>
+            )}
 
             {upcoming.length > 0 && (
               <div>
@@ -78,6 +106,7 @@ export function TodayMoneyCard({
               colorMap={colorMap}
               limit={TOP_CATEGORIES}
               period="this month"
+              budgets={budgets}
             />
 
             <a
