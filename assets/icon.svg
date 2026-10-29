@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Full-bleed app icon: the Kayv mark on the app's near-black background
+       with a soft accent glow. Square on purpose — each OS applies its own
+       corner mask. -->
+  <defs>
+    <linearGradient id="k" gradientUnits="userSpaceOnUse" x1="260" y1="200" x2="760" y2="860">
+      <stop offset="0" stop-color="#818cf8"/>
+      <stop offset="0.55" stop-color="#a855f7"/>
+      <stop offset="1" stop-color="#ec4899"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#4c3fa8" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#0a0a10" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="#0a0a10"/>
+  <rect width="1024" height="1024" fill="url(#glow)"/>
+  <g fill="none" stroke="url(#k)" stroke-width="140" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M330 236 V788 M330 560 L650 236 M452 437 L690 788"/>
+  </g>
+  <path d="M836 130 L858 194 L922 216 L858 238 L836 302 L814 238 L750 216 L814 194 Z" fill="#ffffff"/>
+</svg>

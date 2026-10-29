@@ -12,6 +12,7 @@ import {
   Alert,
 } from "@kwyw/kayv-glass-ui";
 import { AuthLayout } from "@/components/ui/auth-layout";
+import { Logo } from "@/components/ui/logo";
 
 type Mode = "login" | "forgot";
 
@@ -89,9 +90,14 @@ function LoginForm() {
 
   return (
     <Card variant="elevated" className="w-full max-w-sm">
+      <div className="mb-4">
+        <Logo size="lg" />
+      </div>
       <CardHeader
-        title="✦ Orbit"
-        description={mode === "login" ? "Sign in to your dashboard" : "Reset your password"}
+        title={mode === "login" ? "Welcome back" : "Reset your password"}
+        description={
+          mode === "login" ? "Sign in to your dashboard" : "We'll email you a reset link"
+        }
       />
       <CardContent>
         {/* ── Login form ── */}

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Kayv mark: a "K" in the app's indigo-to-pink accent, with a sparkle.
+       Transparent background — used for the in-app logo and as the
+       foreground layer of the adaptive Android icon. -->
+  <defs>
+    <linearGradient id="k" gradientUnits="userSpaceOnUse" x1="260" y1="200" x2="760" y2="860">
+      <stop offset="0" stop-color="#818cf8"/>
+      <stop offset="0.55" stop-color="#a855f7"/>
+      <stop offset="1" stop-color="#ec4899"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke="url(#k)" stroke-width="140" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M330 236 V788 M330 560 L650 236 M452 437 L690 788"/>
+  </g>
+  <path d="M836 130 L858 194 L922 216 L858 238 L836 302 L814 238 L750 216 L814 194 Z" fill="#ffffff"/>
+</svg>

@@ -9,6 +9,7 @@ import {
   MenuBarDivider,
 } from "@kwyw/kayv-glass-ui";
 import { signOut } from "@/lib/api/auth";
+import { Logo } from "@/components/ui/logo";
 
 const NAV_ITEMS = [
   { value: "home", label: "Today", href: "/dashboard", icon: "☀️" },
@@ -71,7 +72,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         bottomNavClassName="fixed inset-x-0 bottom-0 z-40 pb-[env(safe-area-inset-bottom)]"
       >
         <MenuBarBrand>
-          <span className="text-base font-bold text-white">✦ Kayv</span>
+          <Logo size="sm" />
         </MenuBarBrand>
 
         <MenuBarSection label="Main">

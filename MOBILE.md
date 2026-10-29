@@ -85,3 +85,24 @@ The "⬇ Save image" buttons on the Expenses page:
 This works out of the box: the app's `FileProvider` + `<cache-path>` in
 [android/app/src/main/res/xml/file_paths.xml](android/app/src/main/res/xml/file_paths.xml)
 let other apps read the shared file. (Drive must be installed to appear in the sheet.)
+
+---
+
+## 5. App icon, favicon, and splash screens
+
+Every icon the app ships is rendered from two SVG sources:
+
+- `assets/icon.svg` — the full-bleed app icon (mark on the dark background).
+- `assets/logo.svg` — the mark alone on transparent, also mirrored inline in
+  [components/ui/logo.tsx](components/ui/logo.tsx) for the in-app logo.
+
+After editing either, run:
+
+```bash
+npm run icons
+```
+
+That rewrites the web favicon and PWA icons (`app/favicon.ico`, `app/icon.png`,
+`app/apple-icon.png`, `public/icons/`), the Capacitor sources in `assets/`, and
+the Android/iOS launcher icons and splash screens in place. Then rebuild the
+native apps as usual (`npm run mobile:android` / `mobile:ios`).

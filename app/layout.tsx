@@ -21,9 +21,15 @@ export const viewport: Viewport = {
   themeColor: "#0a0a10",
 };
 
+// The favicon, PWA icon, and Apple touch icon are the metadata files beside
+// this layout (favicon.ico, icon.png, apple-icon.png); Next links them itself.
+// All of them render from assets/icon.svg — regenerate rather than hand-edit.
 export const metadata: Metadata = {
-  title: "Orbit — glassmorphism SaaS dashboard",
-  description: "Showcase of @kwyw/kayv-glass-ui components",
+  title: "Kayv",
+  description:
+    "Your personal life management dashboard: tasks, journal, projects, and money in one place.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "Kayv", statusBarStyle: "black-translucent" },
 };
 
 export default function RootLayout({

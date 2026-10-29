@@ -9,6 +9,7 @@ import {
   Badge,
 } from "@kwyw/kayv-glass-ui";
 import { FieldLabel } from "@/components/ui/label";
+import { Logo } from "@/components/ui/logo";
 
 const FAQ = [
   {
@@ -36,7 +37,7 @@ export function AboutTab() {
       <CardContent>
         <div className="space-y-4 mb-6">
           <div className="flex items-center gap-3">
-            <span className="text-2xl font-bold text-white">✦ Kayv</span>
+            <Logo size="lg" />
             <Badge variant="primary" size="sm">
               Personal
             </Badge>

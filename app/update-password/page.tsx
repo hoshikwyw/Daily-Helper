@@ -12,6 +12,7 @@ import {
   Alert,
 } from "@kwyw/kayv-glass-ui";
 import { AuthLayout } from "@/components/ui/auth-layout";
+import { Logo } from "@/components/ui/logo";
 
 export default function UpdatePasswordPage() {
   const router = useRouter();
@@ -53,7 +54,10 @@ export default function UpdatePasswordPage() {
   return (
     <AuthLayout>
       <Card variant="elevated" className="w-full max-w-sm">
-        <CardHeader title="✦ Orbit" description="Set a new password" />
+        <div className="mb-4">
+          <Logo size="lg" />
+        </div>
+        <CardHeader title="Choose a new password" description="Set a new password" />
         <CardContent>
           {done ? (
             <Alert variant="success" title="Password updated!">
