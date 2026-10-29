@@ -213,7 +213,16 @@ export default function ExpensesPage() {
     [entries, selectedYear]
   );
 
-  const yearList = Array.from({ length: 5 }, (_, i) => today.getFullYear() - 2 + i);
+  // Two years either side of today, plus whichever years are currently picked:
+  // the Monthly calendar can flip past the window, and a Select whose value
+  // is not among its options renders blank.
+  const yearList = useMemo(() => {
+    const years = new Set(Array.from({ length: 5 }, (_, i) => today.getFullYear() - 2 + i));
+    years.add(selectedMonthYear);
+    years.add(selectedYear);
+    return [...years].sort((a, b) => a - b);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMonthYear, selectedYear]);
 
   return (
     <PageContainer>
