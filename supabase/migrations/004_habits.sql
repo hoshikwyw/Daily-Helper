@@ -47,12 +47,23 @@ begin
   ) then
     create policy "Own data only" on habits for all using (auth.uid() = user_id);
   end if;
-  if not exists (
-    select 1 from pg_policies where tablename = 'habit_checks' and policyname = 'Own data only'
-  ) then
-    create policy "Own data only" on habit_checks for all using (auth.uid() = user_id);
-  end if;
 end $$;
+
+-- A check must belong to the caller AND point at one of the caller's habits.
+-- Checking only user_id would let someone insert a row against another
+-- user's habit id, which the unique (habit_id, date) key would then use to
+-- block the real owner from checking that day. Recreated rather than guarded
+-- so re-running the file upgrades an earlier, weaker version of the policy.
+drop policy if exists "Own data only" on habit_checks;
+create policy "Own data only" on habit_checks for all
+  using (
+    auth.uid() = user_id
+    and exists (select 1 from habits h where h.id = habit_id and h.user_id = auth.uid())
+  )
+  with check (
+    auth.uid() = user_id
+    and exists (select 1 from habits h where h.id = habit_id and h.user_id = auth.uid())
+  );
 
 -- 4. PostgREST answers from a cached schema; reload it so the tables are
 --    reachable immediately.

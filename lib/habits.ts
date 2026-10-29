@@ -15,18 +15,23 @@ export const DEFAULT_HABIT_EMOJI = "✅";
 export type Streak = {
   /** Consecutive days up to today (or yesterday, if today is not yet done). */
   current: number;
-  /** The longest run on record. */
+  /**
+   * The longest run within the dates given. Callers load the last
+   * `STREAK_WINDOW_DAYS`, so this is "best in about a year", not all time.
+   */
   best: number;
 };
 
 /**
- * Current and best streak from the dates a habit was done.
+ * Current and best streak from the dates a habit was done. Dates after
+ * `today` are ignored: a check filed under tomorrow (a device clock ahead of
+ * this one) must not extend either figure.
  *
  * An unchecked today does not break the streak: until the day is over there
  * is still time, so the count only drops once yesterday is also missing.
  */
 export function computeStreak(dates: Iterable<string>, today: string): Streak {
-  const done = new Set(dates);
+  const done = new Set([...dates].filter((date) => date <= today));
 
   let current = 0;
   let cursor = done.has(today) ? today : addDays(today, -1);
@@ -59,6 +64,24 @@ export function activeHabits(habits: Habit[]): Habit[] {
   return habits
     .filter((h) => !h.archived)
     .sort((a, b) => a.position - b.position || a.name.localeCompare(b.name));
+}
+
+/** Whether one more habit may become active without passing the limit. */
+export function canActivate(habits: Habit[]): boolean {
+  return activeHabits(habits).length < MAX_ACTIVE_HABITS;
+}
+
+/**
+ * The active habits in their current order with `index` moved by `delta`,
+ * as a list of ids. Positions are then rewritten to match the list index, so
+ * a reorder also repairs any duplicate or gapped positions.
+ */
+export function reorderedIds(habits: Habit[], index: number, delta: -1 | 1): string[] {
+  const ids = activeHabits(habits).map((h) => h.id);
+  const target = index + delta;
+  if (index < 0 || index >= ids.length || target < 0 || target >= ids.length) return ids;
+  [ids[index], ids[target]] = [ids[target], ids[index]];
+  return ids;
 }
 
 export type HabitStatus = {

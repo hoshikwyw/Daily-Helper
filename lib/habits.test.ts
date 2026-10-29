@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  MAX_ACTIVE_HABITS,
   activeHabits,
+  canActivate,
   checksByHabit,
   computeStreak,
   doneTodayCount,
   habitStatuses,
+  reorderedIds,
 } from "@/lib/habits";
 import type { Habit, HabitCheck } from "@/lib/types";
 
@@ -54,9 +57,36 @@ describe("computeStreak", () => {
     expect(computeStreak(dates, today)).toEqual({ current: 3, best: 3 });
   });
 
-  it("does not count future dates toward today's streak", () => {
+  it("ignores future dates for both the current and the best streak", () => {
     const dates = ["2026-11-10", "2026-11-11", "2026-11-12"];
-    expect(computeStreak(dates, today).current).toBe(1);
+    expect(computeStreak(dates, today)).toEqual({ current: 1, best: 1 });
+  });
+});
+
+describe("canActivate", () => {
+  it("allows another habit until the limit, counting active ones only", () => {
+    const atLimit = Array.from({ length: MAX_ACTIVE_HABITS }, (_, i) => habit(`h${i}`, `H${i}`, i));
+    expect(canActivate(atLimit)).toBe(false);
+    expect(canActivate([...atLimit.slice(1), habit("old", "Old", 9, true)])).toBe(true);
+  });
+});
+
+describe("reorderedIds", () => {
+  const habits = [habit("a", "A", 0), habit("b", "B", 1), habit("c", "C", 2), habit("z", "Z", 3, true)];
+
+  it("swaps with the neighbour and leaves archived habits out", () => {
+    expect(reorderedIds(habits, 1, 1)).toEqual(["a", "c", "b"]);
+    expect(reorderedIds(habits, 1, -1)).toEqual(["b", "a", "c"]);
+  });
+
+  it("does nothing at the edges", () => {
+    expect(reorderedIds(habits, 0, -1)).toEqual(["a", "b", "c"]);
+    expect(reorderedIds(habits, 2, 1)).toEqual(["a", "b", "c"]);
+  });
+
+  it("still orders habits that share a position", () => {
+    const messy = [habit("a", "A", 0), habit("b", "B", 0)];
+    expect(reorderedIds(messy, 0, 1)).toEqual(["b", "a"]);
   });
 });
 

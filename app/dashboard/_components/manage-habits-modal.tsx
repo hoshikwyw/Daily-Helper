@@ -4,7 +4,14 @@ import { useState } from "react";
 import { Modal, ModalHeader, ModalBody, ModalFooter, Button, toast } from "@kwyw/kayv-glass-ui";
 import { FieldLabel } from "@/components/ui/label";
 import { EmptyState } from "@/components/ui/empty-state";
-import { activeHabits } from "@/lib/habits";
+import {
+  DEFAULT_HABIT_EMOJI,
+  MAX_ACTIVE_HABITS,
+  activeHabits,
+  canActivate,
+  reorderedIds,
+} from "@/lib/habits";
+import { graphemeCount } from "@/lib/text";
 import type { HabitPatch } from "@/lib/api/habits";
 import type { Habit } from "@/lib/types";
 
@@ -14,20 +21,31 @@ type ManageHabitsModalProps = {
   habits: Habit[];
   /** Writes one habit's changes; returns false on failure. */
   onPatch: (id: string, patch: HabitPatch) => Promise<boolean>;
+  /** Writes positions so the active habits take this order of ids. */
+  onReorder: (ids: string[]) => Promise<boolean>;
 };
 
 const FIELD =
   "h-10 rounded-lg bg-white/10 border border-white/10 text-slate-200 text-sm px-3 focus:outline-none focus:border-white/30 transition-colors";
+
+const ARROW = "h-10 w-8 rounded-lg text-slate-400 hover:bg-white/10 disabled:opacity-30";
 
 /**
  * Edit, reorder, archive, and restore habits. Name and emoji edits are saved
  * together with the Save button; reorder, archive, and restore write at once,
  * since each is a single tap with an obvious result.
  */
-export function ManageHabitsModal({ open, onClose, habits, onPatch }: ManageHabitsModalProps) {
+export function ManageHabitsModal({
+  open,
+  onClose,
+  habits,
+  onPatch,
+  onReorder,
+}: ManageHabitsModalProps) {
   // Drafts hold edited name/emoji by habit id; untouched rows read from `habits`.
   const [drafts, setDrafts] = useState<Record<string, { name: string; emoji: string }>>({});
   const [saving, setSaving] = useState(false);
+  const [moving, setMoving] = useState(false);
 
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
@@ -37,6 +55,7 @@ export function ManageHabitsModal({ open, onClose, habits, onPatch }: ManageHabi
 
   const active = activeHabits(habits);
   const archived = habits.filter((h) => h.archived);
+  const roomForMore = canActivate(habits);
 
   function draftFor(habit: Habit) {
     return drafts[habit.id] ?? { name: habit.name, emoji: habit.emoji };
@@ -47,17 +66,22 @@ export function ManageHabitsModal({ open, onClose, habits, onPatch }: ManageHabi
   }
 
   async function move(index: number, delta: -1 | 1) {
-    const other = active[index + delta];
-    const habit = active[index];
-    if (!other) return;
-    // Swap positions; both writes go out together.
-    await Promise.all([
-      onPatch(habit.id, { position: other.position }),
-      onPatch(other.id, { position: habit.position }),
-    ]);
+    // Arrows are disabled while a move is in flight, so two quick taps cannot
+    // both read the same order and undo each other.
+    setMoving(true);
+    await onReorder(reorderedIds(habits, index, delta));
+    setMoving(false);
   }
 
   async function setArchived(habit: Habit, archived: boolean) {
+    if (!archived && !roomForMore) {
+      toast({
+        title: `${MAX_ACTIVE_HABITS} active habits is the limit`,
+        description: "Archive one first to restore this.",
+        variant: "warning",
+      });
+      return;
+    }
     if (await onPatch(habit.id, { archived })) {
       toast({
         title: archived ? "Habit archived" : "Habit restored",
@@ -72,13 +96,22 @@ export function ManageHabitsModal({ open, onClose, habits, onPatch }: ManageHabi
       .map(([id, draft]) => ({
         id,
         name: draft.name.trim(),
-        emoji: draft.emoji.trim(),
+        emoji: draft.emoji.trim() || DEFAULT_HABIT_EMOJI,
         original: habits.find((h) => h.id === id),
       }))
       .filter((c) => c.original && (c.name !== c.original.name || c.emoji !== c.original.emoji));
 
     if (changes.some((c) => !c.name)) {
       toast({ title: "A habit needs a name", variant: "danger" });
+      return;
+    }
+    const longEmoji = changes.find((c) => graphemeCount(c.emoji) > 1);
+    if (longEmoji) {
+      toast({
+        title: `Use a single emoji for ${longEmoji.name}`,
+        description: "One symbol keeps the chip readable.",
+        variant: "danger",
+      });
       return;
     }
     if (changes.length === 0) {
@@ -88,7 +121,7 @@ export function ManageHabitsModal({ open, onClose, habits, onPatch }: ManageHabi
 
     setSaving(true);
     const results = await Promise.all(
-      changes.map((c) => onPatch(c.id, { name: c.name, emoji: c.emoji || "✅" }))
+      changes.map((c) => onPatch(c.id, { name: c.name, emoji: c.emoji }))
     );
     setSaving(false);
     if (results.every(Boolean)) {
@@ -115,7 +148,6 @@ export function ManageHabitsModal({ open, onClose, habits, onPatch }: ManageHabi
                       <input
                         aria-label={`Emoji for ${habit.name}`}
                         value={draft.emoji}
-                        maxLength={4}
                         onChange={(e) => edit(habit, { emoji: e.target.value })}
                         className={`${FIELD} w-12 text-center text-lg px-0`}
                       />
@@ -128,18 +160,18 @@ export function ManageHabitsModal({ open, onClose, habits, onPatch }: ManageHabi
                       <button
                         type="button"
                         onClick={() => move(index, -1)}
-                        disabled={index === 0}
+                        disabled={moving || index === 0}
                         aria-label="Move up"
-                        className="h-10 w-8 rounded-lg text-slate-400 hover:bg-white/10 disabled:opacity-30"
+                        className={ARROW}
                       >
                         ↑
                       </button>
                       <button
                         type="button"
                         onClick={() => move(index, 1)}
-                        disabled={index === active.length - 1}
+                        disabled={moving || index === active.length - 1}
                         aria-label="Move down"
-                        className="h-10 w-8 rounded-lg text-slate-400 hover:bg-white/10 disabled:opacity-30"
+                        className={ARROW}
                       >
                         ↓
                       </button>
@@ -164,12 +196,22 @@ export function ManageHabitsModal({ open, onClose, habits, onPatch }: ManageHabi
                   >
                     <span className="text-lg leading-none">{habit.emoji}</span>
                     <span className="text-sm text-slate-300 flex-1 truncate">{habit.name}</span>
-                    <Button variant="ghost" size="sm" onClick={() => setArchived(habit, false)}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setArchived(habit, false)}
+                      disabled={!roomForMore}
+                    >
                       Restore
                     </Button>
                   </div>
                 ))}
               </div>
+              {!roomForMore && (
+                <p className="text-xs text-slate-500 mt-2">
+                  Archive an active habit to make room before restoring one.
+                </p>
+              )}
             </div>
           )}
         </div>

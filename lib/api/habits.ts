@@ -60,9 +60,10 @@ export async function updateHabit(id: string, patch: HabitPatch): Promise<Habit 
 }
 
 /**
- * Marks a habit done or not done on a date. Done inserts a check (ignoring a
- * duplicate, so a double tap is harmless); not done deletes it. Returns the
- * check row when marking done, null when clearing or on failure.
+ * Marks a habit done or not done on a date. Done upserts a check: a repeat
+ * write merges into the existing row and returns it, which is what lets
+ * `.single()` succeed, so do not switch this to ignore duplicates. Not done
+ * deletes the row. Returns the check row when marking done, null otherwise.
  */
 export async function setHabitDone(
   habit_id: string,

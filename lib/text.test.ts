@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { plural } from "@/lib/text";
+import { graphemeCount, plural } from "@/lib/text";
 
 describe("plural", () => {
   it("uses the singular only for exactly one", () => {
@@ -11,5 +11,18 @@ describe("plural", () => {
   it("adds an s when no plural form is given", () => {
     expect(plural(1, "day")).toBe("1 day");
     expect(plural(31, "day")).toBe("31 days");
+  });
+});
+
+describe("graphemeCount", () => {
+  it("counts an emoji sequence as one character", () => {
+    expect(graphemeCount("🏋️‍♀️")).toBe(1);
+    expect(graphemeCount("👨‍👩‍👧")).toBe(1);
+  });
+
+  it("counts plain text by character", () => {
+    expect(graphemeCount("")).toBe(0);
+    expect(graphemeCount("ab")).toBe(2);
+    expect(graphemeCount("✅✅")).toBe(2);
   });
 });

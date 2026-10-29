@@ -212,4 +212,13 @@ create policy "Own data only" on expense_categories for all using (auth.uid() = 
 create policy "Own data only" on recurrences for all using (auth.uid() = user_id);
 create policy "Own data only" on budgets for all using (auth.uid() = user_id);
 create policy "Own data only" on habits for all using (auth.uid() = user_id);
-create policy "Own data only" on habit_checks for all using (auth.uid() = user_id);
+-- A check must also point at one of the caller's own habits; see 004_habits.sql.
+create policy "Own data only" on habit_checks for all
+  using (
+    auth.uid() = user_id
+    and exists (select 1 from habits h where h.id = habit_id and h.user_id = auth.uid())
+  )
+  with check (
+    auth.uid() = user_id
+    and exists (select 1 from habits h where h.id = habit_id and h.user_id = auth.uid())
+  );

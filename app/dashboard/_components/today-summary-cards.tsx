@@ -13,6 +13,11 @@ type TodaySummaryCardsProps = {
   /** Active habits done today and in total; the tile is hidden with no habits. */
   habitsDone: number;
   habitsTotal: number;
+  /**
+   * Keeps the four-tile layout while habits are still loading for a user
+   * known to have some, so the row does not reflow when the tile arrives.
+   */
+  habitsPending: boolean;
 };
 
 export function TodaySummaryCards({
@@ -23,11 +28,12 @@ export function TodaySummaryCards({
   mood,
   habitsDone,
   habitsTotal,
+  habitsPending,
 }: TodaySummaryCardsProps) {
   const percent = progressPercent(done, total);
   const variant = progressVariant(percent);
   const moodMeta = mood ? MOOD_META[mood as Mood] : null;
-  const showHabits = habitsTotal > 0;
+  const showHabits = habitsTotal > 0 || habitsPending;
   const habitPercent = progressPercent(habitsDone, habitsTotal);
 
   return (
@@ -63,13 +69,19 @@ export function TodaySummaryCards({
           <CardContent>
             <div className="flex items-end justify-between mb-3">
               <span className="text-3xl font-bold text-white">
-                {habitsDone}/{habitsTotal}
+                {habitsPending ? "—" : `${habitsDone}/${habitsTotal}`}
               </span>
-              <Badge variant={progressVariant(habitPercent)} size="sm">
-                {habitPercent}%
-              </Badge>
+              {!habitsPending && (
+                <Badge variant={progressVariant(habitPercent)} size="sm">
+                  {habitPercent}%
+                </Badge>
+              )}
             </div>
-            <Progress value={habitPercent} variant={progressVariant(habitPercent)} size="sm" />
+            <Progress
+              value={habitsPending ? 0 : habitPercent}
+              variant={progressVariant(habitPercent)}
+              size="sm"
+            />
           </CardContent>
         </Card>
       )}

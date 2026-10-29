@@ -153,6 +153,7 @@ export default function TodayPage() {
         mood={selectedMood}
         habitsDone={doneTodayCount(habitRows)}
         habitsTotal={habitRows.length}
+        habitsPending={!habitsState.loaded && habitsState.expected}
       />
 
       <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -169,6 +170,7 @@ export default function TodayPage() {
           <TodayHabitsCard
             statuses={habitRows}
             loaded={habitsState.loaded}
+            hasHabits={habitsState.habits.length > 0}
             onToggle={(habitId) => habitsState.toggle(habitId, today)}
             onAdd={(name) => habitsState.addHabit(name)}
             onManage={() => setShowManageHabits(true)}
@@ -193,6 +195,7 @@ export default function TodayPage() {
         onClose={() => setShowManageHabits(false)}
         habits={habitsState.habits}
         onPatch={habitsState.patchHabit}
+        onReorder={habitsState.reorder}
       />
     </PageContainer>
   );

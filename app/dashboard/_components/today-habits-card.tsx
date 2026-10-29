@@ -8,6 +8,8 @@ import { plural } from "@/lib/text";
 type TodayHabitsCardProps = {
   statuses: HabitStatus[];
   loaded: boolean;
+  /** True when any habit exists, archived ones included, so Manage stays reachable. */
+  hasHabits: boolean;
   /** Flips today's state for the habit; saves immediately. */
   onToggle: (habitId: string) => void;
   /** Adds a habit by name; returns false when the write failed. */
@@ -24,6 +26,7 @@ type TodayHabitsCardProps = {
 export function TodayHabitsCard({
   statuses,
   loaded,
+  hasHabits,
   onToggle,
   onAdd,
   onManage,
@@ -110,7 +113,7 @@ export function TodayHabitsCard({
             </p>
           )}
 
-          {loaded && statuses.length > 0 && (
+          {loaded && hasHabits && (
             <button
               type="button"
               onClick={onManage}
