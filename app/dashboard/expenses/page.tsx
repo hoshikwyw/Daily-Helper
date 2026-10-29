@@ -28,6 +28,7 @@ import {
   fmtSigned,
   getAccentHex,
   getDayActivity,
+  getMonthActivity,
   getMonthlyTotals,
   getTotals,
   mergeCategories,
@@ -150,22 +151,6 @@ export default function ExpensesPage() {
     setSelectedDate((prev) => sameDayInMonth(prev, year, month));
   }
 
-  // From the Monthly tab's calendar: open that day on the Daily tab, with the
-  // daily calendar already showing its month.
-  function handleJumpToDay(date: string) {
-    const day = fromISODate(date);
-    setSelectedDate(date);
-    setCalendarView({ year: day.getFullYear(), month: day.getMonth() });
-    setActiveTab("daily");
-  }
-
-  // From the Yearly overview: open that month of the viewed year on Monthly.
-  function handleJumpToMonth(month: number) {
-    setSelectedMonth(month);
-    setSelectedMonthYear(selectedYear);
-    setActiveTab("monthly");
-  }
-
   async function handleCreateEntry(values: NewExpense): Promise<boolean> {
     const created = await createExpense(values);
     if (!created) return false;
@@ -262,6 +247,11 @@ export default function ExpensesPage() {
 
   const dayActivity = useMemo(() => getDayActivity(entries), [entries]);
 
+  const monthActivity = useMemo(
+    () => getMonthActivity(dayActivity, selectedMonthYear),
+    [dayActivity, selectedMonthYear]
+  );
+
   const monthlyEntries = useMemo(() => {
     const prefix = monthPrefix(selectedMonthYear, selectedMonth);
     return entries.filter((e) => e.date.startsWith(prefix));
@@ -340,13 +330,11 @@ export default function ExpensesPage() {
                 onMonthChange={setSelectedMonth}
                 selectedMonthYear={selectedMonthYear}
                 onMonthYearChange={setSelectedMonthYear}
-                yearList={yearList}
                 entries={monthlyEntries}
-                activity={dayActivity}
+                activity={monthActivity}
                 loading={loading}
                 colorMap={colorMap}
                 onDelete={handleDelete}
-                onDayPick={handleJumpToDay}
                 onExport={() =>
                   handleExportImage(
                     "Monthly",
@@ -365,11 +353,7 @@ export default function ExpensesPage() {
                 yearList={yearList}
                 entries={entries}
                 monthlyTotals={monthlyTotals}
-                activity={dayActivity}
-                loading={loading}
                 colorMap={colorMap}
-                onDayPick={handleJumpToDay}
-                onMonthPick={handleJumpToMonth}
                 onExport={() =>
                   handleExportImage("Yearly", String(selectedYear), undefined, entries)
                 }

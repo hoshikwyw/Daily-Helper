@@ -342,3 +342,39 @@ export function getDayActivity(entries: Expense[]): Record<string, DayActivity> 
 export function countActiveDays(activity: Record<string, DayActivity>, prefix: string): number {
   return Object.keys(activity).filter((day) => day.startsWith(prefix)).length;
 }
+
+export type MonthActivity = {
+  /** At least one income entry was filed in this month. */
+  income: boolean;
+  /** At least one expense entry was filed in this month. */
+  expense: boolean;
+  /** How many distinct days have entries. */
+  days: number;
+  count: number;
+  net: number;
+};
+
+/** Rolls day activity up to months for one year; index 0 is January. */
+export function getMonthActivity(
+  activity: Record<string, DayActivity>,
+  year: number
+): MonthActivity[] {
+  const months: MonthActivity[] = Array.from({ length: 12 }, () => ({
+    income: false,
+    expense: false,
+    days: 0,
+    count: 0,
+    net: 0,
+  }));
+  const prefix = `${year}-`;
+  for (const [date, day] of Object.entries(activity)) {
+    if (!date.startsWith(prefix)) continue;
+    const month = months[Number(date.slice(5, 7)) - 1];
+    month.income ||= day.income;
+    month.expense ||= day.expense;
+    month.days += 1;
+    month.count += day.count;
+    month.net += day.net;
+  }
+  return months;
+}

@@ -4,12 +4,10 @@ import {
   fmtSigned,
   getTotals,
   type ColorMap,
-  type DayActivity,
   type MonthTotals,
 } from "@/lib/expenses";
 import { BalanceSummary } from "@/components/ui/balance-summary";
 import { CategorySplit } from "@/components/ui/category-split";
-import { YearOverview } from "./year-overview";
 import type { Expense } from "@/lib/types";
 
 type YearlyTabProps = {
@@ -18,14 +16,7 @@ type YearlyTabProps = {
   yearList: number[];
   entries: Expense[];
   monthlyTotals: MonthTotals[];
-  /** Which days have entries, from `getDayActivity`, for the loaded year. */
-  activity: Record<string, DayActivity>;
-  loading: boolean;
   colorMap: ColorMap;
-  /** Tapping a day in the year overview opens it on the Daily tab. */
-  onDayPick: (date: string) => void;
-  /** Tapping a month name opens that month on the Monthly tab. */
-  onMonthPick: (month: number) => void;
   onExport: () => void;
 };
 
@@ -35,11 +26,7 @@ export function YearlyTab({
   yearList,
   entries,
   monthlyTotals,
-  activity,
-  loading,
   colorMap,
-  onDayPick,
-  onMonthPick,
   onExport,
 }: YearlyTabProps) {
   const totals = getTotals(entries);
@@ -70,24 +57,6 @@ export function YearlyTab({
           ⬇ Save image
         </Button>
       </div>
-
-      {/* The calendar leads, as on the Daily and Monthly tabs. It spans the
-          full width here because twelve months need the room. */}
-      <Card variant="elevated">
-        <CardHeader
-          title="Days logged"
-          description="Every day of the year; tap one to open it, or a month name for the month."
-        />
-        <CardContent>
-          <YearOverview
-            year={selectedYear}
-            activity={activity}
-            onDayPick={onDayPick}
-            onMonthPick={onMonthPick}
-            loading={loading}
-          />
-        </CardContent>
-      </Card>
 
       <BalanceSummary totals={totals} netLabel={`Collected in ${selectedYear}`} />
 

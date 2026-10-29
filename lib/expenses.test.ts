@@ -11,6 +11,7 @@ import {
   getCategoryBreakdown,
   getCategoryStats,
   getDayActivity,
+  getMonthActivity,
   getMonthlyTotals,
   getTotals,
   mergeCategories,
@@ -290,5 +291,28 @@ describe("countActiveDays", () => {
     expect(countActiveDays(activity, "2026-09")).toBe(5);
     expect(countActiveDays(activity, "2026-10")).toBe(1);
     expect(countActiveDays(activity, "2026-11")).toBe(0);
+  });
+});
+
+describe("getMonthActivity", () => {
+  it("rolls days up into their month, ignoring other years", () => {
+    const activity = getDayActivity([
+      ...SEPTEMBER,
+      entry("expense", 10, "Other", "2026-10-01"),
+      entry("income", 999, "Salary", "2025-09-01"),
+    ]);
+    const months = getMonthActivity(activity, 2026);
+    expect(months).toHaveLength(12);
+    expect(months[8]).toEqual({ income: true, expense: true, days: 5, count: 5, net: 475_000 });
+    expect(months[9]).toEqual({ income: false, expense: true, days: 1, count: 1, net: -10 });
+    expect(months[0]).toEqual({ income: false, expense: false, days: 0, count: 0, net: 0 });
+  });
+
+  it("counts days, not entries, when several share a day", () => {
+    const activity = getDayActivity([
+      entry("expense", 1, "Other", "2026-03-05"),
+      entry("expense", 2, "Other", "2026-03-05"),
+    ]);
+    expect(getMonthActivity(activity, 2026)[2]).toMatchObject({ days: 1, count: 2 });
   });
 });
