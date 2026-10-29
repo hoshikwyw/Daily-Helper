@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  addDays,
+  daysBetween,
   daysInMonth,
   fromISODate,
   monthGrid,
@@ -160,5 +162,24 @@ describe("daysInMonth", () => {
       const last = Number(monthRange(new Date(2026, month, 1)).to.slice(-2));
       expect(daysInMonth(2026, month)).toBe(last);
     }
+  });
+});
+
+describe("addDays and daysBetween", () => {
+  it("crosses month and year boundaries", () => {
+    expect(addDays("2026-01-31", 1)).toBe("2026-02-01");
+    expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
+    expect(addDays("2026-03-01", -1)).toBe("2026-02-28");
+    expect(addDays("2028-03-01", -1)).toBe("2028-02-29");
+  });
+
+  it("counts whole days in either direction", () => {
+    expect(daysBetween("2026-01-01", "2026-01-31")).toBe(30);
+    expect(daysBetween("2026-01-31", "2026-01-01")).toBe(-30);
+    expect(daysBetween("2026-05-27", "2026-05-27")).toBe(0);
+  });
+
+  it("round-trips: addDays by the gap lands on the target", () => {
+    expect(addDays("2026-02-10", daysBetween("2026-02-10", "2027-02-10"))).toBe("2027-02-10");
   });
 });

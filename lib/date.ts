@@ -132,3 +132,17 @@ export function sameDayInMonth(iso: string, year: number, month: number): string
 export function daysInMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate();
 }
+
+/** `iso` moved by `days` (negative to go back), as `YYYY-MM-DD`. */
+export function addDays(iso: string, days: number): string {
+  const date = fromISODate(iso);
+  date.setDate(date.getDate() + days);
+  return toISODate(date);
+}
+
+/** Whole days from `from` to `to`; negative when `to` is earlier. */
+export function daysBetween(from: string, to: string): number {
+  const ms = fromISODate(to).getTime() - fromISODate(from).getTime();
+  // Round, not floor: a DST change makes one day 23 or 25 hours long.
+  return Math.round(ms / 86_400_000);
+}
