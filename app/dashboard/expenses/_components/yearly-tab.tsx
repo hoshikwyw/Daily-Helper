@@ -3,6 +3,7 @@ import {
   fmt,
   fmtSigned,
   getTotals,
+  netTextColor,
   type ColorMap,
   type MonthTotals,
 } from "@/lib/expenses";
@@ -96,7 +97,7 @@ export function YearlyTab({
                   </div>
                   <span
                     className={`text-xs w-20 sm:w-28 text-right shrink-0 font-medium ${
-                      idle ? "text-slate-500" : net >= 0 ? "text-emerald-400" : "text-rose-400"
+                      idle ? "text-slate-500" : netTextColor(net)
                     }`}
                   >
                     {idle ? "—" : fmtSigned(net)}

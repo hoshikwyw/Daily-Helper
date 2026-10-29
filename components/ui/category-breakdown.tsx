@@ -1,4 +1,5 @@
 import { Progress } from "@kwyw/kayv-glass-ui";
+import { plural } from "@/lib/text";
 import {
   categoryColor,
   filterByKind,
@@ -65,7 +66,7 @@ export function CategoryBreakdown({
           />
 
           <p className="text-xs text-slate-500">
-            {count} {count === 1 ? "entry" : "entries"}
+            {plural(count, "entry", "entries")}
             {count > 1 && ` · avg ${fmt(average)}`}
           </p>
         </div>
@@ -73,7 +74,7 @@ export function CategoryBreakdown({
 
       {hidden > 0 && (
         <p className="text-xs text-slate-400">
-          +{hidden} more {hidden === 1 ? "category" : "categories"}
+          +{plural(hidden, "more category", "more categories")}
         </p>
       )}
     </div>

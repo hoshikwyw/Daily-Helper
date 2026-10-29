@@ -1,6 +1,7 @@
 import { Card, CardHeader, CardContent, Button } from "@kwyw/kayv-glass-ui";
 import { getTotals, type ColorMap, type DayActivity } from "@/lib/expenses";
 import { formatFullDayLabel, todayISO } from "@/lib/date";
+import { plural } from "@/lib/text";
 import { SkeletonList } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { BalanceSummary } from "@/components/ui/balance-summary";
@@ -88,7 +89,7 @@ export function DailyTab({
         <Card variant="elevated">
           <CardHeader
             title="Entries"
-            description={`${entries.length} ${entries.length === 1 ? "entry" : "entries"}`}
+            description={plural(entries.length, "entry", "entries")}
           />
           <CardContent>
             {loading ? (

@@ -1,5 +1,6 @@
 import { Card, CardHeader, CardContent, Button } from "@kwyw/kayv-glass-ui";
 import { MONTHS, getTotals, type ColorMap, type MonthActivity } from "@/lib/expenses";
+import { plural } from "@/lib/text";
 import { EmptyState } from "@/components/ui/empty-state";
 import { BalanceSummary } from "@/components/ui/balance-summary";
 import { CategorySplit } from "@/components/ui/category-split";
@@ -81,7 +82,7 @@ export function MonthlyTab({
         <Card variant="elevated">
           <CardHeader
             title="All Entries"
-            description={`${entries.length} ${entries.length === 1 ? "entry" : "entries"}`}
+            description={plural(entries.length, "entry", "entries")}
           />
           <CardContent>
             {entries.length === 0 ? (

@@ -1,10 +1,21 @@
 import { daysInMonth, monthGrid, monthPrefix, todayISO } from "@/lib/date";
-import { MONTHS, countActiveDays, fmtCompactSigned, type DayActivity } from "@/lib/expenses";
+import {
+  MONTHS,
+  countActiveDays,
+  fmtCompactSigned,
+  netTextColor,
+  type DayActivity,
+} from "@/lib/expenses";
+import { plural } from "@/lib/text";
+import {
+  ActivityDots,
+  ActivityLegend,
+  JumpButton,
+  PickerHeader,
+  tileClass,
+} from "./picker-chrome";
 
 const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
-
-const NAV_BUTTON =
-  "h-10 w-10 shrink-0 flex items-center justify-center rounded-lg text-lg text-slate-300 hover:bg-white/10 hover:text-white transition-colors";
 
 type MoneyCalendarProps = {
   /** Full year and zero-based month of the month on screen. */
@@ -13,8 +24,8 @@ type MoneyCalendarProps = {
   onViewChange: (year: number, month: number) => void;
   /**
    * `YYYY-MM-DD` of the highlighted day. Omit when the calendar is only an
-   * overview with no current day, as on the Monthly tab; "Back to today"
-   * then just returns the view to this month.
+   * overview with no current day; "Back to today" then just returns the view
+   * to this month.
    */
   selectedDate?: string;
   onSelect: (date: string) => void;
@@ -48,7 +59,6 @@ export function MoneyCalendar({
   const today = todayISO();
   const prefix = monthPrefix(viewYear, viewMonth);
   const activeDays = countActiveDays(activity, prefix);
-  const monthLength = daysInMonth(viewYear, viewMonth);
   const showingToday = today.startsWith(prefix);
 
   function shiftMonth(delta: number) {
@@ -64,27 +74,12 @@ export function MoneyCalendar({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={() => shiftMonth(-1)}
-          aria-label="Previous month"
-          className={NAV_BUTTON}
-        >
-          ‹
-        </button>
-        <p className="flex-1 text-center text-sm font-semibold text-slate-100">
-          {MONTHS[viewMonth]} {viewYear}
-        </p>
-        <button
-          type="button"
-          onClick={() => shiftMonth(1)}
-          aria-label="Next month"
-          className={NAV_BUTTON}
-        >
-          ›
-        </button>
-      </div>
+      <PickerHeader
+        title={`${MONTHS[viewMonth]} ${viewYear}`}
+        onPrev={() => shiftMonth(-1)}
+        onNext={() => shiftMonth(1)}
+        unit="month"
+      />
 
       <div
         className={`grid grid-cols-7 gap-1 transition-opacity ${loading ? "opacity-50" : ""}`}
@@ -107,10 +102,7 @@ export function MoneyCalendar({
 
           const day = activity[iso];
           const isSelected = iso === selectedDate;
-          const isToday = iso === today;
-          const label = day
-            ? `${iso}, ${day.count} ${day.count === 1 ? "entry" : "entries"}`
-            : `${iso}, no entries`;
+          const label = day ? `${iso}, ${plural(day.count, "entry", "entries")}` : `${iso}, no entries`;
 
           return (
             <button
@@ -118,74 +110,35 @@ export function MoneyCalendar({
               type="button"
               onClick={() => onSelect(iso)}
               aria-label={label}
-              // Only a toggle where there is a selection; on the Monthly tab
-              // the days are plain buttons that open a day.
+              // Only a toggle where there is a selection; otherwise the days
+              // are plain buttons that open a day.
               aria-pressed={selectedDate !== undefined ? isSelected : undefined}
-              className={`relative h-10 sm:h-11 lg:h-14 rounded-lg flex flex-col items-center justify-center text-sm transition-colors ${
-                isSelected
-                  ? "bg-kv-500 text-white font-semibold"
-                  : day
-                    ? "text-slate-100 bg-white/6 hover:bg-white/10"
-                    : "text-slate-500 hover:bg-white/5 hover:text-slate-300"
-              } ${isToday && !isSelected ? "ring-1 ring-kv-400/70" : ""}`}
+              className={`relative h-10 sm:h-11 lg:h-14 ${tileClass(isSelected, Boolean(day), iso === today)}`}
             >
               <span className="leading-none">{Number(iso.slice(-2))}</span>
               {/* The day's net, wide screens only: a phone cell is too narrow
                   for figures, so there the dots carry the story alone. */}
               <span
                 className={`hidden lg:block h-3 mt-0.5 text-[10px] leading-3 tabular-nums ${
-                  isSelected
-                    ? "text-white/90"
-                    : !day
-                      ? ""
-                      : day.net > 0
-                        ? "text-emerald-400"
-                        : day.net < 0
-                          ? "text-rose-400"
-                          : "text-slate-400"
+                  isSelected ? "text-white/90" : day ? netTextColor(day.net) : ""
                 }`}
               >
                 {day ? fmtCompactSigned(day.net) : ""}
               </span>
-              {/* Fixed-height slot so rows don't shift between filled and empty days. */}
-              <span className="flex items-center gap-0.5 h-1.5 mt-1">
-                {day?.income && (
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${isSelected ? "bg-white" : "bg-emerald-400"}`}
-                  />
-                )}
-                {day?.expense && (
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${isSelected ? "bg-white/70" : "bg-rose-400"}`}
-                  />
-                )}
-              </span>
+              <ActivityDots
+                income={Boolean(day?.income)}
+                expense={Boolean(day?.expense)}
+                onAccent={isSelected}
+                className="mt-1"
+              />
             </button>
           );
         })}
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
-        <span className="flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Income
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-rose-400" /> Expense
-        </span>
-        <span className="ml-auto">
-          {activeDays} of {monthLength} days logged
-        </span>
-      </div>
+      <ActivityLegend summary={`${activeDays} of ${daysInMonth(viewYear, viewMonth)} days logged`} />
 
-      {!showingToday && (
-        <button
-          type="button"
-          onClick={jumpToToday}
-          className="w-full h-10 rounded-lg text-sm text-kv-400 hover:text-kv-300 hover:bg-white/5 transition-colors"
-        >
-          Back to today
-        </button>
-      )}
+      {!showingToday && <JumpButton onClick={jumpToToday}>Back to today</JumpButton>}
     </div>
   );
 }

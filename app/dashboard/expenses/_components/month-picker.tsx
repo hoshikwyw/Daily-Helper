@@ -1,7 +1,12 @@
-import { MONTHS, fmtCompactSigned, type MonthActivity } from "@/lib/expenses";
-
-const NAV_BUTTON =
-  "h-10 w-10 shrink-0 flex items-center justify-center rounded-lg text-lg text-slate-300 hover:bg-white/10 hover:text-white transition-colors";
+import { MONTHS, fmtCompactSigned, netTextColor, type MonthActivity } from "@/lib/expenses";
+import { plural } from "@/lib/text";
+import {
+  ActivityDots,
+  ActivityLegend,
+  JumpButton,
+  PickerHeader,
+  tileClass,
+} from "./picker-chrome";
 
 type MonthPickerProps = {
   year: number;
@@ -41,25 +46,12 @@ export function MonthPicker({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={() => onYearChange(year - 1)}
-          aria-label="Previous year"
-          className={NAV_BUTTON}
-        >
-          ‹
-        </button>
-        <p className="flex-1 text-center text-sm font-semibold text-slate-100">{year}</p>
-        <button
-          type="button"
-          onClick={() => onYearChange(year + 1)}
-          aria-label="Next year"
-          className={NAV_BUTTON}
-        >
-          ›
-        </button>
-      </div>
+      <PickerHeader
+        title={String(year)}
+        onPrev={() => onYearChange(year - 1)}
+        onNext={() => onYearChange(year + 1)}
+        unit="year"
+      />
 
       <div
         className={`grid grid-cols-3 gap-1.5 transition-opacity ${loading ? "opacity-50" : ""}`}
@@ -72,7 +64,7 @@ export function MonthPicker({
           const isSelected = month === selectedMonth;
           const isCurrent = year === thisYear && month === now.getMonth();
           const label = filled
-            ? `${name} ${year}, ${info.days} ${info.days === 1 ? "day" : "days"} logged`
+            ? `${name} ${year}, ${plural(info.days, "day")} logged`
             : `${name} ${year}, nothing logged`;
 
           return (
@@ -82,13 +74,7 @@ export function MonthPicker({
               onClick={() => onSelect(month)}
               aria-label={label}
               aria-pressed={isSelected}
-              className={`h-16 rounded-lg flex flex-col items-center justify-center gap-0.5 text-sm transition-colors ${
-                isSelected
-                  ? "bg-kv-500 text-white font-semibold"
-                  : filled
-                    ? "text-slate-100 bg-white/6 hover:bg-white/10"
-                    : "text-slate-500 hover:bg-white/5 hover:text-slate-300"
-              } ${isCurrent && !isSelected ? "ring-1 ring-kv-400/70" : ""}`}
+              className={`h-16 gap-0.5 ${tileClass(isSelected, filled, isCurrent)}`}
             >
               <span className="leading-none">{name.slice(0, 3)}</span>
               <span
@@ -101,55 +87,20 @@ export function MonthPicker({
               {/* The month's net, wide screens only, where the rail has room. */}
               <span
                 className={`hidden lg:block h-3 text-[10px] leading-3 tabular-nums ${
-                  isSelected
-                    ? "text-white/90"
-                    : !filled
-                      ? ""
-                      : info.net > 0
-                        ? "text-emerald-400"
-                        : info.net < 0
-                          ? "text-rose-400"
-                          : "text-slate-400"
+                  isSelected ? "text-white/90" : filled ? netTextColor(info.net) : ""
                 }`}
               >
                 {filled ? fmtCompactSigned(info.net) : ""}
               </span>
-              <span className="flex items-center gap-0.5 h-1.5">
-                {info.income && (
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${isSelected ? "bg-white" : "bg-emerald-400"}`}
-                  />
-                )}
-                {info.expense && (
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${isSelected ? "bg-white/70" : "bg-rose-400"}`}
-                  />
-                )}
-              </span>
+              <ActivityDots income={info.income} expense={info.expense} onAccent={isSelected} />
             </button>
           );
         })}
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
-        <span className="flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Income
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-rose-400" /> Expense
-        </span>
-        <span className="ml-auto tabular-nums">{loggedMonths} of 12 months logged</span>
-      </div>
+      <ActivityLegend summary={`${loggedMonths} of 12 months logged`} />
 
-      {year !== thisYear && (
-        <button
-          type="button"
-          onClick={jumpToThisYear}
-          className="w-full h-10 rounded-lg text-sm text-kv-400 hover:text-kv-300 hover:bg-white/5 transition-colors"
-        >
-          Back to this year
-        </button>
-      )}
+      {year !== thisYear && <JumpButton onClick={jumpToThisYear}>Back to this year</JumpButton>}
     </div>
   );
 }

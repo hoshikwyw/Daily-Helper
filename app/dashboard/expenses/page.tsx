@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, Tabs, TabList, Tab, TabPanels, TabPanel, toast } from "@kwyw/kayv-glass-ui";
 import {
   createExpense,
@@ -8,13 +8,12 @@ import {
   deleteExpense,
   deleteExpenseCategory,
   listExpenseCategories,
-  listExpensesForYear,
   type NewExpense,
 } from "@/lib/api/expenses";
+import { useExpenseYear } from "@/hooks/use-expense-year";
 import {
   formatLongDate,
   formatWeekday,
-  fromISODate,
   monthPrefix,
   sameDayInMonth,
   toISODate,
@@ -47,9 +46,8 @@ export default function ExpensesPage() {
   const today = new Date();
   const [activeTab, setActiveTab] = useState("daily");
 
-  const [entries, setEntries] = useState<Expense[]>([]);
-  const [loading, setLoading] = useState(true);
   const [fetchYear, setFetchYear] = useState(today.getFullYear());
+  const { entries, loading, addEntry, removeEntry } = useExpenseYear(fetchYear);
 
   const [selectedDate, setSelectedDate] = useState(toISODate(today));
   // The month the daily calendar is showing. Kept apart from selectedDate so
@@ -72,59 +70,10 @@ export default function ExpensesPage() {
 
   const colorMap = useMemo(() => buildColorMap(allCategories), [allCategories]);
 
-  // Years already fetched this session. Hopping between tabs that point at
-  // different years then swaps instantly instead of re-downloading a whole
-  // year and flashing skeletons. Empty results are not kept, so a year that
-  // came back empty because of a network error is retried next time.
-  const yearCache = useRef(new Map<number, Expense[]>());
-
-  // Flipping the calendar across a year boundary and back fires two fetches
-  // in quick succession, and the slower one can land last. Each request takes
-  // a ticket; a response whose ticket is no longer current is thrown away so
-  // the screen never shows one year's entries under another year's calendar.
-  const fetchTicket = useRef(0);
-  const fetchInFlight = useRef(false);
-
-  async function loadEntries(year: number) {
-    const ticket = ++fetchTicket.current;
-    const cached = yearCache.current.get(year);
-    if (cached) {
-      fetchInFlight.current = false;
-      setEntries(cached);
-      setLoading(false);
-      return;
-    }
-    fetchInFlight.current = true;
-    setLoading(true);
-    try {
-      const rows = await listExpensesForYear(year);
-      if (ticket !== fetchTicket.current) return;
-      if (rows.length > 0) yearCache.current.set(year, rows);
-      setEntries(rows);
-    } finally {
-      if (ticket === fetchTicket.current) {
-        fetchInFlight.current = false;
-        setLoading(false);
-      }
-    }
-  }
-
-  async function loadCategories() {
-    setCustomCategories(await listExpenseCategories());
-  }
-
-  // Both loaders set state once their request resolves (or at once, from the
-  // year cache); the rule cannot see past the async boundary.
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    loadEntries(fetchYear);
-  }, [fetchYear]);
-
   // Categories do not depend on the year, so once per visit is enough.
   useEffect(() => {
-    loadCategories();
+    listExpenseCategories().then(setCustomCategories);
   }, []);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Each tab can land on a year outside the currently-loaded one — the daily
   // calendar by flipping months, the others via their year pickers. Syncing
@@ -154,19 +103,7 @@ export default function ExpensesPage() {
   async function handleCreateEntry(values: NewExpense): Promise<boolean> {
     const created = await createExpense(values);
     if (!created) return false;
-    const year = fromISODate(created.date).getFullYear();
-    const cached = yearCache.current.get(year);
-    if (cached) yearCache.current.set(year, [created, ...cached]);
-    if (year === fetchYear) {
-      // A fetch that started before the insert would land without the new row
-      // and wipe it from the list, so in that case fetch again instead.
-      if (fetchInFlight.current) {
-        yearCache.current.delete(year);
-        loadEntries(year);
-      } else {
-        setEntries((prev) => [created, ...prev]);
-      }
-    }
+    addEntry(created);
     toast({
       title: created.kind === "income" ? "Income added" : "Expense added",
       variant: "success",
@@ -176,10 +113,7 @@ export default function ExpensesPage() {
 
   async function handleDelete(id: string) {
     if (!(await deleteExpense(id))) return;
-    setEntries((prev) => prev.filter((e) => e.id !== id));
-    for (const [year, rows] of yearCache.current) {
-      yearCache.current.set(year, rows.filter((e) => e.id !== id));
-    }
+    removeEntry(id);
     toast({ title: "Entry deleted", variant: "warning" });
   }
 

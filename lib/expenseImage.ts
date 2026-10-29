@@ -1,3 +1,5 @@
+import { plural } from "@/lib/text";
+
 // Renders a "cute" expense summary card to a PNG and triggers a download.
 // Uses the Canvas 2D API directly so it needs no external dependency and works
 // fully offline. Call only on the client (it touches document/canvas).
@@ -187,7 +189,7 @@ function renderExpenseImage(data: ExpenseImageData): string {
   ctx.textAlign = "right";
   ctx.fillStyle = "#94a3b8";
   ctx.font = `500 24px ${SANS}`;
-  ctx.fillText(`${data.entries} ${data.entries === 1 ? "entry" : "entries"}`, right, y + 52);
+  ctx.fillText(plural(data.entries, "entry", "entries"), right, y + 52);
   ctx.textAlign = "left";
   y += 90;
 

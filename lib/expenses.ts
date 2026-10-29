@@ -378,3 +378,10 @@ export function getMonthActivity(
   }
   return months;
 }
+
+/** Text colour for a net figure: green ahead, rose behind, grey at break-even. */
+export function netTextColor(net: number): string {
+  if (net > 0) return "text-emerald-400";
+  if (net < 0) return "text-rose-400";
+  return "text-slate-400";
+}

@@ -2,6 +2,7 @@ import { CategoryBreakdown } from "@/components/ui/category-breakdown";
 import { FieldLabel } from "@/components/ui/label";
 import { filterByKind, fmt, getCategoryStats, type ColorMap } from "@/lib/expenses";
 import type { EntryKind, Expense } from "@/lib/types";
+import { plural } from "@/lib/text";
 
 type CategorySplitProps = {
   entries: Expense[];
@@ -69,8 +70,8 @@ function CategorySide({
         <FieldLabel mb="0">{label}</FieldLabel>
         {stats.entries > 0 && (
           <span className="text-xs text-slate-500">
-            {stats.categories} {stats.categories === 1 ? "category" : "categories"} ·{" "}
-            {stats.entries} {stats.entries === 1 ? "entry" : "entries"} · avg{" "}
+            {plural(stats.categories, "category", "categories")} ·{" "}
+            {plural(stats.entries, "entry", "entries")} · avg{" "}
             {fmt(stats.average)}
           </span>
         )}
