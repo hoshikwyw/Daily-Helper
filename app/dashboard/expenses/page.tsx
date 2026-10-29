@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Tabs, TabList, Tab, TabPanels, TabPanel, toast } from "@kwyw/kayv-glass-ui";
 import {
   createExpense,
@@ -69,9 +69,18 @@ export default function ExpensesPage() {
 
   const colorMap = useMemo(() => buildColorMap(allCategories), [allCategories]);
 
+  // Flipping the calendar across a year boundary and back fires two fetches
+  // in quick succession, and the slower one can land last. Each request takes
+  // a ticket; a response whose ticket is no longer current is thrown away so
+  // the screen never shows one year's entries under another year's calendar.
+  const fetchTicket = useRef(0);
+
   async function loadEntries(year: number) {
+    const ticket = ++fetchTicket.current;
     setLoading(true);
-    setEntries(await listExpensesForYear(year));
+    const rows = await listExpensesForYear(year);
+    if (ticket !== fetchTicket.current) return;
+    setEntries(rows);
     setLoading(false);
   }
 
@@ -330,7 +339,9 @@ export default function ExpensesPage() {
       <AddEntryModal
         open={showCreate}
         onClose={() => setShowCreate(false)}
-        defaultDate={selectedDate}
+        // The picked day only means something while it is on screen; from the
+        // Monthly or Yearly tab the natural default is today.
+        defaultDate={activeTab === "daily" ? selectedDate : todayISO()}
         categories={allCategories}
         onSubmit={handleCreateEntry}
       />
