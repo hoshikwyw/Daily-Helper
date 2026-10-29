@@ -10,6 +10,9 @@ type TodaySummaryCardsProps = {
   loading: boolean;
   /** "" while no mood has been recorded for today. */
   mood: string;
+  /** Active habits done today and in total; the tile is hidden with no habits. */
+  habitsDone: number;
+  habitsTotal: number;
 };
 
 export function TodaySummaryCards({
@@ -18,13 +21,19 @@ export function TodaySummaryCards({
   projectCount,
   loading,
   mood,
+  habitsDone,
+  habitsTotal,
 }: TodaySummaryCardsProps) {
   const percent = progressPercent(done, total);
   const variant = progressVariant(percent);
   const moodMeta = mood ? MOOD_META[mood as Mood] : null;
+  const showHabits = habitsTotal > 0;
+  const habitPercent = progressPercent(habitsDone, habitsTotal);
 
   return (
-    <div className="relative grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+    <div
+      className={`relative grid grid-cols-2 gap-3 sm:gap-4 ${showHabits ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}
+    >
       <Card variant="elevated">
         <CardHeader title="Today's Tasks" />
         <CardContent>
@@ -48,7 +57,25 @@ export function TodaySummaryCards({
         </CardContent>
       </Card>
 
-      <Card variant="elevated" className="col-span-2 sm:col-span-1">
+      {showHabits && (
+        <Card variant="elevated">
+          <CardHeader title="Habits" />
+          <CardContent>
+            <div className="flex items-end justify-between mb-3">
+              <span className="text-3xl font-bold text-white">
+                {habitsDone}/{habitsTotal}
+              </span>
+              <Badge variant={progressVariant(habitPercent)} size="sm">
+                {habitPercent}%
+              </Badge>
+            </div>
+            <Progress value={habitPercent} variant={progressVariant(habitPercent)} size="sm" />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* With three tiles the mood one spans the phone row; with four it fits 2×2. */}
+      <Card variant="elevated" className={showHabits ? "" : "col-span-2 sm:col-span-1"}>
         <CardHeader title="Today's Mood" />
         <CardContent>
           {moodMeta ? (

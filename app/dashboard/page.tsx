@@ -10,7 +10,9 @@ import { listRecurrences } from "@/lib/api/recurrences";
 import { upcomingRules } from "@/lib/recurrence";
 import { formatDayLabel, formatMonthName, monthPrefix, monthRange, todayISO } from "@/lib/date";
 import { budgetProgress, effectiveBudgets } from "@/lib/budgets";
+import { doneTodayCount, habitStatuses } from "@/lib/habits";
 import { useBudgets } from "@/hooks/use-budgets";
+import { useHabits } from "@/hooks/use-habits";
 import { useExpenseCategories } from "@/hooks/use-expense-categories";
 import { useSettings } from "@/hooks/use-settings";
 import { useRecurrenceSync } from "@/components/recurrence-sync";
@@ -19,6 +21,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { TodaySummaryCards } from "./_components/today-summary-cards";
 import { TodayTasksCard } from "./_components/today-tasks-card";
 import { TodayMoodCard } from "./_components/today-mood-card";
+import { TodayHabitsCard } from "./_components/today-habits-card";
 import { TodayJournalCard } from "./_components/today-journal-card";
 import { TodayProjectsCard } from "./_components/today-projects-card";
 import { TodayMoneyCard } from "./_components/today-money-card";
@@ -46,6 +49,11 @@ export default function TodayPage() {
 
   const today = todayISO();
   const now = useMemo(() => new Date(), []);
+  const habitsState = useHabits(today);
+  const habitRows = useMemo(
+    () => habitStatuses(habitsState.habits, habitsState.checks, today),
+    [habitsState.habits, habitsState.checks, today]
+  );
   const { from: monthFrom, to: monthTo } = useMemo(() => monthRange(now), [now]);
 
   // This month's spending against its limits.
@@ -141,6 +149,8 @@ export default function TodayPage() {
         projectCount={projects.length}
         loading={loading}
         mood={selectedMood}
+        habitsDone={doneTodayCount(habitRows)}
+        habitsTotal={habitRows.length}
       />
 
       <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -154,6 +164,12 @@ export default function TodayPage() {
 
         <div className="space-y-4">
           <TodayMoodCard value={selectedMood} onChange={handleMoodSave} />
+          <TodayHabitsCard
+            statuses={habitRows}
+            loaded={habitsState.loaded}
+            onToggle={(habitId) => habitsState.toggle(habitId, today)}
+            onAdd={(name) => habitsState.addHabit(name)}
+          />
           <TodayJournalCard entry={journal} />
         </div>
       </div>
