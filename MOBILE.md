@@ -106,3 +106,22 @@ That rewrites the web favicon and PWA icons (`app/favicon.ico`, `app/icon.png`,
 `app/apple-icon.png`, `public/icons/`), the Capacitor sources in `assets/`, and
 the Android/iOS launcher icons and splash screens in place. Then rebuild the
 native apps as usual (`npm run mobile:android` / `mobile:ios`).
+
+---
+
+## 6. Safe areas (status bar, navigation bar, notch)
+
+The native app draws edge to edge: the viewport is `viewport-fit=cover`
+([app/layout.tsx](app/layout.tsx)) and Android 15+ enforces it. Capacitor's
+SystemBars plugin (configured in [capacitor.config.ts](capacitor.config.ts))
+makes `env(safe-area-inset-*)` report the real bar sizes, and the layout pads
+with them:
+
+- the dashboard shell pads the top, sides, and bottom nav
+  ([components/dashboard/shell.tsx](components/dashboard/shell.tsx));
+- the sign-in pages pad top and bottom ([components/ui/auth-layout.tsx](components/ui/auth-layout.tsx));
+- dialogs, drawers, and toasts are portalled by the UI library, so
+  [app/globals.css](app/globals.css) adjusts them with a few rules.
+
+If you add a new fixed or full-height element, give it the matching
+`env(safe-area-inset-*)` padding rather than a hard-coded offset.

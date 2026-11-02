@@ -64,12 +64,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     "home";
 
   return (
-    <div className="flex min-h-screen">
+    // Edge-to-edge on the phone: the shell itself steps inside the system
+    // bars and the display cutout, so pages never have to know about them.
+    <div className="flex min-h-screen pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
       <MenuBar
         value={active}
         onValueChange={handleValueChange}
         display="responsive"
-        className="shrink-0"
+        className="shrink-0 pt-[env(safe-area-inset-top)]"
         bottomNavClassName="fixed inset-x-0 bottom-0 z-40 pb-[env(safe-area-inset-bottom)]"
       >
         <MenuBarBrand>
@@ -111,7 +113,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </MenuBarSection>
       </MenuBar>
 
-      <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
+      <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto pt-[env(safe-area-inset-top)] pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
         {children}
       </main>
     </div>

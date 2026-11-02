@@ -41,7 +41,14 @@ export function TaskDetailDrawer({
   onDelete,
 }: TaskDetailDrawerProps) {
   return (
-    <Drawer open={!!task} onClose={onClose} placement="right" size="md">
+    <Drawer
+      open={!!task}
+      onClose={onClose}
+      placement="right"
+      size="md"
+      // Full-height panel: keep its header and footer out of the system bars.
+      className="pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
+    >
       {task && (
         <>
           <DrawerHeader>Edit task</DrawerHeader>

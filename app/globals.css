@@ -198,3 +198,27 @@ body {
 *::-webkit-scrollbar-thumb:hover {
   background-color: rgb(148 163 184 / 0.5);
 }
+
+/*
+ * Safe areas. The native shell draws edge to edge (viewport-fit=cover in
+ * app/layout.tsx; Android 15+ enforces it), so anything pinned to the top or
+ * bottom of the screen must step inside the system bars itself. The in-flow
+ * layout does this in the dashboard shell; the rules here cover the library's
+ * portalled overlays, which the shell cannot wrap.
+ */
+
+/* Dialog backdrop: keep the panel clear of both bars. */
+body > .fixed.inset-0 {
+  padding-top: calc(1rem + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* The dialog panel's own height cap must shrink by the same amount. */
+body > .fixed.inset-0 > [role="dialog"] {
+  max-height: calc(100dvh - 2rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+}
+
+/* Toasts stack from the top-right; start them below the status bar. */
+body > .fixed.z-50.pointer-events-none {
+  top: calc(1rem + env(safe-area-inset-top, 0px));
+}
