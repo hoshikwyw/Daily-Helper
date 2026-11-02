@@ -24,7 +24,7 @@ import {
   passwordProblem,
   type ManagedUserStatus,
 } from "@/lib/admin";
-import { formatDate } from "@/lib/date";
+import { formatLongDate } from "@/lib/date";
 import { PasswordInput } from "@/components/ui/password-input";
 import { SkeletonList } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -235,8 +235,8 @@ export function UsersTab() {
                       <p className="text-xs text-slate-400 truncate">
                         {row.note ? `${row.note} · ` : ""}
                         {row.last_sign_in_at
-                          ? `Last sign-in ${formatDate(row.last_sign_in_at.slice(0, 10))}`
-                          : `Invited ${formatDate(row.invited_at.slice(0, 10))}`}
+                          ? `Last sign-in ${formatLongDate(new Date(row.last_sign_in_at))}`
+                          : `Invited ${formatLongDate(new Date(row.invited_at))}`}
                       </p>
                     </div>
                     <Badge variant={STATUS_VARIANT[status]} size="sm">

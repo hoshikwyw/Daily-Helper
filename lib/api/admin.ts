@@ -1,7 +1,7 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { toast } from "@kwyw/kayv-glass-ui";
 import { supabase } from "@/lib/supabase";
 import { getUserId, isSchemaError, reportError, reportSchemaError } from "@/lib/db";
-import { authCallbackUrl } from "@/lib/authRedirect";
 import type { Database, ManagedUserRow } from "@/lib/types";
 
 // Data access for the admin's Users screen. No privileged key is involved:
@@ -47,10 +47,18 @@ export async function createManagedUser(
 ): Promise<CreateUserResult> {
   const normalized = email.trim().toLowerCase();
 
+  // Invite first. An invitation that already exists is left as it is (its
+  // note and author included); one created here is withdrawn again if the
+  // sign-up then fails, so a typo'd password never leaves an email open to
+  // registration by whoever knows it.
   const created_by = await getUserId();
-  const { error: inviteError } = await supabase
+  const { data: inserted, error: inviteError } = await supabase
     .from("allowed_users")
-    .upsert({ email: normalized, note: note?.trim() || null, created_by }, { onConflict: "email" });
+    .upsert(
+      { email: normalized, note: note?.trim() || null, created_by },
+      { onConflict: "email", ignoreDuplicates: true }
+    )
+    .select("email");
   if (inviteError) {
     if (isSchemaError(inviteError)) {
       reportSchemaError(inviteError);
@@ -61,23 +69,30 @@ export async function createManagedUser(
     }
     return { ok: false, message: inviteError.message };
   }
+  const invitedJustNow = (inserted?.length ?? 0) > 0;
+  const withdraw = async () => {
+    if (invitedJustNow) await supabase.from("allowed_users").delete().eq("email", normalized);
+  };
 
+  // No redirect override: the confirmation email goes to someone else, who
+  // may open it anywhere, so the link must be the project's public Site URL
+  // rather than this device's origin or the app's deep-link scheme.
   const throwaway = createSupabaseClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
   );
-  const { data, error } = await throwaway.auth.signUp({
-    email: normalized,
-    password,
-    options: { emailRedirectTo: authCallbackUrl("/dashboard") },
-  });
-  if (error) return { ok: false, message: friendlySignUpError(error.message) };
+  const { data, error } = await throwaway.auth.signUp({ email: normalized, password });
+  if (error) {
+    await withdraw();
+    return { ok: false, message: friendlySignUpError(error.message) };
+  }
 
   // With "Confirm email" on, Supabase answers a repeat sign-up with a user
   // that has no identities rather than an error, to avoid revealing which
   // emails exist. For the admin that is simply "already exists".
   if (data.user && data.user.identities?.length === 0) {
+    await withdraw();
     return { ok: false, message: "An account with this email already exists." };
   }
 
@@ -92,8 +107,9 @@ function friendlySignUpError(message: string): string {
   }
   if (lower.includes("password")) return message;
   if (lower.includes("database error")) {
-    // GoTrue hides the trigger's text behind this; the only trigger is ours.
-    return "Sign-up was refused by the database. Is the invitation list migration applied?";
+    // GoTrue hides the real text (a trigger or constraint on auth.users)
+    // behind this line, so there is nothing more specific to say.
+    return "The database refused the sign-up. Check the Supabase logs for the reason.";
   }
   if (lower.includes("signups not allowed") || lower.includes("sign-ups not allowed")) {
     return "Email sign-ups are disabled in the Supabase dashboard (Authentication → Providers → Email).";
@@ -107,6 +123,17 @@ function friendlySignUpError(message: string): string {
  * app deliberately does not have.
  */
 export async function revokeInvitation(email: string): Promise<boolean> {
-  const { error } = await supabase.from("allowed_users").delete().eq("email", email);
-  return !reportError(error);
+  // A delete that matches nothing (filtered by policy, or already gone) is
+  // not an error to PostgREST, so count the rows rather than trust silence.
+  const { data, error } = await supabase
+    .from("allowed_users")
+    .delete()
+    .eq("email", email)
+    .select("email");
+  if (reportError(error)) return false;
+  if (!data || data.length === 0) {
+    toast({ title: "Nothing removed", description: "That invitation was already gone.", variant: "warning" });
+    return false;
+  }
+  return true;
 }

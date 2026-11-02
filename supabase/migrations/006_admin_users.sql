@@ -56,23 +56,32 @@ drop policy if exists "Admins manage allowed users" on allowed_users;
 create policy "Admins manage allowed users" on allowed_users
   for all using (public.is_admin()) with check (public.is_admin());
 
--- 3. Sign-ups are by invitation only. Admin emails may always sign up, so
---    the first admin can create their own account on a fresh project.
+-- 3. Sign-ups are by invitation only. Deliberately no exception for admin
+--    emails: with the admin address committed in this file, such a branch
+--    would let anyone claim the admin account on a project where it does
+--    not exist yet. Bootstrap a fresh project by inserting the admin's email
+--    into allowed_users in the SQL editor before creating the account.
 create or replace function public.enforce_invited_signup()
 returns trigger
 language plpgsql
 security definer
 set search_path = public
-as $$
+as $
 begin
-  if exists (select 1 from public.allowed_users u where lower(u.email) = lower(new.email))
-     or exists (select 1 from public.admins a where lower(a.email) = lower(new.email)) then
+  -- Invited through the app or the SQL editor.
+  if new.email is not null
+     and exists (select 1 from public.allowed_users u where lower(u.email) = lower(new.email)) then
+    return new;
+  end if;
+  -- Invited from the Supabase dashboard ("Invite user"): the invitation email
+  -- is the gate there, and GoTrue stamps invited_at on those rows.
+  if new.invited_at is not null then
     return new;
   end if;
   raise exception 'Sign-ups are by invitation only. Ask the admin to create your account.'
     using errcode = 'P0001';
 end;
-$$;
+$;
 
 drop trigger if exists enforce_invited_signup on auth.users;
 create trigger enforce_invited_signup

@@ -298,16 +298,22 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public
-as $$
+as $
 begin
-  if exists (select 1 from public.allowed_users u where lower(u.email) = lower(new.email))
-     or exists (select 1 from public.admins a where lower(a.email) = lower(new.email)) then
+  -- Invited through the app or the SQL editor.
+  if new.email is not null
+     and exists (select 1 from public.allowed_users u where lower(u.email) = lower(new.email)) then
+    return new;
+  end if;
+  -- Invited from the Supabase dashboard ("Invite user"): the invitation email
+  -- is the gate there, and GoTrue stamps invited_at on those rows.
+  if new.invited_at is not null then
     return new;
   end if;
   raise exception 'Sign-ups are by invitation only. Ask the admin to create your account.'
     using errcode = 'P0001';
 end;
-$$;
+$;
 
 drop trigger if exists enforce_invited_signup on auth.users;
 create trigger enforce_invited_signup

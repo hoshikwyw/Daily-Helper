@@ -1,6 +1,6 @@
 # ✦ Orbit Dashboard
 
-A personal productivity dashboard built with Next.js 16, Supabase, and a glassmorphism UI. Manage your tasks, projects, journal, and money — all in one place, secured behind a single-user login.
+A personal productivity dashboard built with Next.js 16, Supabase, and a glassmorphism UI. Manage your tasks, projects, journal, and money — all in one place. Each person has their own login and sees only their own data; accounts are created by an admin.
 
 Runs as a web app and, via Capacitor, as native Android and iOS apps from the same codebase. See [MOBILE.md](MOBILE.md) for the native builds.
 
@@ -16,6 +16,41 @@ Runs as a web app and, via Capacitor, as native Android and iOS apps from the sa
 | **Journal** | Daily journal entries with mood tracking, highlights, and a date picker |
 | **Review** | One page per week — tasks finished against the week before, mood by day, habit dots and streaks, spending and earning with where it went, and the journal highlights, with a Monday nudge on Today |
 | **Money** | Income **and** expense tracker in MMK (K) with daily/monthly/yearly views, a calendar of logged days, what's-left totals, per-category stats for both ledgers, custom categories, monthly budgets per category, repeating entries, and PNG export |
+
+### Accounts and the admin
+
+Nobody can sign themselves up. An admin — any email in the `admins` table,
+seeded with the superadmin — creates accounts from **Settings → Users**: enter
+an email, type or generate a password, and hand both over. The person then
+signs in on the normal login screen, on web or on the phone, and sees only
+their own data.
+
+How it stays safe without a privileged key in the app: creating an account
+first puts the email on an invitation list (`allowed_users`, writable only by
+admins), then performs an ordinary public sign-up; a trigger on `auth.users`
+rejects any sign-up whose email is not on the list. The Users tab shows each
+account as *Active*, *Awaiting email confirmation*, or *Invited, no account
+yet*. Removing an invitation stops that email from signing up again; disabling
+an existing account is done in the Supabase dashboard.
+
+The trigger applies to the dashboard too: **Authentication → Users → Add
+user** only works for an email already in `allowed_users` (add it in the SQL
+editor first), while **Invite user** always works, since the invitation email
+is the gate there. That is also how a fresh project gets its first admin:
+insert the email into `allowed_users` in the SQL editor, create the account,
+and it is an admin because the email is in `admins`.
+
+Two dashboard settings under **Authentication → Providers → Email**:
+
+- **Enable email sign-ups** must stay on; the trigger is what keeps sign-up
+  closed to outsiders.
+- **Confirm email** is your choice: on means a new user must click the
+  confirmation email before signing in; off means the account works at once.
+  The confirmation link goes to the project's **Site URL**, so set that to the
+  web address of the app.
+
+Existing projects need `supabase/migrations/006_admin_users.sql` applied once.
+To add another admin, insert their email into `admins`.
 
 ### Weekly review
 
@@ -75,7 +110,7 @@ Existing projects need `supabase/migrations/002_recurrences.sql` and
 - **UI Components** — [@kwyw/kayv-glass-ui](https://www.npmjs.com/package/@kwyw/kayv-glass-ui) (glassmorphism design system)
 - **Backend / Auth / DB** — [Supabase](https://supabase.com/)
 - **Native shell** — [Capacitor 8](https://capacitorjs.com/) (Android + iOS)
-- **Auth strategy** — Single user, email + password via Supabase Auth
+- **Auth strategy** — Email + password via Supabase Auth; invitation-only sign-up, accounts created by an admin (see Accounts below)
 
 > **Static export.** `next.config.ts` sets `output: "export"`, so the build produces a folder of HTML/CSS/JS with **no Node server at runtime**. Every page is a client component, there is no middleware, and there are no server actions or route handlers — Capacitor packages the output directly.
 

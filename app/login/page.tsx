@@ -136,6 +136,12 @@ function LoginForm() {
             <Button type="submit" variant="primary" isLoading={loading} className="w-full">
               Sign in
             </Button>
+
+            {/* There is no sign-up screen on purpose: accounts are created by
+                the admin, who hands over the email and password. */}
+            <p className="text-xs text-slate-500 text-center">
+              No account? Accounts are created by the admin. Ask them for your email and password.
+            </p>
           </form>
         )}
 
