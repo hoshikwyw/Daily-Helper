@@ -7,11 +7,11 @@ import {
   Card,
   CardHeader,
   CardContent,
-  Input,
   Button,
   Alert,
 } from "@kwyw/kayv-glass-ui";
 import { AuthLayout } from "@/components/ui/auth-layout";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Logo } from "@/components/ui/logo";
 
 export default function UpdatePasswordPage() {
@@ -65,18 +65,16 @@ export default function UpdatePasswordPage() {
             </Alert>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <Input
+              <PasswordInput
                 label="New password"
-                type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 minLength={6}
               />
-              <Input
+              <PasswordInput
                 label="Confirm password"
-                type="password"
                 required
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}

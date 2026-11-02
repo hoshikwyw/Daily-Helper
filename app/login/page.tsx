@@ -12,6 +12,7 @@ import {
   Alert,
 } from "@kwyw/kayv-glass-ui";
 import { AuthLayout } from "@/components/ui/auth-layout";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Logo } from "@/components/ui/logo";
 
 type Mode = "login" | "forgot";
@@ -112,9 +113,8 @@ function LoginForm() {
               placeholder="you@example.com"
             />
             <div>
-              <Input
+              <PasswordInput
                 label="Password"
-                type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
