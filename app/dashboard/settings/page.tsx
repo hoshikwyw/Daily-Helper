@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Tabs, TabList, Tab, TabPanels, TabPanel } from "@kwyw/kayv-glass-ui";
 import { useSettings } from "@/hooks/use-settings";
+import { checkIsAdmin } from "@/lib/api/admin";
 import type { Settings } from "@/lib/settings";
 import { PageContainer } from "@/components/ui/page-container";
 import { PageHeader } from "@/components/ui/page-header";
@@ -10,9 +12,19 @@ import { ProfileTab } from "./_components/profile-tab";
 import { AppearanceTab } from "./_components/appearance-tab";
 import { NotificationsTab } from "./_components/notifications-tab";
 import { AboutTab } from "./_components/about-tab";
+import { UsersTab } from "./_components/users-tab";
 
 export default function SettingsPage() {
   const { settings, save, loaded } = useSettings();
+  // The Users tab is only offered to admins. The check is a database call,
+  // so it is false until it answers; the tab appears a moment later for an
+  // admin and never for anyone else. Hiding the tab is a courtesy, not the
+  // security: the database policies refuse non-admins regardless.
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    checkIsAdmin().then(setIsAdmin);
+  }, []);
 
   function patch(changes: Partial<Settings>) {
     save({ ...settings, ...changes });
@@ -37,6 +49,7 @@ export default function SettingsPage() {
               <Tab value="profile">Profile</Tab>
               <Tab value="appearance">Appearance</Tab>
               <Tab value="notifications">Notifications</Tab>
+              {isAdmin && <Tab value="users">Users</Tab>}
               <Tab value="about">About</Tab>
             </TabList>
 
@@ -50,6 +63,11 @@ export default function SettingsPage() {
               <TabPanel value="notifications">
                 <NotificationsTab settings={settings} onSave={patch} />
               </TabPanel>
+              {isAdmin && (
+                <TabPanel value="users">
+                  <UsersTab />
+                </TabPanel>
+              )}
               <TabPanel value="about">
                 <AboutTab />
               </TabPanel>
