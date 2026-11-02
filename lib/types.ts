@@ -158,6 +158,30 @@ export type HabitCheck = {
   created_at: string;
 };
 
+/** An email allowed to administer the app (create accounts). */
+export type Admin = {
+  email: string;
+  created_at: string;
+};
+
+/** An email the admin has invited; sign-up is only possible for these. */
+export type AllowedUser = {
+  email: string;
+  note: string | null;
+  created_by: string | null;
+  created_at: string;
+};
+
+/** One row of `admin_list_users()`: an invitation joined to its account, if any. */
+export type ManagedUserRow = {
+  email: string;
+  note: string | null;
+  invited_at: string;
+  signed_up_at: string | null;
+  confirmed_at: string | null;
+  last_sign_in_at: string | null;
+};
+
 // Insert shapes mirror the SQL schema: `user_id` and genuinely-required columns
 // are mandatory; anything nullable or carrying a DB default is optional. Update
 // shapes are `Partial<Insert>` — every writable column, all optional.
@@ -228,6 +252,12 @@ type HabitCheckInsert = {
   user_id: string;
   habit_id: string;
   date: string;
+};
+
+type AllowedUserInsert = {
+  email: string;
+  note?: string | null;
+  created_by?: string | null;
 };
 
 type RecurrenceInsert = {
@@ -309,9 +339,24 @@ export interface Database {
         Update: Partial<HabitCheckInsert>;
         Relationships: [];
       };
+      admins: {
+        Row: Admin;
+        Insert: { email: string };
+        Update: Partial<{ email: string }>;
+        Relationships: [];
+      };
+      allowed_users: {
+        Row: AllowedUser;
+        Insert: AllowedUserInsert;
+        Update: Partial<AllowedUserInsert>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      is_admin: { Args: Record<string, never>; Returns: boolean };
+      admin_list_users: { Args: Record<string, never>; Returns: ManagedUserRow[] };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

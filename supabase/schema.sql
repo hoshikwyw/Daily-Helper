@@ -248,3 +248,92 @@ create policy "Own data only" on habit_checks for all
     auth.uid() = user_id
     and exists (select 1 from habits h where h.id = habit_id and h.user_id = auth.uid())
   );
+
+-- ---------------------------------------------------------------------------
+-- Admin-created accounts. The admin invites an email, the app signs it up,
+-- and a trigger rejects any sign-up that was not invited. See
+-- migrations/006_admin_users.sql for the full notes and the dashboard setting.
+-- ---------------------------------------------------------------------------
+create table if not exists admins (
+  email text primary key,
+  created_at timestamptz not null default now()
+);
+
+insert into admins (email) values ('khaingwutyiwin1712@gmail.com')
+  on conflict (email) do nothing;
+
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.admins a
+    where lower(a.email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+  );
+$$;
+
+grant execute on function public.is_admin() to authenticated;
+
+alter table admins enable row level security;
+drop policy if exists "Admins can read admins" on admins;
+create policy "Admins can read admins" on admins for select using (public.is_admin());
+
+create table if not exists allowed_users (
+  email text primary key,
+  note text,
+  created_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+alter table allowed_users enable row level security;
+drop policy if exists "Admins manage allowed users" on allowed_users;
+create policy "Admins manage allowed users" on allowed_users
+  for all using (public.is_admin()) with check (public.is_admin());
+
+create or replace function public.enforce_invited_signup()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if exists (select 1 from public.allowed_users u where lower(u.email) = lower(new.email))
+     or exists (select 1 from public.admins a where lower(a.email) = lower(new.email)) then
+    return new;
+  end if;
+  raise exception 'Sign-ups are by invitation only. Ask the admin to create your account.'
+    using errcode = 'P0001';
+end;
+$$;
+
+drop trigger if exists enforce_invited_signup on auth.users;
+create trigger enforce_invited_signup
+  before insert on auth.users
+  for each row execute function public.enforce_invited_signup();
+
+create or replace function public.admin_list_users()
+returns table (
+  email text,
+  note text,
+  invited_at timestamptz,
+  signed_up_at timestamptz,
+  confirmed_at timestamptz,
+  last_sign_in_at timestamptz
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select u.email, u.note, u.created_at, au.created_at, au.email_confirmed_at, au.last_sign_in_at
+  from public.allowed_users u
+  left join auth.users au on lower(au.email) = lower(u.email)
+  where public.is_admin()
+  order by u.created_at desc;
+$$;
+
+revoke all on function public.admin_list_users() from public;
+grant execute on function public.admin_list_users() to authenticated;
