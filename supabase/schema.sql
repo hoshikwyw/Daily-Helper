@@ -298,7 +298,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public
-as $
+as $$
 begin
   -- Invited through the app or the SQL editor.
   if new.email is not null
@@ -313,7 +313,7 @@ begin
   raise exception 'Sign-ups are by invitation only. Ask the admin to create your account.'
     using errcode = 'P0001';
 end;
-$;
+$$;
 
 drop trigger if exists enforce_invited_signup on auth.users;
 create trigger enforce_invited_signup
