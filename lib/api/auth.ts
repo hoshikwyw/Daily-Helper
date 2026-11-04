@@ -1,10 +1,16 @@
 import type { EmailOtpType, Session } from "@supabase/supabase-js";
 import { createClient, supabase } from "@/lib/supabase";
 import { authCallbackUrl } from "@/lib/authRedirect";
+import {
+  friendlyPasswordChangeError,
+  friendlyResetError,
+  friendlySignInError,
+} from "@/lib/auth-messages";
 
 // Auth service layer. Supabase's auth errors are shown inline (in an Alert)
 // rather than as toasts, so these return the error MESSAGE instead of using
-// `reportError` — null means success.
+// `reportError` — null means success. The message is already rewritten for a
+// person (lib/auth-messages.ts), so screens show it as it comes.
 
 export async function getSession(): Promise<Session | null> {
   const {
@@ -43,7 +49,7 @@ export function watchSession(onChange: (session: Session | null) => void): () =>
 /** Signs in with email + password. Returns an error message, or null on success. */
 export async function signIn(email: string, password: string): Promise<string | null> {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  return error?.message ?? null;
+  return error ? friendlySignInError(error.message) : null;
 }
 
 export async function signOut(): Promise<void> {
@@ -55,12 +61,12 @@ export async function sendPasswordReset(email: string): Promise<string | null> {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: authCallbackUrl("/update-password"),
   });
-  return error?.message ?? null;
+  return error ? friendlyResetError(error.message) : null;
 }
 
 export async function updatePassword(password: string): Promise<string | null> {
   const { error } = await supabase.auth.updateUser({ password });
-  return error?.message ?? null;
+  return error ? friendlyPasswordChangeError(error.message) : null;
 }
 
 /** Why an email link failed — maps to the `?error=` code the login page reads. */

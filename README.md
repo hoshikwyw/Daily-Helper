@@ -196,7 +196,7 @@ npm install
 ### 3. Configure environment variables
 
 ```bash
-cp .env.local.example .env.local
+cp .env.example .env
 ```
 
 ```env

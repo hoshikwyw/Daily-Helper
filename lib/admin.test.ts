@@ -1,11 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  MIN_PASSWORD_LENGTH,
-  generatePassword,
-  isValidEmail,
-  managedUserStatus,
-  passwordProblem,
-} from "@/lib/admin";
+import { handoutText, isValidEmail, managedUserStatus } from "@/lib/admin";
 import type { ManagedUserRow } from "@/lib/types";
 
 describe("isValidEmail", () => {
@@ -18,35 +12,6 @@ describe("isValidEmail", () => {
     for (const bad of ["", "nope", "no@tld", "@example.com", "a b@example.com"]) {
       expect(isValidEmail(bad)).toBe(false);
     }
-  });
-});
-
-describe("passwordProblem", () => {
-  it("wants length and a mix of letters and numbers", () => {
-    expect(passwordProblem("short1")).toMatch(/at least/);
-    expect(passwordProblem("onlyletters")).toMatch(/letters and numbers/);
-    expect(passwordProblem("12345678")).toMatch(/letters and numbers/);
-    expect(passwordProblem("letters12")).toBeNull();
-  });
-});
-
-describe("generatePassword", () => {
-  it("makes passwords of the requested length that pass the checks", () => {
-    for (let i = 0; i < 50; i++) {
-      const pw = generatePassword();
-      expect(pw).toHaveLength(12);
-      expect(passwordProblem(pw)).toBeNull();
-    }
-    expect(generatePassword(MIN_PASSWORD_LENGTH)).toHaveLength(MIN_PASSWORD_LENGTH);
-  });
-
-  it("avoids look-alike characters", () => {
-    const sample = Array.from({ length: 30 }, () => generatePassword(20)).join("");
-    expect(sample).not.toMatch(/[0O1lI]/);
-  });
-
-  it("does not repeat itself", () => {
-    expect(generatePassword()).not.toBe(generatePassword());
   });
 });
 
@@ -72,5 +37,11 @@ describe("managedUserStatus", () => {
         confirmed_at: "2026-11-02T00:01:00Z",
       })
     ).toBe("active");
+  });
+});
+
+describe("handoutText", () => {
+  it("puts email and password on their own lines", () => {
+    expect(handoutText("a@b.co", "pw12345k")).toBe("Email: a@b.co\nPassword: pw12345k");
   });
 });

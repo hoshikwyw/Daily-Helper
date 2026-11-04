@@ -1,5 +1,6 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { toast } from "@kwyw/kayv-glass-ui";
+import { friendlyResendError, friendlySignUpError } from "@/lib/auth-messages";
 import { supabase } from "@/lib/supabase";
 import { getUserId, isSchemaError, reportError, reportSchemaError } from "@/lib/db";
 import type { Database, ManagedUserRow } from "@/lib/types";
@@ -77,12 +78,7 @@ export async function createManagedUser(
   // No redirect override: the confirmation email goes to someone else, who
   // may open it anywhere, so the link must be the project's public Site URL
   // rather than this device's origin or the app's deep-link scheme.
-  const throwaway = createSupabaseClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
-  );
-  const { data, error } = await throwaway.auth.signUp({ email: normalized, password });
+  const { data, error } = await anonymousClient().auth.signUp({ email: normalized, password });
   if (error) {
     await withdraw();
     return { ok: false, message: friendlySignUpError(error.message) };
@@ -100,21 +96,26 @@ export async function createManagedUser(
   return { ok: true, status: confirmed ? "active" : "awaiting_confirmation" };
 }
 
-function friendlySignUpError(message: string): string {
-  const lower = message.toLowerCase();
-  if (lower.includes("already registered") || lower.includes("already been registered")) {
-    return "An account with this email already exists.";
-  }
-  if (lower.includes("password")) return message;
-  if (lower.includes("database error")) {
-    // GoTrue hides the real text (a trigger or constraint on auth.users)
-    // behind this line, so there is nothing more specific to say.
-    return "The database refused the sign-up. Check the Supabase logs for the reason.";
-  }
-  if (lower.includes("signups not allowed") || lower.includes("sign-ups not allowed")) {
-    return "Email sign-ups are disabled in the Supabase dashboard (Authentication → Providers → Email).";
-  }
-  return message;
+/**
+ * A client with no session of its own. Auth calls made on behalf of someone
+ * else go through it, so the admin stays signed in as themselves.
+ */
+function anonymousClient() {
+  return createSupabaseClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
+  );
+}
+
+/**
+ * Sends the confirmation email again for an account that exists but has not
+ * been confirmed. Returns an error message, or null when it went out.
+ * Supabase allows one per address per minute.
+ */
+export async function resendConfirmation(email: string): Promise<string | null> {
+  const { error } = await anonymousClient().auth.resend({ type: "signup", email });
+  return error ? friendlyResendError(error.message) : null;
 }
 
 /**

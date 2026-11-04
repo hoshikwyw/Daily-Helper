@@ -22,7 +22,7 @@ const FAQ = [
   },
   {
     q: "How do I connect to Supabase?",
-    a: "Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to your .env.local file.",
+    a: "Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to your .env file.",
   },
   {
     q: "Is this project open source?",
@@ -46,6 +46,28 @@ export function AboutTab() {
             Built with Next.js, Tailwind CSS, @kwyw/kayv-glass-ui, and Supabase. Your data
             stays in your own Supabase project.
           </p>
+          <div>
+            <FieldLabel>Supabase connection</FieldLabel>
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-white/5 border border-white/10">
+              {process.env.NEXT_PUBLIC_SUPABASE_URL ? (
+                <>
+                  <Badge variant="success" dot size="sm">
+                    Connected
+                  </Badge>
+                  <span className="text-slate-400 text-sm truncate">
+                    {process.env.NEXT_PUBLIC_SUPABASE_URL}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Badge variant="warning" dot size="sm">
+                    Not configured
+                  </Badge>
+                  <span className="text-slate-400 text-sm">Add .env to connect</span>
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
         <div>

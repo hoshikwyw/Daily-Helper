@@ -14,16 +14,18 @@ import {
 import {
   createManagedUser,
   listManagedUsers,
+  resendConfirmation,
   revokeInvitation,
 } from "@/lib/api/admin";
 import {
   MANAGED_USER_STATUS_LABELS,
-  generatePassword,
+  handoutText,
   isValidEmail,
   managedUserStatus,
-  passwordProblem,
   type ManagedUserStatus,
 } from "@/lib/admin";
+import { generatePassword, passwordProblem } from "@/lib/password";
+import { canShareText, shareText } from "@/lib/share";
 import { formatLongDate } from "@/lib/date";
 import { PasswordInput } from "@/components/ui/password-input";
 import { SkeletonList } from "@/components/ui/skeleton";
@@ -54,6 +56,9 @@ export function UsersTab() {
 
   const [users, setUsers] = useState<ManagedUserRow[]>([]);
   const [loading, setLoading] = useState(true);
+  // The phone has a share sheet; a desktop browser usually does not.
+  const [canShare, setCanShare] = useState(false);
+  const [resending, setResending] = useState<string | null>(null);
 
   async function refresh() {
     setUsers(await listManagedUsers());
@@ -61,10 +66,42 @@ export function UsersTab() {
   }
 
   useEffect(() => {
+    let active = true;
     // State is set only after the query resolves.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh();
+    canShareText().then((ok) => {
+      if (active) setCanShare(ok);
+    });
+    return () => {
+      active = false;
+    };
   }, []);
+
+  async function handleResend(row: ManagedUserRow) {
+    setResending(row.email);
+    try {
+      const message = await resendConfirmation(row.email);
+      if (message) {
+        toast({ title: "Couldn't resend", description: message, variant: "danger" });
+        return;
+      }
+      toast({ title: "Confirmation email sent", description: `To ${row.email}.`, variant: "success" });
+      // They may have confirmed since the list was loaded; Supabase answers a
+      // resend for a confirmed account with success and no email.
+      await refresh();
+    } finally {
+      setResending(null);
+    }
+  }
+
+  async function handleShare(h: Handout) {
+    const text = handoutText(h.email, h.password);
+    const outcome = await shareText("Your Kayv account", text);
+    // A sheet that could not open is not the admin's fault; give them the
+    // text another way instead of silence.
+    if (outcome === "failed") await copy(text, "Details");
+  }
 
   async function copy(text: string, what: string) {
     try {
@@ -194,12 +231,20 @@ export function UsersTab() {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() =>
-                        copy(`Email: ${handout.email}\nPassword: ${handout.password}`, "Details")
-                      }
+                      onClick={() => copy(handoutText(handout.email, handout.password), "Details")}
                     >
                       Copy both
                     </Button>
+                    {canShare && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleShare(handout)}
+                      >
+                        Share…
+                      </Button>
+                    )}
                     <Button type="button" variant="ghost" size="sm" onClick={() => setHandout(null)}>
                       Done
                     </Button>
@@ -238,6 +283,16 @@ export function UsersTab() {
                           ? `Last sign-in ${formatLongDate(new Date(row.last_sign_in_at))}`
                           : `Invited ${formatLongDate(new Date(row.invited_at))}`}
                       </p>
+                      {status === "awaiting_confirmation" && (
+                        <button
+                          type="button"
+                          onClick={() => handleResend(row)}
+                          disabled={resending === row.email}
+                          className="text-xs text-indigo-400 hover:text-indigo-300 disabled:opacity-50"
+                        >
+                          {resending === row.email ? "Sending…" : "Resend confirmation email"}
+                        </button>
+                      )}
                     </div>
                     <Badge variant={STATUS_VARIANT[status]} size="sm">
                       {MANAGED_USER_STATUS_LABELS[status]}

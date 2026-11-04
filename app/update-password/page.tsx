@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updatePassword } from "@/lib/api/auth";
+import { newPasswordProblem } from "@/lib/password";
 import {
   Card,
   CardHeader,
@@ -11,7 +12,7 @@ import {
   Alert,
 } from "@kwyw/kayv-glass-ui";
 import { AuthLayout } from "@/components/ui/auth-layout";
-import { PasswordInput } from "@/components/ui/password-input";
+import { NewPasswordFields } from "@/components/ui/new-password-fields";
 import { Logo } from "@/components/ui/logo";
 
 export default function UpdatePasswordPage() {
@@ -26,12 +27,9 @@ export default function UpdatePasswordPage() {
     e.preventDefault();
     setError(null);
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
-      return;
-    }
-    if (password !== confirm) {
-      setError("Passwords do not match.");
+    const problem = newPasswordProblem(password, confirm);
+    if (problem) {
+      setError(problem);
       return;
     }
 
@@ -65,21 +63,12 @@ export default function UpdatePasswordPage() {
             </Alert>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <PasswordInput
-                label="New password"
+              <NewPasswordFields
                 required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                minLength={6}
-              />
-              <PasswordInput
-                label="Confirm password"
-                required
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                placeholder="••••••••"
-                minLength={6}
+                password={password}
+                confirm={confirm}
+                onPasswordChange={setPassword}
+                onConfirmChange={setConfirm}
               />
 
               {error && <Alert variant="danger">{error}</Alert>}
