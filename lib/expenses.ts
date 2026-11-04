@@ -3,7 +3,7 @@ import type { EntryKind, Expense } from "@/lib/types";
 // Domain helpers and constants for the money tracker. Pure functions live here
 // so the page and its sub-components share one implementation.
 
-export const DEFAULT_EXPENSE_CATEGORIES: { name: string; color: string }[] = [
+const DEFAULT_EXPENSE_CATEGORIES: { name: string; color: string }[] = [
   { name: "Food & Drink", color: "#f97316" },
   { name: "Transport", color: "#06b6d4" },
   { name: "Shopping", color: "#8b5cf6" },
@@ -15,7 +15,7 @@ export const DEFAULT_EXPENSE_CATEGORIES: { name: string; color: string }[] = [
   { name: "Other", color: "#64748b" },
 ];
 
-export const DEFAULT_INCOME_CATEGORIES: { name: string; color: string }[] = [
+const DEFAULT_INCOME_CATEGORIES: { name: string; color: string }[] = [
   { name: "Salary", color: "#22c55e" },
   { name: "Freelance", color: "#14b8a6" },
   { name: "Business", color: "#0ea5e9" },
@@ -124,8 +124,6 @@ export type Totals = {
   /** What's left over: income − expense. Negative means overspending. */
   net: number;
 };
-
-export const ZERO_TOTALS: Totals = { income: 0, expense: 0, net: 0 };
 
 /** Sums a set of entries into income, expense, and what remains. */
 export function getTotals(entries: Expense[]): Totals {

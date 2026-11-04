@@ -11,22 +11,23 @@ import {
 import { FieldLabel } from "@/components/ui/label";
 import { Logo } from "@/components/ui/logo";
 
+// Written for the person using the app, who is usually not the one running it.
 const FAQ = [
   {
     q: "Where is my data stored?",
-    a: "Your tasks, projects, journal, and expenses live in your own Supabase project. Preferences like your display name and theme are stored locally on this device.",
+    a: "Your tasks, projects, journal, and money entries are saved to your account in the cloud, so they are the same on the web and on your phone. Preferences like your display name and theme stay on this device.",
   },
   {
-    q: "Can I export my journal entries?",
-    a: "Supabase provides a built-in export tool in the dashboard. You can also query via the API.",
+    q: "Can other people see my data?",
+    a: "No. Every record belongs to the account that created it, and the database only ever returns your own. The admin who created your account cannot read your entries either.",
   },
   {
-    q: "How do I connect to Supabase?",
-    a: "Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to your .env file.",
+    q: "How do I change my password?",
+    a: "Settings → Profile → Account. If you have forgotten it, use \"Forgot password?\" on the sign-in screen and a reset link is emailed to you.",
   },
   {
-    q: "Is this project open source?",
-    a: "This is your personal dashboard — you control the code and data entirely.",
+    q: "Can I get a copy of my money data?",
+    a: "On the Money page, \"Save image\" turns the day, month, or year you are looking at into a picture you can keep or send.",
   },
 ];
 

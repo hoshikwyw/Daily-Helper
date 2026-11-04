@@ -81,7 +81,7 @@ export const TASK_STATUS_DOTS: Record<TaskStatus, string> = {
   done: "bg-green-400",
 };
 
-export const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
+const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
   low: "Low",
   medium: "Medium",
   high: "High",

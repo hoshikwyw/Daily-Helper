@@ -12,7 +12,7 @@ type LogoMarkProps = {
   className?: string;
 };
 
-export function LogoMark({ className = "" }: LogoMarkProps) {
+function LogoMark({ className = "" }: LogoMarkProps) {
   return (
     <svg
       viewBox="0 0 1024 1024"

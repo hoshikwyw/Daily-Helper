@@ -2,13 +2,13 @@ import { Progress } from "@kwyw/kayv-glass-ui";
 import { fmt } from "@/lib/expenses";
 import type { BudgetProgress, BudgetStatus } from "@/lib/budgets";
 
-export const BUDGET_BAR: Record<BudgetStatus, "success" | "warning" | "danger"> = {
+const BUDGET_BAR: Record<BudgetStatus, "success" | "warning" | "danger"> = {
   under: "success",
   near: "warning",
   over: "danger",
 };
 
-export const BUDGET_TEXT: Record<BudgetStatus, string> = {
+const BUDGET_TEXT: Record<BudgetStatus, string> = {
   under: "text-slate-500",
   near: "text-amber-400",
   over: "text-rose-400",

@@ -1,6 +1,7 @@
-// User preferences, persisted per-device in localStorage. Deliberately not in
-// Supabase: this is a single-user app, the theme already persists this way, and
-// keeping it local means the Capacitor builds work with no network round-trip.
+// Preferences, persisted per device in localStorage. Deliberately not in
+// Supabase: the theme already persists this way, nothing here is worth syncing
+// between a phone and a laptop, and the Capacitor builds need no round-trip
+// before the first paint. Accounts are per person; preferences are per device.
 
 export type Settings = {
   displayName: string;
@@ -11,7 +12,8 @@ export type Settings = {
 };
 
 export const DEFAULT_SETTINGS: Settings = {
-  displayName: "Kayv",
+  // Empty until the person types one: the Today page then greets without a name.
+  displayName: "",
   timezone: "UTC+8",
   dailyReminders: false,
   weeklyReview: false,

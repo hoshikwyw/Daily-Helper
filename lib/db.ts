@@ -1,17 +1,18 @@
 import { toast } from "@kwyw/kayv-glass-ui";
 import type { PostgrestError } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
+import { getSession } from "@/lib/api/auth";
 
 // Small data-access helpers shared by the dashboard pages. They remove the
 // `getUser()` + `if (error) toast(...)` boilerplate that was repeated in every
 // create/update/delete handler.
 
-/** Resolves the signed-in user's id, or `null` when signed out. */
+/**
+ * Resolves the signed-in user's id, or `null` when signed out. Reads the local
+ * session (no round-trip): every create and update calls this, and the id only
+ * goes into rows that row-level security checks against the real token anyway.
+ */
 export async function getUserId(): Promise<string | null> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user?.id ?? null;
+  return (await getSession())?.user.id ?? null;
 }
 
 /**

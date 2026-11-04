@@ -5,7 +5,7 @@ import type { Budget, Expense } from "@/lib/types";
 // budget rows and the month's entries, and gets back what to draw.
 
 /** Share of a limit at which a budget starts to read as "near". */
-export const NEAR_THRESHOLD = 0.8;
+const NEAR_THRESHOLD = 0.8;
 
 export type BudgetStatus = "under" | "near" | "over";
 
