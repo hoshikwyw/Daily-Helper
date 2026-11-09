@@ -11,9 +11,10 @@ import {
   canActivate,
   reorderedIds,
 } from "@/lib/habits";
+import { HABIT_CATEGORIES } from "@/lib/game";
 import { graphemeCount } from "@/lib/text";
 import type { HabitPatch } from "@/lib/api/habits";
-import type { Habit } from "@/lib/types";
+import type { Habit, HabitCategory } from "@/lib/types";
 
 type ManageHabitsModalProps = {
   open: boolean;
@@ -71,6 +72,12 @@ export function ManageHabitsModal({
     setMoving(true);
     await onReorder(reorderedIds(habits, index, delta));
     setMoving(false);
+  }
+
+  /** Saves at once, like archive: one tap, obvious result. */
+  async function setCategory(habit: Habit, category: HabitCategory) {
+    if (category === habit.category) return;
+    await onPatch(habit.id, { category });
   }
 
   async function setArchived(habit: Habit, archived: boolean) {
@@ -144,7 +151,8 @@ export function ManageHabitsModal({
                 {active.map((habit, index) => {
                   const draft = draftFor(habit);
                   return (
-                    <div key={habit.id} className="flex items-center gap-2">
+                    <div key={habit.id} className="space-y-1.5">
+                    <div className="flex items-center gap-2">
                       <input
                         aria-label={`Emoji for ${habit.name}`}
                         value={draft.emoji}
@@ -178,6 +186,28 @@ export function ManageHabitsModal({
                       <Button variant="ghost" size="sm" onClick={() => setArchived(habit, true)}>
                         Archive
                       </Button>
+                    </div>
+                    {/* Which part of My World this habit feeds. */}
+                    <div role="group" aria-label={`Category for ${habit.name}`} className="flex gap-1.5 pl-14">
+                      {HABIT_CATEGORIES.map((c) => {
+                        const selected = (habit.category ?? "general") === c.value;
+                        return (
+                          <button
+                            key={c.value}
+                            type="button"
+                            aria-pressed={selected}
+                            onClick={() => setCategory(habit, c.value)}
+                            className={`h-8 rounded-full px-2.5 text-xs transition-colors ${
+                              selected
+                                ? "bg-kv-500/25 text-kv-100 border border-kv-500/40"
+                                : "bg-white/5 text-slate-400 border border-transparent hover:bg-white/10"
+                            }`}
+                          >
+                            {c.emoji} {c.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                     </div>
                   );
                 })}

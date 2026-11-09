@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   EMPTY_PROGRESS,
   GAME_CATEGORIES,
+  HABIT_CATEGORIES,
   XP_BY_CATEGORY,
   categoryXp,
+  describeReward,
   levelFromXp,
   levelPercent,
   xpToNextLevel,
@@ -68,7 +70,22 @@ describe("levelPercent", () => {
   });
 });
 
+describe("describeReward", () => {
+  it("prefers the note and falls back to the source", () => {
+    expect(describeReward({ source_type: "habit_check", note: "Read 20 pages", category: "learning" })).toBe(
+      "Read 20 pages"
+    );
+    expect(describeReward({ source_type: "habit_check", note: null, category: "fitness" })).toBe("Fitness habit");
+    expect(describeReward({ source_type: "task", note: null, category: "general" })).toBe("Task finished");
+    expect(describeReward({ source_type: "expense", note: null, category: "savings" })).toBe("Savings entry");
+  });
+});
+
 describe("categories", () => {
+  it("every habit category is also a game category with a reward", () => {
+    for (const h of HABIT_CATEGORIES) expect(XP_BY_CATEGORY[h.value]).toBeGreaterThan(0);
+  });
+
   it("every category has a reward and a progress column", () => {
     for (const c of GAME_CATEGORIES) {
       expect(XP_BY_CATEGORY[c.value]).toBeGreaterThan(0);

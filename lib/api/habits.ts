@@ -55,7 +55,8 @@ export async function updateHabit(id: string, patch: HabitPatch): Promise<Habit 
     .eq("id", id)
     .select()
     .single();
-  if (reportError(error)) return null;
+  // A patch may carry a column from a newer migration (category, 007).
+  if (reportSchemaError(error)) return null;
   return data;
 }
 

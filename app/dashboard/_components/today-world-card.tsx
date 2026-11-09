@@ -5,16 +5,27 @@ import { Card, CardContent } from "@kwyw/kayv-glass-ui";
 import { AvatarSprite } from "@/components/game/avatar-sprite";
 import { restingScene } from "@/lib/scene";
 import { useTimeOfDay } from "@/hooks/use-time-of-day";
-import { EMPTY_PROGRESS, levelFromXp, type GameProgress } from "@/lib/game";
-
-type TodayWorldCardProps = {
-  progress?: GameProgress;
-};
+import { useGame } from "@/hooks/use-game";
+import { levelFromXp } from "@/lib/game";
 
 /** The way into My World from the Today page: the sprout, the level, one tap. */
-export function TodayWorldCard({ progress = EMPTY_PROGRESS }: TodayWorldCardProps) {
+export function TodayWorldCard() {
+  // Totals only; the history list belongs to the full page. Re-reads itself
+  // when a habit check on this page earns a reward.
+  const { progress, status } = useGame({ withRewards: false });
   const info = levelFromXp(progress.total_xp);
   const { mood } = restingScene(useTimeOfDay());
+
+  const line = {
+    loading: "…",
+    schema: "Not switched on yet",
+    error: "Couldn't load progress",
+    ready:
+      progress.total_xp === 0
+        ? `Level ${info.level} · waiting for your first checked habit`
+        : `Level ${info.level} · ${progress.total_xp} XP · ${info.intoLevel}/${info.needed} to next`,
+  }[status];
+
   return (
     <Card variant="elevated">
       <CardContent>
@@ -27,10 +38,7 @@ export function TodayWorldCard({ progress = EMPTY_PROGRESS }: TodayWorldCardProp
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-slate-100">My World</p>
-            <p className="text-xs text-slate-400">
-              Level {info.level} · {progress.total_xp} XP ·{" "}
-              {progress.total_xp === 0 ? "waiting for your first finished thing" : `${info.intoLevel}/${info.needed} to next`}
-            </p>
+            <p className="text-xs text-slate-400 truncate">{line}</p>
           </div>
           <span aria-hidden className="text-slate-400">
             →

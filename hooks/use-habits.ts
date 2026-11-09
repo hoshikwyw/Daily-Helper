@@ -9,6 +9,7 @@ import {
   updateHabit,
   type HabitPatch,
 } from "@/lib/api/habits";
+import { announceReward, habitCheckKey } from "@/lib/api/game";
 import { addDays } from "@/lib/date";
 import {
   DEFAULT_HABIT_EMOJI,
@@ -77,6 +78,8 @@ export function useHabits(today: string) {
             ? prev.map((c) => (c === placeholder ? check : c))
             : prev.filter((c) => c !== placeholder)
         );
+        // The database may have awarded XP for this; say so if it did.
+        if (ok && check) void announceReward("habit_check", habitCheckKey(habitId, date), check.created_at);
       } finally {
         pending.current.delete(habitId);
       }

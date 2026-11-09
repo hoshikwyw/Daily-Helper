@@ -6,6 +6,7 @@
 // the reward triggers in the database; no component carries its own copy.
 
 import { progressPercent } from "@/lib/progress";
+import type { GameReward, HabitCategory } from "@/lib/types";
 
 export type GameCategory = "learning" | "fitness" | "savings" | "general";
 
@@ -21,6 +22,13 @@ export const GAME_CATEGORIES: {
   { value: "savings", label: "Savings", emoji: "🌱", hint: "Add a Money entry in the Savings category." },
   { value: "general", label: "Everyday", emoji: "✅", hint: "Finish a task, or check any other habit." },
 ];
+
+/** The choices a habit offers, in chip order; "general" is every habit's default. */
+const HABIT_CATEGORY_ORDER: HabitCategory[] = ["general", "learning", "fitness"];
+export const HABIT_CATEGORIES = HABIT_CATEGORY_ORDER.map((value) => {
+  const c = GAME_CATEGORIES.find((g) => g.value === value)!;
+  return { value, label: c.label, emoji: c.emoji };
+});
 
 /** XP for one validated event in each category. Fixed; never scaled by amounts. */
 export const XP_BY_CATEGORY: Record<GameCategory, number> = {
@@ -85,6 +93,20 @@ export const EMPTY_PROGRESS: GameProgress = {
 
 export function categoryXp(progress: GameProgress, category: GameCategory): number {
   return progress[`${category}_xp`];
+}
+
+/** One line for the history list: what was done, in the person's words. */
+export function describeReward(reward: Pick<GameReward, "source_type" | "note" | "category">): string {
+  const label = GAME_CATEGORIES.find((c) => c.value === reward.category)?.label ?? "Reward";
+  if (reward.note) return reward.note;
+  switch (reward.source_type) {
+    case "habit_check":
+      return `${label} habit`;
+    case "task":
+      return "Task finished";
+    case "expense":
+      return "Savings entry";
+  }
 }
 
 /** Percent of the current level completed, clamped to 0–100 for a bar. */

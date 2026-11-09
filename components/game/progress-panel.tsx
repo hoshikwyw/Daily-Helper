@@ -5,17 +5,24 @@ import {
   GAME_CATEGORIES,
   XP_BY_CATEGORY,
   categoryXp,
+  describeReward,
   levelFromXp,
   levelPercent,
   type GameProgress,
 } from "@/lib/game";
+import { formatMonthDay } from "@/lib/date";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FieldLabel } from "@/components/ui/label";
+import { SkeletonList } from "@/components/ui/skeleton";
+import type { GameReward } from "@/lib/types";
 
 type ProgressPanelProps = {
   progress: GameProgress;
+  rewards: GameReward[];
+  /** True while the first read is in flight. */
+  loading?: boolean;
   /**
-   * False while rewards are not wired to the database yet. The category hints
+   * False while rewards are not wired to the database. The category hints
    * and the "how XP is earned" copy describe things a person can do, so they
    * stay hidden until doing them has an effect.
    */
@@ -26,7 +33,7 @@ type ProgressPanelProps = {
  * The numbers behind the room, always in text as well as bars, so the game is
  * readable without the scene and without motion.
  */
-export function ProgressPanel({ progress, connected }: ProgressPanelProps) {
+export function ProgressPanel({ progress, rewards, loading = false, connected }: ProgressPanelProps) {
   const info = levelFromXp(progress.total_xp);
   return (
     <Card variant="elevated">
@@ -80,7 +87,27 @@ export function ProgressPanel({ progress, connected }: ProgressPanelProps) {
 
           <div>
             <FieldLabel>Recent rewards</FieldLabel>
-            <EmptyState padding="md">Nothing yet.</EmptyState>
+            {loading ? (
+              <SkeletonList count={3} />
+            ) : rewards.length === 0 ? (
+              <EmptyState padding="md">
+                {connected ? "Nothing yet. Your first checked habit will show up here." : "Nothing yet."}
+              </EmptyState>
+            ) : (
+              <ul className="space-y-1.5">
+                {rewards.map((r) => (
+                  <li key={r.id} className="flex items-center gap-3 rounded-lg bg-white/5 px-3 py-2 text-sm">
+                    <span className="min-w-0 flex-1 truncate text-slate-200">{describeReward(r)}</span>
+                    <span className="shrink-0 text-xs text-slate-500">
+                      {formatMonthDay(new Date(r.created_at))}
+                    </span>
+                    <Badge size="sm" variant="success">
+                      +{r.xp}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </CardContent>

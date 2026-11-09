@@ -136,6 +136,9 @@ export type Budget = {
   updated_at: string;
 };
 
+/** Which part of life a habit feeds in My World. */
+export type HabitCategory = "learning" | "fitness" | "general";
+
 /** A daily habit. Archived habits keep their history and can be restored. */
 export type Habit = {
   id: string;
@@ -145,8 +148,35 @@ export type Habit = {
   /** Order of the chips on the Today page, ascending. */
   position: number;
   archived: boolean;
+  category: HabitCategory;
   created_at: string;
   updated_at: string;
+};
+
+export type RewardSourceType = "habit_check" | "task" | "expense";
+export type RewardCategory = HabitCategory | "savings";
+
+/** One rewarded event, written only by database triggers. */
+export type GameReward = {
+  id: string;
+  user_id: string;
+  source_type: RewardSourceType;
+  /** The real-world event, e.g. "<habit id>:<date>"; unique per source type. */
+  source_key: string;
+  category: RewardCategory;
+  xp: number;
+  note: string | null;
+  created_at: string;
+};
+
+/** A row of the game_progress view: one per person who has any reward. */
+export type GameProgressRow = {
+  user_id: string;
+  total_xp: number;
+  learning_xp: number;
+  fitness_xp: number;
+  savings_xp: number;
+  general_xp: number;
 };
 
 /** One day a habit was done. Absence of a row means it was not. */
@@ -246,6 +276,7 @@ type HabitInsert = {
   emoji?: string;
   position?: number;
   archived?: boolean;
+  category?: HabitCategory;
 };
 
 type HabitCheckInsert = {
@@ -351,8 +382,20 @@ export interface Database {
         Update: Partial<AllowedUserInsert>;
         Relationships: [];
       };
+      game_rewards: {
+        Row: GameReward;
+        // Written by triggers only; the app never inserts.
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
     };
-    Views: Record<string, never>;
+    Views: {
+      game_progress: {
+        Row: GameProgressRow;
+        Relationships: [];
+      };
+    };
     Functions: {
       is_admin: { Args: Record<string, never>; Returns: boolean };
       admin_list_users: { Args: Record<string, never>; Returns: ManagedUserRow[] };
