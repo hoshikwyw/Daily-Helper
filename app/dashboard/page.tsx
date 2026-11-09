@@ -27,6 +27,7 @@ import { ManageHabitsModal } from "./_components/manage-habits-modal";
 import { TodayJournalCard } from "./_components/today-journal-card";
 import { TodayProjectsCard } from "./_components/today-projects-card";
 import { TodayMoneyCard } from "./_components/today-money-card";
+import { TodayWorldCard } from "./_components/today-world-card";
 import type { Expense, JournalEntry, Mood, Project, Recurrence, Task } from "@/lib/types";
 
 function getGreeting() {
@@ -179,6 +180,7 @@ export default function TodayPage() {
             onManage={() => setShowManageHabits(true)}
           />
           <TodayJournalCard entry={journal} />
+          <TodayWorldCard />
         </div>
       </div>
 

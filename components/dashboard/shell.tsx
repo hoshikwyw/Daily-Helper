@@ -11,13 +11,27 @@ import {
 import { signOut } from "@/lib/api/auth";
 import { Logo } from "@/components/ui/logo";
 
-const NAV_ITEMS = [
+type NavItem = {
+  value: string;
+  label: string;
+  href: string;
+  icon: string;
+  /** False keeps the item out of the phone's bottom nav (it stays in the sidebar). */
+  bottomNav?: boolean;
+};
+
+// The bottom nav holds seven items at most before targets get too small.
+// Review gives up its slot there to My World; it stays in the sidebar, and
+// below the desktop breakpoint the Today page links to it every day
+// (review-nudge.tsx).
+const NAV_ITEMS: NavItem[] = [
   { value: "home", label: "Today", href: "/dashboard", icon: "☀️" },
   { value: "tasks", label: "Tasks", href: "/dashboard/tasks", icon: "✅" },
   { value: "journal", label: "Journal", href: "/dashboard/journal", icon: "📓" },
   { value: "projects", label: "Projects", href: "/dashboard/projects", icon: "🚀" },
   { value: "expenses", label: "Money", href: "/dashboard/expenses", icon: "💰" },
-  { value: "review", label: "Review", href: "/dashboard/review", icon: "🗓️" },
+  { value: "world", label: "My World", href: "/dashboard/world", icon: "🌱" },
+  { value: "review", label: "Review", href: "/dashboard/review", icon: "🗓️", bottomNav: false },
 ];
 
 const SETTINGS_ITEMS = [
@@ -83,6 +97,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <MenuBarItem
               key={item.value}
               value={item.value}
+              bottomNav={item.bottomNav}
               icon={<NavIcon icon={item.icon} label={item.label} />}
             >
               {item.label}
