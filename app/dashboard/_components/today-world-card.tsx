@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Card, CardContent } from "@kwyw/kayv-glass-ui";
 import { AvatarSprite } from "@/components/game/avatar-sprite";
-import { restingScene } from "@/components/game/scene-state";
+import { restingScene } from "@/lib/scene";
 import { useTimeOfDay } from "@/hooks/use-time-of-day";
 import { EMPTY_PROGRESS, levelFromXp, type GameProgress } from "@/lib/game";
 

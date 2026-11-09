@@ -228,28 +228,6 @@ body > .fixed.z-50.pointer-events-none {
  * which the reduced-motion query switches off wholesale. Pastel palette:
  * cream #FFF6E5, sage #B7C9A8, lavender #C9B8E8, soft blue #AFC9E8, peach #F9C9B0.
  */
-.game-wall {
-  background: linear-gradient(180deg, #e9ddf5 0%, #d9cdf0 100%);
-}
-.game-floor {
-  background: linear-gradient(180deg, #e9cfae 0%, #d9b98f 100%);
-}
-.game-window {
-  background: linear-gradient(180deg, #bcd6f2 0%, #dbe9f7 100%);
-}
-.game-room-night .game-wall {
-  background: linear-gradient(180deg, #3b3660 0%, #2c2a4a 100%);
-}
-.game-room-night .game-floor {
-  background: linear-gradient(180deg, #5a4a3b 0%, #463a2f 100%);
-}
-.game-room-night .game-window {
-  background:
-    radial-gradient(circle at 30% 35%, #fff6e5 1.5px, transparent 2px),
-    radial-gradient(circle at 70% 25%, #fff6e5 1px, transparent 1.5px),
-    radial-gradient(circle at 55% 70%, #fff6e5 1.2px, transparent 1.7px),
-    linear-gradient(180deg, #1f2a44 0%, #2b3a5c 100%);
-}
 
 @keyframes game-bob {
   0%, 100% { transform: translateY(0) scaleY(1); }
@@ -274,7 +252,8 @@ body > .fixed.z-50.pointer-events-none {
   100% { transform: translateY(-10px); opacity: 0; }
 }
 
-.game-avatar { transform-origin: 50% 100%; }
+/* SVG groups need fill-box so the origin is the sprout's own feet. */
+.game-avatar { transform-box: fill-box; transform-origin: 50% 100%; }
 .game-mood-idle { animation: game-bob 2.8s ease-in-out infinite; }
 .game-mood-reading, .game-mood-exercise { animation: game-bob 1.6s ease-in-out infinite; }
 .game-mood-happy { animation: game-hop 0.9s ease-out 2; }
@@ -282,6 +261,17 @@ body > .fixed.z-50.pointer-events-none {
 .game-mood-sleep { animation: game-breathe 4s ease-in-out infinite; }
 .game-eye { transform-origin: center; transform-box: fill-box; animation: game-blink 5s ease-in-out infinite; }
 .game-zzz { animation: game-float 2.4s ease-out infinite; }
+
+@keyframes game-sparkle {
+  0% { opacity: 0; transform: scale(0.2) rotate(0deg); }
+  30% { opacity: 1; transform: scale(1.1) rotate(40deg); }
+  100% { opacity: 0; transform: scale(0.4) rotate(90deg) translateY(-14px); }
+}
+.game-sparkle {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: game-sparkle 1.4s ease-out both;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .game-anim, .game-anim * { animation: none !important; }

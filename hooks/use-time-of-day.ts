@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { timeOfDayAt, type TimeOfDay } from "@/components/game/scene-state";
+import { timeOfDayAt, type TimeOfDay } from "@/lib/scene";
 
 // Re-checks once a minute and whenever the tab comes back into view, so a
 // room left open through the evening goes dark on time and a phone app

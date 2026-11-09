@@ -127,6 +127,11 @@ implementation when the trade-off is documented; this section is that documentat
 
 ### 2.4 Assets
 
+Decided in part 2: the room and avatar are **original SVG drawn in code**, in one vector
+style and the pastel palette (see `ASSET_CREDITS.md`). A 16×16 pixel pack next to the
+vector sprout would have read as two styles, and inline SVG cannot fail to load, so no
+fallback image is needed. The CC0 packs below stay on file as options.
+
 CC0 first, per the brief. Candidates checked:
 
 - Kenney **Roguelike Indoors** (CC0, 16×16: tables, chairs, sofas, kitchen) and Kenney
