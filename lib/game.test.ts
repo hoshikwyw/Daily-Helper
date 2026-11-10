@@ -4,7 +4,9 @@ import {
   GAME_CATEGORIES,
   HABIT_CATEGORIES,
   XP_BY_CATEGORY,
+  WORLD_NAME_MAX,
   categoryXp,
+  cleanWorldName,
   describeReward,
   isSavingsEntry,
   levelFromXp,
@@ -89,6 +91,20 @@ describe("isSavingsEntry", () => {
     expect(isSavingsEntry({ kind: undefined, category: "SAVINGS" })).toBe(true);
     expect(isSavingsEntry({ kind: "income", category: "Savings" })).toBe(false);
     expect(isSavingsEntry({ kind: "expense", category: "Emergency fund" })).toBe(false);
+  });
+});
+
+describe("cleanWorldName", () => {
+  it("trims, caps in whole characters, and never stores a blank", () => {
+    expect(cleanWorldName("  Hoshi's Garden ")).toBe("Hoshi's Garden");
+    expect(cleanWorldName("   ")).toBe("My World");
+    const long = "a".repeat(WORLD_NAME_MAX) + " tail";
+    expect(cleanWorldName(long)).toBe("a".repeat(WORLD_NAME_MAX));
+    // 39 letters then an emoji: the emoji (two UTF-16 units) survives whole.
+    const emojiEdge = "b".repeat(WORLD_NAME_MAX - 1) + "🌱x";
+    expect(cleanWorldName(emojiEdge)).toBe("b".repeat(WORLD_NAME_MAX - 1) + "🌱");
+    // A space landing on the cut is not kept as a trailing space.
+    expect(cleanWorldName("c".repeat(WORLD_NAME_MAX - 1) + " d")).toBe("c".repeat(WORLD_NAME_MAX - 1));
   });
 });
 

@@ -1,8 +1,9 @@
 "use client";
 
 import { useId } from "react";
-import { sparklesFor, type SceneState } from "@/lib/scene";
-import { MOOD_LABEL, SproutFigure } from "./sprout";
+import { avatarLabel, sparklesFor, type SceneState } from "@/lib/scene";
+import { AvatarFigure, MOOD_LABEL } from "./avatar-figure";
+import { RoomDecor } from "./room-decor";
 import { Sparkles } from "./sparkles";
 
 type RoomSceneProps = {
@@ -32,7 +33,7 @@ export function RoomScene({ state, burstKey = 0 }: RoomSceneProps) {
     <svg
       viewBox="0 0 320 240"
       role="group"
-      aria-label={`${night ? "Your room at night" : "Your room"}. Your sprout is ${MOOD_LABEL[state.mood]}.`}
+      aria-label={`${night ? "Your room at night" : "Your room"}. Your ${avatarLabel(state.avatar)} is ${MOOD_LABEL[state.mood]}.`}
       className="block w-full h-auto rounded-2xl border border-white/10 select-none"
     >
       <defs>
@@ -156,14 +157,17 @@ export function RoomScene({ state, burstKey = 0 }: RoomSceneProps) {
         <circle cx="189" cy="170" r="9" fill="#8FAE82" />
       </g>
 
+      {/* what the level has added */}
+      <RoomDecor unlocked={state.unlocked} night={night} />
+
       {/* night dims the room, lamp light excepted */}
       {night && <rect x="0" y="0" width="320" height="240" fill="#1F1B3A" opacity="0.18" />}
 
-      {/* The sprout, feet on the rug. Keyed by the burst so a repeated
+      {/* The avatar, feet on the rug. Keyed by the burst so a repeated
           reaction remounts it and its hop plays again. */}
       <g key={burstKey} transform={`translate(${AVATAR_X} ${AVATAR_Y})`}>
         <ellipse cx="32" cy="72" rx="20" ry="4" fill="#000" opacity="0.12" />
-        <SproutFigure mood={state.mood} />
+        <AvatarFigure avatar={state.avatar} mood={state.mood} />
       </g>
       {sparklesFor(state.mood) && <Sparkles key={burstKey} cx={AVATAR_X + 32} cy={AVATAR_Y + 40} />}
     </svg>

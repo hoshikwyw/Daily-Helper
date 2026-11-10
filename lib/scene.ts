@@ -1,10 +1,29 @@
 import type { GameCategory } from "@/lib/game";
+import type { UnlockKey } from "@/lib/unlocks";
 
-// Pure state for the My World room: what time it is, what the avatar is
-// doing, and which reaction a reward should play. The components only draw
-// this; nothing here knows about React or the DOM.
+// Pure state for the My World room: what time it is, who lives there, what
+// the avatar is doing, and which reaction a reward should play. The
+// components only draw this; nothing here knows about React or the DOM.
 
-export type AvatarId = "sprout";
+/** The starter avatars. The id is what game_profiles stores. */
+export type AvatarId = "sprout" | "bloom" | "shroom";
+
+export const AVATARS: { id: AvatarId; label: string; blurb: string }[] = [
+  { id: "sprout", label: "Sprout", blurb: "A seedling with two leaves. Steady and green." },
+  { id: "bloom", label: "Bloom", blurb: "A flower bud that opens as the days add up." },
+  { id: "shroom", label: "Shroom", blurb: "A small mushroom, happiest in a quiet room." },
+];
+
+export const DEFAULT_AVATAR: AvatarId = "sprout";
+
+/** The stored id, or the default for anything this build does not draw. */
+export function toAvatarId(value: string | null | undefined): AvatarId {
+  return AVATARS.some((a) => a.id === value) ? (value as AvatarId) : DEFAULT_AVATAR;
+}
+
+export function avatarLabel(id: AvatarId): string {
+  return AVATARS.find((a) => a.id === id)?.label ?? "Sprout";
+}
 
 /** What the avatar is doing. Reactions return to the resting mood on their own. */
 export type AvatarMood = "idle" | "happy" | "celebrate" | "reading" | "exercise" | "sleep";
@@ -15,8 +34,8 @@ export type SceneState = {
   avatar: AvatarId;
   mood: AvatarMood;
   timeOfDay: TimeOfDay;
-  /** Keys of unlocked decorations; empty until unlocks exist. */
-  unlocked: string[];
+  /** Decorations the room shows; see lib/unlocks.ts. */
+  unlocked: UnlockKey[];
 };
 
 /** Night from 21:00 to 05:59 local time; the avatar sleeps then. */
@@ -26,12 +45,15 @@ export function timeOfDayAt(now: Date): TimeOfDay {
 }
 
 /** The resting scene for a time of day, before any reward plays. */
-export function restingScene(timeOfDay: TimeOfDay): SceneState {
+export function restingScene(
+  timeOfDay: TimeOfDay,
+  options: { avatar?: AvatarId; unlocked?: UnlockKey[] } = {}
+): SceneState {
   return {
-    avatar: "sprout",
+    avatar: options.avatar ?? DEFAULT_AVATAR,
     mood: timeOfDay === "night" ? "sleep" : "idle",
     timeOfDay,
-    unlocked: [],
+    unlocked: options.unlocked ?? [],
   };
 }
 

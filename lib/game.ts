@@ -120,6 +120,16 @@ export function describeReward(reward: Pick<GameReward, "source_type" | "note" |
   }
 }
 
+/** The longest world name stored; the dialog and the database agree on it. */
+export const WORLD_NAME_MAX = 40;
+export const DEFAULT_WORLD_NAME = "My World";
+
+/** A name cut to the limit in whole characters, so an emoji is never split; blank becomes the default. */
+export function cleanWorldName(name: string): string {
+  const cut = Array.from(name.trim()).slice(0, WORLD_NAME_MAX).join("").trim();
+  return cut || DEFAULT_WORLD_NAME;
+}
+
 /** Percent of the current level completed, clamped to 0–100 for a bar. */
 export function levelPercent(info: LevelInfo): number {
   return Math.min(100, Math.max(0, progressPercent(info.intoLevel, info.needed)));

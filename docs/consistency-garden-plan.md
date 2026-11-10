@@ -256,3 +256,11 @@ then a commit message for the owner to commit.
 Also decided: XP totals are a view over reward events, never a stored counter; triggers
 are the only writer of rewards; level is a pure TypeScript function with boundary tests;
 no daily caps, no negative XP, no streak requirement in MVP.
+
+Decided in part 5 (2026-11-10): unlocks and achievements are **derived, not stored**,
+reversing the "two more small tables" note in §3. A level is a function of XP, so what the
+level unlocks is too (`lib/unlocks.ts`); the first achievements are thresholds on the
+category totals (`lib/achievements.ts`). Nothing to write, nothing to forge, nothing to
+drift. The page remembers in `localStorage` which achievements it has announced, which
+is the only state. `game_profiles` (migration 009) stores the one real choice: avatar and
+world name.

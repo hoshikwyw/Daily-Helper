@@ -169,6 +169,22 @@ export type GameReward = {
   created_at: string;
 };
 
+/** What a person chose about their world. Absent row = these defaults. */
+export type GameProfileRow = {
+  user_id: string;
+  /** An id from lib/scene.ts AVATARS; unknown ids draw as the sprout. */
+  avatar_id: string;
+  world_name: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type GameProfileInsert = {
+  user_id: string;
+  avatar_id?: string;
+  world_name?: string;
+};
+
 /** A row of the game_progress view: one per person who has any reward. */
 export type GameProgressRow = {
   user_id: string;
@@ -387,6 +403,12 @@ export interface Database {
         // Written by triggers only; the app never inserts.
         Insert: never;
         Update: never;
+        Relationships: [];
+      };
+      game_profiles: {
+        Row: GameProfileRow;
+        Insert: GameProfileInsert;
+        Update: Partial<GameProfileInsert>;
         Relationships: [];
       };
     };

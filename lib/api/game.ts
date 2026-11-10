@@ -1,15 +1,18 @@
 import { toast } from "@kwyw/kayv-glass-ui";
 import { supabase } from "@/lib/supabase";
-import { getUserId, isSchemaError, reportError } from "@/lib/db";
-import { EMPTY_PROGRESS, GAME_CATEGORIES, type GameProgress } from "@/lib/game";
+import { getUserId, isSchemaError, reportError, reportSchemaError } from "@/lib/db";
+import { DEFAULT_WORLD_NAME, EMPTY_PROGRESS, GAME_CATEGORIES, cleanWorldName, type GameProgress } from "@/lib/game";
 import { emitReward } from "@/lib/game-events";
+import { DEFAULT_AVATAR, toAvatarId, type AvatarId } from "@/lib/scene";
 import type { GameReward } from "@/lib/types";
 
-// Reads for My World. There are no writes to rewards here on purpose: the
-// database awards XP through triggers, and the browser only asks what it got.
+// Reads for My World, plus the one write a person can make: who lives in
+// their world and what it is called. There are no writes to rewards here on
+// purpose: the database awards XP through triggers, and the browser only
+// asks what it got.
 
-// Set once a read shows migration 007 is missing, so the follow-up query after
-// every habit check is skipped instead of failing quietly each time.
+// Set once a read shows a game migration is missing, so the follow-up query
+// after every habit check is skipped instead of failing quietly each time.
 let schemaMissing = false;
 
 export type ProgressResult =
@@ -35,6 +38,58 @@ export async function getProgress(): Promise<ProgressResult> {
   }
   schemaMissing = false;
   return { ok: true, progress: data ?? EMPTY_PROGRESS };
+}
+
+/** What a person chose: a starter avatar and a name for the world. */
+export type GameProfile = {
+  avatar_id: AvatarId;
+  world_name: string;
+};
+
+export const DEFAULT_PROFILE: GameProfile = { avatar_id: DEFAULT_AVATAR, world_name: DEFAULT_WORLD_NAME };
+
+export type ProfileResult =
+  | { ok: true; profile: GameProfile }
+  | { ok: false; reason: "schema" | "error" };
+
+/**
+ * This user's choices, or the defaults before they have made any. Leaves
+ * `schemaMissing` alone: that flag is about rewards, which keep working
+ * without this table.
+ */
+export async function getProfile(): Promise<ProfileResult> {
+  const user_id = await getUserId();
+  if (!user_id) return { ok: false, reason: "error" };
+  const { data, error } = await supabase
+    .from("game_profiles")
+    .select("avatar_id, world_name")
+    .eq("user_id", user_id)
+    .maybeSingle();
+  if (error) {
+    if (isSchemaError(error)) return { ok: false, reason: "schema" };
+    reportError(error);
+    return { ok: false, reason: "error" };
+  }
+  if (!data) return { ok: true, profile: DEFAULT_PROFILE };
+  return { ok: true, profile: { avatar_id: toAvatarId(data.avatar_id), world_name: data.world_name } };
+}
+
+/** Saves both choices; the row is made on first save. Null on failure, with a toast. */
+export async function saveProfile(profile: GameProfile): Promise<GameProfile | null> {
+  const user_id = await getUserId();
+  if (!user_id) {
+    toast({ title: "Not signed in", description: "Sign in again to save your world.", variant: "danger" });
+    return null;
+  }
+  const world_name = cleanWorldName(profile.world_name);
+  const { data, error } = await supabase
+    .from("game_profiles")
+    .upsert({ user_id, avatar_id: profile.avatar_id, world_name }, { onConflict: "user_id" })
+    .select("avatar_id, world_name")
+    .single();
+  if (reportSchemaError(error)) return null;
+  if (!data) return null;
+  return { avatar_id: toAvatarId(data.avatar_id), world_name: data.world_name };
 }
 
 /** The newest rewards, for the history list. Quiet on a missing migration. */

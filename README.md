@@ -54,7 +54,7 @@ To add another admin, insert their email into `admins`.
 
 ### My World
 
-A cozy room and a sprout character that grow with what you actually do. Open it from
+A cozy room and a small character that grow with what you actually do. Open it from
 the 🌱 item in the navigation or the card on Today.
 
 - **XP is awarded by the database, never by the app.** Triggers on `habit_checks`,
@@ -70,13 +70,17 @@ the 🌱 item in the navigation or the card on Today.
   not earn; only one you add yourself does. The triggers never read, change, or
   delete a task or money row; a reward is a separate row that outlives its source.
 - **Level** is a pure function of total XP in `lib/game.ts` (100 XP for level 2, then 25
-  more each level) and is not stored anywhere.
-- The room and sprout are original SVG drawn in code (see `ASSET_CREDITS.md`); the
-  sprout sleeps from 21:00 to 06:00 and reacts to new rewards. All motion honours the
+  more each level) and is not stored anywhere. So are the room decorations that appear
+  at levels 2, 3, and 5 (`lib/unlocks.ts`) and the achievements (`lib/achievements.ts`):
+  all derived from the totals, nothing to store or forge.
+- **Customise** on the page picks one of three starter avatars and names the world. That
+  is the only thing the app writes, to `game_profiles`, one row per person.
+- The room and avatars are original SVG drawn in code (see `ASSET_CREDITS.md`); the
+  avatar sleeps from 21:00 to 06:00 and reacts to new rewards. All motion honours the
   system reduced-motion setting.
 
-Existing projects need `supabase/migrations/007_game.sql` and `008_game_tasks_savings.sql`
-applied once, in order.
+Existing projects need `supabase/migrations/007_game.sql`, `008_game_tasks_savings.sql`,
+and `009_game_profiles.sql` applied once, in order.
 
 ### Weekly review
 
