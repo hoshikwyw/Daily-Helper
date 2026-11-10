@@ -2,6 +2,8 @@ import type { PostgrestError } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { getUserId, reportError, reportSchemaError } from "@/lib/db";
 import { normalizeKind } from "@/lib/expenses";
+import { announceReward } from "@/lib/api/game";
+import { isSavingsEntry } from "@/lib/game";
 import type { CustomCategory, EntryKind, Expense } from "@/lib/types";
 
 // Data access for the `expenses` and `expense_categories` tables. A row in
@@ -73,6 +75,8 @@ export async function createExpense(input: NewExpense): Promise<Expense | null> 
     .select()
     .single();
   if (reportWriteError(error)) return null;
+  // Money set aside may have earned Savings XP; say so if it did.
+  if (data && isSavingsEntry(data)) void announceReward("expense", data.id, data.created_at);
   return data ? normalizeEntry(data) : null;
 }
 
@@ -121,5 +125,9 @@ export async function updateExpense(id: string, patch: Partial<NewExpense>): Pro
     .select()
     .single();
   if (reportWriteError(error)) return null;
+  // An entry edited into Savings earns once; the trigger keys on the entry id
+  // and only fires when kind or category changed.
+  const retagged = "kind" in patch || "category" in patch;
+  if (retagged && data && isSavingsEntry(data)) void announceReward("expense", data.id, data.updated_at);
   return data ? normalizeEntry(data) : null;
 }

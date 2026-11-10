@@ -6,6 +6,7 @@ import {
   XP_BY_CATEGORY,
   categoryXp,
   describeReward,
+  isSavingsEntry,
   levelFromXp,
   levelPercent,
   xpToNextLevel,
@@ -78,6 +79,16 @@ describe("describeReward", () => {
     expect(describeReward({ source_type: "habit_check", note: null, category: "fitness" })).toBe("Fitness habit");
     expect(describeReward({ source_type: "task", note: null, category: "general" })).toBe("Task finished");
     expect(describeReward({ source_type: "expense", note: null, category: "savings" })).toBe("Savings entry");
+  });
+});
+
+describe("isSavingsEntry", () => {
+  it("is an expense filed under Savings, however it is typed", () => {
+    expect(isSavingsEntry({ kind: "expense", category: "Savings" })).toBe(true);
+    expect(isSavingsEntry({ kind: "expense", category: "  savings " })).toBe(true);
+    expect(isSavingsEntry({ kind: undefined, category: "SAVINGS" })).toBe(true);
+    expect(isSavingsEntry({ kind: "income", category: "Savings" })).toBe(false);
+    expect(isSavingsEntry({ kind: "expense", category: "Emergency fund" })).toBe(false);
   });
 });
 

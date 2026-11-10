@@ -140,6 +140,13 @@ describe("category colours", () => {
     mergeCategories([{ kind: "income", name: "Bonus", color: "#123456" }])
   );
 
+  it("shows a category once when a custom one repeats a built-in name", () => {
+    const merged = mergeCategories([{ kind: "expense", name: "savings", color: "#000000" }]);
+    const savings = merged.expense.filter((c) => c.name.toLowerCase() === "savings");
+    expect(savings).toHaveLength(1);
+    expect(savings[0].color).not.toBe("#000000");
+  });
+
   it("keeps the two ledgers' categories apart", () => {
     // "Other" exists on both sides; a flat name->colour map would collide.
     expect(categoryColor(colorMap, "expense", "Other")).toBe("#64748b");

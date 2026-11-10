@@ -57,20 +57,26 @@ To add another admin, insert their email into `admins`.
 A cozy room and a sprout character that grow with what you actually do. Open it from
 the 🌱 item in the navigation or the card on Today.
 
-- **XP is awarded by the database, never by the app.** A trigger on `habit_checks`
-  writes one row into `game_rewards` per habit per day, keyed by the real event, so a
-  retry, an uncheck and re-check, or a refresh can never award twice. The browser can
+- **XP is awarded by the database, never by the app.** Triggers on `habit_checks`,
+  `tasks`, and `expenses` write one row into `game_rewards` per real event (a habit on
+  a day, a task reaching done, a money entry filed under Savings), so a retry, an
+  uncheck and re-check, a reopened task, or a refresh can never award twice. The browser can
   only read rewards; totals come from the `game_progress` view, so nothing drifts.
   Nothing is ever taken away: unchecking removes the check, not the reward.
-- **Categories.** Mark a habit as Learning (10 XP), Fitness (15 XP), or Everyday (5 XP)
-  in Manage habits. Savings and tasks follow in a later migration.
+- **What earns what.** A habit marked Learning is 10 XP, Fitness 15 XP, Everyday 5 XP
+  (set in Manage habits). A finished task is 5 XP. A money entry in the **Savings**
+  expense category is 10 XP, fixed, whatever the amount: money set aside is an outflow
+  there, so "Money left" means free to spend. Entries created by a recurring rule do
+  not earn; only one you add yourself does. The triggers never read, change, or
+  delete a task or money row; a reward is a separate row that outlives its source.
 - **Level** is a pure function of total XP in `lib/game.ts` (100 XP for level 2, then 25
   more each level) and is not stored anywhere.
 - The room and sprout are original SVG drawn in code (see `ASSET_CREDITS.md`); the
   sprout sleeps from 21:00 to 06:00 and reacts to new rewards. All motion honours the
   system reduced-motion setting.
 
-Existing projects need `supabase/migrations/007_game.sql` applied once.
+Existing projects need `supabase/migrations/007_game.sql` and `008_game_tasks_savings.sql`
+applied once, in order.
 
 ### Weekly review
 

@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { getUserId, reportError } from "@/lib/db";
+import { announceReward } from "@/lib/api/game";
 import type { Task, TaskPriority, TaskStatus } from "@/lib/types";
 
 // Data access for the `tasks` table. Pages call these instead of touching
@@ -100,8 +101,15 @@ export async function setTaskStatus(
     status,
     completed_at: status === "done" ? new Date().toISOString() : null,
   };
-  const { error } = await supabase.from("tasks").update(patch).eq("id", id);
+  const { data, error } = await supabase
+    .from("tasks")
+    .update(patch)
+    .eq("id", id)
+    .select("updated_at")
+    .maybeSingle();
   if (reportError(error)) return null;
+  // The database may have awarded XP for finishing it; say so if it did.
+  if (status === "done" && data) void announceReward("task", id, data.updated_at);
   return patch;
 }
 
@@ -127,5 +135,6 @@ export async function updateTask(id: string, patch: Partial<NewTask>): Promise<T
     .select()
     .single();
   if (reportError(error)) return null;
+  if (patch.status === "done" && data) void announceReward("task", id, data.updated_at);
   return data;
 }

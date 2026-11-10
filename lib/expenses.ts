@@ -1,3 +1,4 @@
+import { SAVINGS_CATEGORY } from "@/lib/game";
 import type { EntryKind, Expense } from "@/lib/types";
 
 // Domain helpers and constants for the money tracker. Pure functions live here
@@ -12,6 +13,9 @@ const DEFAULT_EXPENSE_CATEGORIES: { name: string; color: string }[] = [
   { name: "Utilities", color: "#6366f1" },
   { name: "Education", color: "#f59e0b" },
   { name: "Housing", color: "#ef4444" },
+  // Money set aside. An outflow here, so "Money left" means free to spend;
+  // it is also what earns Savings XP in My World.
+  { name: SAVINGS_CATEGORY, color: "#84a98c" },
   { name: "Other", color: "#64748b" },
 ];
 
@@ -154,16 +158,23 @@ export function savingsRate(totals: Totals): number {
  */
 export type ColorMap = Record<EntryKind, Record<string, string>>;
 
-/** Built-in categories plus the user's own, split per ledger. */
+/**
+ * Built-in categories plus the user's own, split per ledger. A custom
+ * category that shares a built-in's name (a "Savings" made before it became
+ * built in) is dropped rather than shown twice; the built-in one wins.
+ */
 export function mergeCategories(
   custom: { kind: EntryKind; name: string; color: string }[]
 ): Record<EntryKind, { name: string; color: string }[]> {
-  const forKind = (kind: EntryKind) => [
-    ...DEFAULT_CATEGORIES[kind],
-    ...custom
-      .filter((c) => normalizeKind(c.kind) === kind)
-      .map((c) => ({ name: c.name, color: c.color })),
-  ];
+  const forKind = (kind: EntryKind) => {
+    const taken = new Set(DEFAULT_CATEGORIES[kind].map((c) => c.name.toLowerCase()));
+    return [
+      ...DEFAULT_CATEGORIES[kind],
+      ...custom
+        .filter((c) => normalizeKind(c.kind) === kind && !taken.has(c.name.trim().toLowerCase()))
+        .map((c) => ({ name: c.name, color: c.color })),
+    ];
+  };
   return { expense: forKind("expense"), income: forKind("income") };
 }
 

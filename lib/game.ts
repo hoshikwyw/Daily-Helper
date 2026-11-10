@@ -30,6 +30,17 @@ export const HABIT_CATEGORIES = HABIT_CATEGORY_ORDER.map((value) => {
   return { value, label: c.label, emoji: c.emoji };
 });
 
+/** The expense category that counts as money set aside. Matched case-insensitively, as the trigger does. */
+export const SAVINGS_CATEGORY = "Savings";
+
+/** Whether a money entry is a savings contribution: an outflow filed under Savings. */
+export function isSavingsEntry(entry: { kind: string | null | undefined; category: string }): boolean {
+  return (
+    (entry.kind ?? "expense") === "expense" &&
+    entry.category.trim().toLowerCase() === SAVINGS_CATEGORY.toLowerCase()
+  );
+}
+
 /** XP for one validated event in each category. Fixed; never scaled by amounts. */
 export const XP_BY_CATEGORY: Record<GameCategory, number> = {
   learning: 10,

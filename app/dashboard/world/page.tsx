@@ -116,7 +116,7 @@ export default function WorldPage() {
           )}
           {connected && progress.total_xp === 0 && (
             <Alert variant="info">
-              Your sprout is settling in. Check a habit on Today and watch what happens.
+              Your sprout is settling in. Finish a task or check a habit and watch what happens.
             </Alert>
           )}
         </div>
