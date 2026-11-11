@@ -114,6 +114,19 @@ the Today page leads with the tightest budget. The maths lives in
 
 Existing projects need `supabase/migrations/003_budgets.sql` applied once.
 
+### Savings goals
+
+The **Savings** tab on Money names things to save for: a target, an icon, and
+optionally a date. A contribution is an ordinary entry in the **Savings** expense
+category with a goal picked in the form (or **+ Add money** on the goal, which
+presets it), so the ledger stays the one record of what moved and "Money left"
+still means free to spend. With a date, each goal says what every remaining month
+needs. Reaching one shows a toast and a Reached badge; deleting one keeps its
+entries as savings with no goal. Savings entries earn My World XP exactly as
+before, goal or not. The maths lives in `lib/savings-goals.ts`, with tests.
+
+Existing projects need `supabase/migrations/010_savings_goals.sql` applied once.
+
 ### Recurring entries and tasks
 
 Any money entry or task can repeat daily, on weekdays, weekly, monthly, yearly,

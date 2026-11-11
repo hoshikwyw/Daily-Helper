@@ -36,6 +36,8 @@ export type NewExpense = {
   category: string;
   description?: string | null;
   date: string;
+  /** The savings goal a Savings expense feeds; omitted or null for none. */
+  goal_id?: string | null;
 };
 
 /**

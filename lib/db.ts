@@ -26,7 +26,7 @@ export function reportError(error: PostgrestError | null, title = "Error"): bool
 }
 
 /** The newest file in supabase/migrations; the "database needs updating" toast names it. */
-export const LATEST_MIGRATION = "009_game_profiles.sql";
+export const LATEST_MIGRATION = "010_savings_goals.sql";
 
 // Codes that mean the database is behind the app, i.e. a migration in
 // supabase/migrations has not been applied yet:

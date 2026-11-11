@@ -12,6 +12,12 @@ import {
 import { createRecurrence } from "@/lib/api/recurrences";
 import { describeSchedule, firstOccurrence, type Schedule } from "@/lib/recurrence";
 import { useBudgets } from "@/hooks/use-budgets";
+import { useSavingsGoals } from "@/hooks/use-savings-goals";
+import { goalProgress, goalsProgress, totalSaved, unassignedSavings } from "@/lib/savings-goals";
+import { SAVINGS_CATEGORY } from "@/lib/game";
+import type { NewGoal } from "@/lib/api/savings-goals";
+import { SavingsTab } from "./_components/savings-tab";
+import { GoalModal } from "./_components/goal-modal";
 import { useExpenseCategories } from "@/hooks/use-expense-categories";
 import { useExpenseYear } from "@/hooks/use-expense-year";
 import { budgetProgress, effectiveBudgets } from "@/lib/budgets";
@@ -49,7 +55,7 @@ import { MonthlyTab } from "./_components/monthly-tab";
 import { YearlyTab } from "./_components/yearly-tab";
 import { AddEntryModal } from "./_components/add-entry-modal";
 import { ManageCategoriesModal } from "./_components/manage-categories-modal";
-import type { EntryKind, Expense } from "@/lib/types";
+import type { EntryKind, Expense, SavingsGoal } from "@/lib/types";
 
 export default function ExpensesPage() {
   const today = new Date();
@@ -78,14 +84,26 @@ export default function ExpensesPage() {
   const [showManageCategories, setShowManageCategories] = useState(false);
   const [showRecurring, setShowRecurring] = useState(false);
   const [showBudgets, setShowBudgets] = useState(false);
+  // Savings goals: the form for one, and the preset "Add money" gives the entry form.
+  const [showGoal, setShowGoal] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
+  const [entryPreset, setEntryPreset] = useState<{ category: string; goal_id: string | null } | null>(null);
   // One spending category in focus on the Monthly and Yearly tabs; shared so
   // the choice survives switching between them.
   const [category, setCategory] = useState<string | null>(null);
   // December of the previous year, fetched only when January is in focus
   // with a category: it is the one comparison month the loaded year lacks.
   const [december, setDecember] = useState<{ year: number; rows: Expense[] } | null>(null);
-  const { sync } = useRecurrenceSync();
+  const { sync, version: syncVersion } = useRecurrenceSync();
   const { budgets, saveBudget } = useBudgets();
+  const savings = useSavingsGoals();
+  const refreshSavings = savings.refresh;
+
+  // The recurrence sync can insert Savings entries at any time (on mount, or
+  // after a repeat is set up); the goal totals follow it.
+  useEffect(() => {
+    void refreshSavings();
+  }, [syncVersion, refreshSavings]);
 
   // Each tab can land on a year outside the currently-loaded one — the daily
   // calendar by flipping months, the others via their year pickers. Syncing
@@ -142,7 +160,21 @@ export default function ExpensesPage() {
       title: created.kind === "income" ? "Income added" : "Expense added",
       variant: "success",
     });
+    await announceGoalReached(created);
     return true;
+  }
+
+  // A contribution that takes its goal over the line gets its own moment.
+  // Judged on the re-read list, so two quick contributions count in order.
+  async function announceGoalReached(entry: Expense) {
+    const fresh = await savings.refresh();
+    const goal = entry.goal_id ? savings.goals.find((g) => g.id === entry.goal_id) : null;
+    if (!goal) return;
+    const before = goalProgress(goal, fresh.filter((e) => e.id !== entry.id), todayISO());
+    const after = goalProgress(goal, fresh, todayISO());
+    if (!before.reached && after.reached) {
+      toast({ title: `${goal.emoji} Goal reached`, description: `${goal.name} is fully funded.`, variant: "success" });
+    }
   }
 
   function openEdit(entry: Expense) {
@@ -153,6 +185,36 @@ export default function ExpensesPage() {
   function closeEntryForm() {
     setShowCreate(false);
     setEditingEntry(null);
+    setEntryPreset(null);
+  }
+
+  function openContribution(goal: SavingsGoal) {
+    setEntryPreset({ category: SAVINGS_CATEGORY, goal_id: goal.id });
+    setShowCreate(true);
+  }
+
+  async function handleCreateGoal(values: NewGoal): Promise<boolean> {
+    if (!(await savings.addGoal(values))) return false;
+    toast({ title: "Goal created", variant: "success" });
+    return true;
+  }
+
+  async function handleUpdateGoal(id: string, values: NewGoal): Promise<boolean> {
+    if (!(await savings.editGoal(id, values))) return false;
+    toast({ title: "Goal updated", variant: "success" });
+    return true;
+  }
+
+  async function handleDeleteGoal(goal: SavingsGoal) {
+    if (!(await savings.removeGoal(goal.id))) return;
+    // The database unlinked its entries; the loaded year must agree, or an
+    // edit of one would resend the dead id.
+    for (const e of entries) if (e.goal_id === goal.id) replaceEntry({ ...e, goal_id: null });
+    toast({
+      title: "Goal deleted",
+      description: "Its entries stay in the ledger as savings with no goal.",
+      variant: "warning",
+    });
   }
 
   async function handleUpdateEntry(id: string, values: NewExpense): Promise<boolean> {
@@ -160,6 +222,7 @@ export default function ExpensesPage() {
     if (!updated) return false;
     replaceEntry(updated);
     toast({ title: "Entry updated", variant: "success" });
+    await announceGoalReached(updated);
     return true;
   }
 
@@ -167,6 +230,7 @@ export default function ExpensesPage() {
     if (!(await deleteExpense(id))) return;
     removeEntry(id);
     toast({ title: "Entry deleted", variant: "warning" });
+    void savings.refresh();
   }
 
   async function handleAddCategory(
@@ -305,6 +369,11 @@ export default function ExpensesPage() {
     [entries, selectedYear]
   );
 
+  const goalRows = useMemo(
+    () => goalsProgress(savings.goals, savings.entries, todayISO()),
+    [savings.goals, savings.entries]
+  );
+
   // Two years either side of today, plus whichever years are currently picked:
   // the Monthly calendar can flip past the window, and a Select whose value
   // is not among its options renders blank.
@@ -343,6 +412,7 @@ export default function ExpensesPage() {
             <Tab value="daily">Daily</Tab>
             <Tab value="monthly">Monthly</Tab>
             <Tab value="yearly">Yearly</Tab>
+            <Tab value="savings">Savings</Tab>
           </TabList>
 
           <TabPanels>
@@ -423,6 +493,25 @@ export default function ExpensesPage() {
                 }
               />
             </TabPanel>
+
+            <TabPanel value="savings">
+              <SavingsTab
+                status={savings.status}
+                goals={goalRows}
+                totalSaved={totalSaved(savings.entries)}
+                unassigned={unassignedSavings(savings.entries)}
+                onNewGoal={() => {
+                  setEditingGoal(null);
+                  setShowGoal(true);
+                }}
+                onEditGoal={(goal) => {
+                  setEditingGoal(goal);
+                  setShowGoal(true);
+                }}
+                onDeleteGoal={handleDeleteGoal}
+                onContribute={openContribution}
+              />
+            </TabPanel>
           </TabPanels>
         </Tabs>
       </div>
@@ -436,7 +525,18 @@ export default function ExpensesPage() {
         // Monthly or Yearly tab the natural default is today.
         defaultDate={activeTab === "daily" ? selectedDate : todayISO()}
         categories={allCategories}
+        goals={savings.goals}
+        goalsReady={savings.status === "ready"}
+        preset={entryPreset}
         onSubmit={handleCreateEntry}
+      />
+
+      <GoalModal
+        open={showGoal}
+        onClose={() => setShowGoal(false)}
+        editing={editingGoal}
+        onSubmit={handleCreateGoal}
+        onUpdate={handleUpdateGoal}
       />
 
       <SetBudgetsModal

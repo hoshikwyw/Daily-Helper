@@ -80,6 +80,21 @@ export type Expense = {
   date: string;
   /** The rule that created this entry, or null when it was added by hand. */
   recurrence_id: string | null;
+  /** The savings goal this Savings entry feeds, or null. */
+  goal_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** Something to save toward. Progress is the sum of the entries linked to it. */
+export type SavingsGoal = {
+  id: string;
+  user_id: string;
+  name: string;
+  emoji: string;
+  target: number;
+  /** `YYYY-MM-DD`, or null for no date. */
+  deadline: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -270,6 +285,15 @@ type ExpenseInsert = {
   description?: string | null;
   date?: string;
   recurrence_id?: string | null;
+  goal_id?: string | null;
+};
+
+type SavingsGoalInsert = {
+  user_id: string;
+  name: string;
+  emoji?: string;
+  target: number;
+  deadline?: string | null;
 };
 
 type CategoryInsert = {
@@ -372,6 +396,12 @@ export interface Database {
         Row: Budget;
         Insert: BudgetInsert;
         Update: Partial<BudgetInsert>;
+        Relationships: [];
+      };
+      savings_goals: {
+        Row: SavingsGoal;
+        Insert: SavingsGoalInsert;
+        Update: Partial<SavingsGoalInsert>;
         Relationships: [];
       };
       habits: {
